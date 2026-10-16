@@ -1,0 +1,57 @@
+# Contributing
+
+## Dev loop
+
+```sh
+uv sync                                                        # Python 3.12 and the dev tools
+uv run ruff check src tests scripts && uv run ruff format src tests scripts
+uv run pyright
+uv run pytest -q
+python scripts/loc_budget.py
+```
+
+CI runs the same four jobs (`lint`, `types`, `test`, `loc-budget`) on every PR. They need no secrets and no cloud
+access: tests use synthetic fixtures only.
+
+## The line budget
+
+v0 is deliberately small: at most **1,500** non-blank, non-comment lines under `src/flightdeck/`.
+`scripts/loc_budget.py` prints the count per area and fails above the limit. Code ported from ai-dlc or hangar goes in
+`src/flightdeck/ported/`, which is reported but not counted. If a change needs more room, cut something or argue for a
+higher budget in an ADR; don't move code into `ported/` to dodge the count.
+
+## Never commit team data
+
+The code is public; the team's data is not ([ADR-0002](docs/decisions/0002-public-code-private-data.md)). Never commit
+traces, Parquet files, mined regression tasks, sealed holdout material, gold-set answers, judge labels, or reports
+that quote team code. Fixtures under `tests/fixtures/` are synthetic and built from hangar's documented schemas.
+`tests/test_fixtures_clean.py` rejects fixtures that match the deny-list in `tests/fixtures/deny.txt` (add your
+team's repo-URL and person patterns there).
+
+## Boundary
+
+No sandbox, provider or credential code ([ADR-0001](docs/decisions/0001-boundary-with-hangar.md)).
+`tests/test_boundary.py` rejects imports of sandbox SDKs outside `ported/` and `runners/local`. Read hangar's runs
+only through its versioned interfaces (`hangar.manifest/v1`, `hangar.trace/v1`, `hangar.experiment/v1`) and the
+Parquet data plane, never hangar's database or data directory.
+
+## Adding a behavior spec
+
+Behavior specs are YAML predicates over `hangar.trace/v1` (the language lands with the spec-language issue). Public
+examples go in `specs/`; team specs live in the private data repository. Specs that need proof of testing match
+trusted `test.run` events, not the agent's own shell `test` op. Loosening or deleting a check needs a second reviewer.
+
+## Adding a task
+
+Public smoke tasks go in `tasks/smoke/<id>/` in the Harbor-compatible layout (`task.toml`, `instruction.md`,
+`environment/`, `tests/`). Mined and sealed tasks never go here.
+
+## Decisions (ADRs)
+
+Copy [docs/decisions/0000-template.md](docs/decisions/0000-template.md) to the next number, open a PR, and get a
+review from someone who isn't the author. An ADR may carry a `checks:` block of trace predicates that flightdeck runs
+nightly.
+
+## Commits
+
+Conventional commit prefixes (`feat:`, `fix:`, `docs:`, `build:`, `test:`, `refactor:`, `chore:`). Squash merge.

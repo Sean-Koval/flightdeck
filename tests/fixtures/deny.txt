@@ -1,0 +1,7 @@
+# Patterns (Python regular expressions, one per line) that must never appear in a test fixture: team repository URLs,
+# person names, internal hostnames. Fixtures are synthetic (docs/decisions/0002-public-code-private-data.md).
+# Add the team's patterns here; keep this file free of anything that is itself private.
+-----BEGIN [A-Z ]*PRIVATE KEY-----
+\bgh[pousr]_[A-Za-z0-9]{36}\b
+\bsk-ant-[A-Za-z0-9_-]{20,}
+\bAKIA[0-9A-Z]{16}\b
