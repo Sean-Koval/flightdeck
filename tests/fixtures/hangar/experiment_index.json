@@ -1,0 +1,435 @@
+{
+ "schema": "hangar.experiment/v1",
+ "id": "job-exp01",
+ "name": "skills-ab",
+ "state": "succeeded",
+ "reason": null,
+ "requester": "dev-a",
+ "person": "dev-a",
+ "created_at": 1760599990.0,
+ "finished_at": 1760601000.0,
+ "spec": {
+  "name": "skills-ab",
+  "trials": 2
+ },
+ "pins": {
+  "variants": {
+   "control": {
+    "environment": "plain",
+    "harness": "claude-code",
+    "harness_version": "2.3.1",
+    "model": "claude-sonnet-5",
+    "model_policy": null,
+    "approvals": "auto",
+    "skills": null
+   },
+   "treat": {
+    "environment": "plain",
+    "harness": "claude-code",
+    "harness_version": "2.3.1",
+    "model": "claude-sonnet-5",
+    "model_policy": null,
+    "approvals": "auto",
+    "skills": [
+     "review"
+    ]
+   }
+  },
+  "tasks": {
+   "semver": {
+    "repo": "https://github.com/example/semver.git",
+    "base_branch": "main",
+    "base_sha": "cccccccccccccccccccccccccccccccccccccccc",
+    "issue": null
+   },
+   "retry": {
+    "repo": "https://github.com/example/app.git",
+    "base_branch": "main",
+    "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "issue": null
+   }
+  },
+  "egress": {
+   "plain": "{\"mode\":\"allowlist\"}"
+  },
+  "pinned_at": 1760599995.0
+ },
+ "counts": {
+  "done": 6,
+  "cancelled": 1
+ },
+ "trials": [
+  {
+   "key": "semver/control/1",
+   "task": "semver",
+   "variant": "control",
+   "trial": 1,
+   "job": "job-semver-control-1",
+   "state": "done",
+   "outcome": "succeeded",
+   "reason": null,
+   "session": "ses-semver-control-1",
+   "started_at": 1760600100.0,
+   "finished_at": 1760600190.0,
+   "turns": 1,
+   "manifests": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+   ],
+   "config_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+   "verify": {
+    "command": "uv run pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "new_failures": [],
+    "tail": null
+   },
+   "tests": null,
+   "usage": {
+    "cost_usd": 0.3,
+    "tokens": 2000,
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "cache_read_tokens": 5000,
+    "model": "claude-sonnet-5"
+   },
+   "grade": {
+    "command": "bash tests/test.sh",
+    "exit_code": 0,
+    "tail": "RESULT {}",
+    "data": {
+     "reward": 1
+    },
+    "applied": true,
+    "seconds": 12.5
+   },
+   "stored": [
+    "trace.json",
+    "manifest.json"
+   ],
+   "drift": [],
+   "links": {
+    "job": "/api/jobs/job-semver-control-1",
+    "manifest": null,
+    "trace": "/api/experiments/job-exp01/trials/semver/control/1/trace"
+   }
+  },
+  {
+   "key": "semver/control/2",
+   "task": "semver",
+   "variant": "control",
+   "trial": 2,
+   "job": "job-semver-control-2",
+   "state": "done",
+   "outcome": "succeeded",
+   "reason": null,
+   "session": "ses-semver-control-2",
+   "started_at": 1760600200.0,
+   "finished_at": 1760600290.0,
+   "turns": 1,
+   "manifests": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+   ],
+   "config_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+   "verify": {
+    "command": "uv run pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "new_failures": [],
+    "tail": null
+   },
+   "tests": null,
+   "usage": {
+    "cost_usd": 0.3,
+    "tokens": 2000,
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "cache_read_tokens": 5000,
+    "model": "claude-sonnet-5"
+   },
+   "grade": {
+    "command": "bash tests/test.sh",
+    "exit_code": 1,
+    "tail": "RESULT {}",
+    "data": {
+     "reward": 0
+    },
+    "applied": true,
+    "seconds": 12.5
+   },
+   "stored": [
+    "trace.json",
+    "manifest.json"
+   ],
+   "drift": [],
+   "links": {
+    "job": "/api/jobs/job-semver-control-2",
+    "manifest": null,
+    "trace": "/api/experiments/job-exp01/trials/semver/control/2/trace"
+   }
+  },
+  {
+   "key": "semver/treat/1",
+   "task": "semver",
+   "variant": "treat",
+   "trial": 1,
+   "job": "job-semver-treat-1",
+   "state": "done",
+   "outcome": "succeeded",
+   "reason": null,
+   "session": "ses-semver-treat-1",
+   "started_at": 1760600100.0,
+   "finished_at": 1760600190.0,
+   "turns": 1,
+   "manifests": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+   ],
+   "config_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+   "verify": {
+    "command": "uv run pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "new_failures": [],
+    "tail": null
+   },
+   "tests": null,
+   "usage": {
+    "cost_usd": 0.3,
+    "tokens": 2000,
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "cache_read_tokens": 5000,
+    "model": "claude-sonnet-5"
+   },
+   "grade": {
+    "command": "bash tests/test.sh",
+    "exit_code": 0,
+    "tail": "RESULT {}",
+    "data": {
+     "reward": 1
+    },
+    "applied": true,
+    "seconds": 12.5
+   },
+   "stored": [
+    "trace.json",
+    "manifest.json"
+   ],
+   "drift": [],
+   "links": {
+    "job": "/api/jobs/job-semver-treat-1",
+    "manifest": null,
+    "trace": "/api/experiments/job-exp01/trials/semver/treat/1/trace"
+   }
+  },
+  {
+   "key": "semver/treat/2",
+   "task": "semver",
+   "variant": "treat",
+   "trial": 2,
+   "job": "job-semver-treat-2",
+   "state": "done",
+   "outcome": "succeeded",
+   "reason": null,
+   "session": "ses-semver-treat-2",
+   "started_at": 1760600200.0,
+   "finished_at": 1760600290.0,
+   "turns": 1,
+   "manifests": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+   ],
+   "config_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+   "verify": {
+    "command": "uv run pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "new_failures": [],
+    "tail": null
+   },
+   "tests": null,
+   "usage": {
+    "cost_usd": 0.3,
+    "tokens": 2000,
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "cache_read_tokens": 5000,
+    "model": "claude-sonnet-5"
+   },
+   "grade": {
+    "command": "bash tests/test.sh",
+    "exit_code": 0,
+    "tail": "RESULT {}",
+    "data": {
+     "reward": 1
+    },
+    "applied": true,
+    "seconds": 12.5
+   },
+   "stored": [
+    "trace.json",
+    "manifest.json"
+   ],
+   "drift": [],
+   "links": {
+    "job": "/api/jobs/job-semver-treat-2",
+    "manifest": null,
+    "trace": "/api/experiments/job-exp01/trials/semver/treat/2/trace"
+   }
+  },
+  {
+   "key": "retry/control/1",
+   "task": "retry",
+   "variant": "control",
+   "trial": 1,
+   "job": "job-retry-control-1",
+   "state": "done",
+   "outcome": "succeeded",
+   "reason": null,
+   "session": "ses-retry-control-1",
+   "started_at": 1760600100.0,
+   "finished_at": 1760600190.0,
+   "turns": 1,
+   "manifests": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+   ],
+   "config_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+   "verify": {
+    "command": "uv run pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "new_failures": [],
+    "tail": null
+   },
+   "tests": null,
+   "usage": {
+    "cost_usd": 0.5,
+    "tokens": 2000,
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "cache_read_tokens": 5000,
+    "model": "claude-sonnet-5"
+   },
+   "grade": {
+    "command": "bash tests/test.sh",
+    "exit_code": 1,
+    "tail": "RESULT {}",
+    "data": {
+     "reward": 0
+    },
+    "applied": true,
+    "seconds": 12.5
+   },
+   "stored": [
+    "trace.json",
+    "manifest.json"
+   ],
+   "drift": [],
+   "links": {
+    "job": "/api/jobs/job-retry-control-1",
+    "manifest": null,
+    "trace": "/api/experiments/job-exp01/trials/retry/control/1/trace"
+   }
+  },
+  {
+   "key": "retry/treat/1",
+   "task": "retry",
+   "variant": "treat",
+   "trial": 1,
+   "job": "job-retry-treat-1",
+   "state": "done",
+   "outcome": "succeeded",
+   "reason": null,
+   "session": "ses-retry-treat-1",
+   "started_at": 1760600100.0,
+   "finished_at": 1760600190.0,
+   "turns": 1,
+   "manifests": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+   ],
+   "config_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+   "verify": {
+    "command": "uv run pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "new_failures": [],
+    "tail": null
+   },
+   "tests": null,
+   "usage": {
+    "cost_usd": 0.4,
+    "tokens": 2000,
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "cache_read_tokens": 5000,
+    "model": "claude-sonnet-5"
+   },
+   "grade": {
+    "command": "bash tests/test.sh",
+    "exit_code": 0,
+    "tail": "RESULT {}",
+    "data": {
+     "reward": 1
+    },
+    "applied": true,
+    "seconds": 12.5
+   },
+   "stored": [
+    "trace.json",
+    "manifest.json"
+   ],
+   "drift": [
+    "its harness configuration differs"
+   ],
+   "links": {
+    "job": "/api/jobs/job-retry-treat-1",
+    "manifest": null,
+    "trace": "/api/experiments/job-exp01/trials/retry/treat/1/trace"
+   }
+  },
+  {
+   "key": "retry/treat/2",
+   "task": "retry",
+   "variant": "treat",
+   "trial": 2,
+   "job": "job-retry-treat-2",
+   "state": "done",
+   "outcome": "cancelled",
+   "reason": "cancelled by dev-a",
+   "session": "ses-retry-treat-2",
+   "started_at": 1760600200.0,
+   "finished_at": 1760600290.0,
+   "turns": 1,
+   "manifests": [
+    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+   ],
+   "config_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+   "verify": {
+    "command": "uv run pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "new_failures": [],
+    "tail": null
+   },
+   "tests": null,
+   "usage": {
+    "cost_usd": 0.3,
+    "tokens": 2000,
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "cache_read_tokens": 5000,
+    "model": "claude-sonnet-5"
+   },
+   "grade": null,
+   "stored": [
+    "trace.json",
+    "manifest.json"
+   ],
+   "drift": [],
+   "links": {
+    "job": "/api/jobs/job-retry-treat-2",
+    "manifest": null,
+    "trace": "/api/experiments/job-exp01/trials/retry/treat/2/trace"
+   }
+  }
+ ],
+ "notes": []
+}

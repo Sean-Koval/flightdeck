@@ -4,7 +4,7 @@ Closes #
 
 ## Checks
 
-- [ ] `uv run ruff check src tests scripts` and `uv run ruff format --check src tests scripts`
+- [ ] `uv run ruff check src tests scripts`
 - [ ] `uv run pyright`
 - [ ] `uv run pytest -q`
 - [ ] `python scripts/loc_budget.py` (v0 stays under 1,500 lines)

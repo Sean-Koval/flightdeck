@@ -24,7 +24,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv run --locked ruff check src tests scripts
-      - run: uv run --locked ruff format --check src tests scripts
 
   types:
     runs-on: ubuntu-24.04

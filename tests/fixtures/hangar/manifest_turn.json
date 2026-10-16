@@ -1,0 +1,152 @@
+{
+ "schema": "hangar.manifest/v1",
+ "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+ "config_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+ "captured_at": 1760600010.0,
+ "subject": {
+  "kind": "turn",
+  "session": "job-fixture01",
+  "session_id": "ses-fixture01",
+  "turn": 1,
+  "run_id": "run-j1",
+  "job": "job-fixture01",
+  "person": "dev-a",
+  "sandbox": "sbx-1"
+ },
+ "hangar": {
+  "version": "0.1.0"
+ },
+ "harness": {
+  "name": "claude-code",
+  "version": "2.3.1",
+  "locked": "2.3.1",
+  "pack": "ghcr.io/example/pack@sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "mode": "pack",
+  "live": true
+ },
+ "model": {
+  "id": "claude-sonnet-5",
+  "policy": "balanced",
+  "source": "session",
+  "provider": "anthropic",
+  "cache_ttl": "5m"
+ },
+ "instructions": {
+  "global": {
+   "path": ".claude/CLAUDE.md",
+   "declared": null,
+   "effective": {
+    "bytes": 120,
+    "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+   }
+  },
+  "repo": {
+   "repo": "https://github.com/example/app.git",
+   "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "files": [
+    {
+     "path": "AGENTS.md",
+     "bytes": 900,
+     "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    }
+   ]
+  },
+  "prompt": {
+   "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+   "bytes": 22,
+   "text": "Make the reaper retry.",
+   "source": "job"
+  }
+ },
+ "skills": {
+  "dir": ".claude/skills",
+  "declared": [
+   {
+    "name": "review",
+    "source": "repo",
+    "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "files": 2,
+    "pinned": true
+   }
+  ],
+  "effective": [
+   {
+    "name": "review",
+    "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "files": 2
+   }
+  ]
+ },
+ "mcp_servers": [
+  {
+   "name": "github",
+   "transport": "http",
+   "source": "environment",
+   "url": "https://api.example/mcp",
+   "headers": [
+    "X-Key"
+   ],
+   "tools": null
+  }
+ ],
+ "hooks": [
+  {
+   "event": "Stop",
+   "source": "hangar"
+  }
+ ],
+ "permissions": {
+  "approvals": "ask",
+  "live": true,
+  "harness_permission_checks": "on",
+  "uid_split": true,
+  "hardened": true,
+  "isolation": null
+ },
+ "egress": {
+  "declared": {
+   "mode": "allowlist"
+  },
+  "default": "open",
+  "effective": {
+   "mode": "allowlist",
+   "enforced": true
+  }
+ },
+ "environment": {
+  "name": "plain",
+  "image": "ghcr.io/example/plain:1",
+  "spec_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+  "provider": "docker",
+  "tier": null,
+  "runtime_class": null,
+  "build": null,
+  "services": [],
+  "secret_env": [
+   "GITHUB_TOKEN"
+  ]
+ },
+ "resources": {
+  "cpus": 2,
+  "memory_gb": 4,
+  "disk_gb": null
+ },
+ "policy": {
+  "turn_budget": null,
+  "job_budget": null,
+  "credential_mode": "gateway",
+  "verify": "uv run pytest -q",
+  "deliver": "pr"
+ },
+ "repo": {
+  "url": "https://github.com/example/app.git",
+  "base_branch": "main",
+  "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "branch": "hangar/job-fixture01"
+ },
+ "probe": {
+  "ok": true,
+  "error": null
+ },
+ "warnings": []
+}

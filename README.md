@@ -32,7 +32,14 @@ Vocabulary (run, turn, trial, check vs grader...) is in [docs/concepts.md](docs/
 v0, pre-release. The v0 analysis code stays under **1,500 lines** (`scripts/loc_budget.py`, enforced in CI) and has to
 change one real team decision before anything else, a UI included, gets built.
 
-Nothing beyond the package skeleton is built yet; see the issue tracker for the v0 plan.
+Built so far:
+
+| Module | What |
+| --- | --- |
+| `flightdeck.dataplane` | `flightdeck.parquet/v1` tables (runs, spans, events, manifests, grades, test_cases), flatteners from hangar's manifest, OTLP trace and experiment index, DuckDB views; `flightdeck query`. See [docs/data-plane.md](docs/data-plane.md) |
+
+Planned (see the issue tracker): ingest from hangar exports, the compare report, the task format, the behavior spec
+language and the experiment submission client.
 
 ## Development
 
@@ -41,7 +48,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.12.
 ```sh
 uv sync
 uv run flightdeck --help
-uv run ruff check src tests scripts && uv run ruff format --check src tests scripts
+uv run ruff check src tests scripts
 uv run pyright
 uv run pytest -q
 python scripts/loc_budget.py

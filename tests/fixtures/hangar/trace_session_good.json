@@ -1,0 +1,842 @@
+{
+ "resourceSpans": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "hangar"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "0.1.0"
+      }
+     },
+     {
+      "key": "hangar.trace.schema",
+      "value": {
+       "stringValue": "hangar.trace/v1"
+      }
+     },
+     {
+      "key": "hangar.semconv.genai",
+      "value": {
+       "stringValue": "gen-ai-dev/1.42.0-dev"
+      }
+     },
+     {
+      "key": "hangar.export.scope",
+      "value": {
+       "stringValue": "run"
+      }
+     },
+     {
+      "key": "hangar.session.id",
+      "value": {
+       "stringValue": "ses-09a5e19b"
+      }
+     },
+     {
+      "key": "hangar.session.name",
+      "value": {
+       "stringValue": "s1"
+      }
+     },
+     {
+      "key": "hangar.environment",
+      "value": {
+       "stringValue": "plain"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "hangar.trace",
+      "version": "1"
+     },
+     "schemaUrl": "https://opentelemetry.io/schemas/1.44.0",
+     "spans": [
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "5b0a9145c04e5fed",
+       "name": "invoke_agent claude-code",
+       "kind": 1,
+       "startTimeUnixNano": "1760530000000000000",
+       "endTimeUnixNano": "1760530100000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "turn"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "invoke_agent"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "anthropic"
+         }
+        },
+        {
+         "key": "hangar.turn.number",
+         "value": {
+          "intValue": "1"
+         }
+        },
+        {
+         "key": "hangar.run.id",
+         "value": {
+          "stringValue": "run-1"
+         }
+        },
+        {
+         "key": "hangar.session.id",
+         "value": {
+          "stringValue": "ses-09a5e19b"
+         }
+        },
+        {
+         "key": "hangar.turn.mode",
+         "value": {
+          "stringValue": "new"
+         }
+        },
+        {
+         "key": "hangar.turn.outcome",
+         "value": {
+          "stringValue": "exited"
+         }
+        },
+        {
+         "key": "hangar.turn.exit_code",
+         "value": {
+          "intValue": "0"
+         }
+        },
+        {
+         "key": "hangar.harness",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.turn.live",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.approvals",
+         "value": {
+          "stringValue": "ask"
+         }
+        }
+       ],
+       "events": [
+        {
+         "timeUnixNano": "1760530001000000000",
+         "name": "file.change",
+         "attributes": [
+          {
+           "key": "hangar.kind",
+           "value": {
+            "stringValue": "file.change"
+           }
+          },
+          {
+           "key": "hangar.file.path",
+           "value": {
+            "stringValue": "/workspace/app/src/app.py"
+           }
+          },
+          {
+           "key": "hangar.file.repo_path",
+           "value": {
+            "stringValue": "src/app.py"
+           }
+          },
+          {
+           "key": "hangar.file.in_repo",
+           "value": {
+            "boolValue": true
+           }
+          },
+          {
+           "key": "hangar.file.op",
+           "value": {
+            "stringValue": "write"
+           }
+          },
+          {
+           "key": "hangar.seq",
+           "value": {
+            "intValue": "5"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "424df969e7d9bf3b",
+       "name": "execute_tool TodoWrite",
+       "kind": 1,
+       "startTimeUnixNano": "1760530001000000000",
+       "endTimeUnixNano": "1760530001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "TodoWrite"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "plan"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "p"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "plan"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "1"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "2"
+         }
+        }
+       ],
+       "parentSpanId": "5b0a9145c04e5fed"
+      },
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "7735546d003c4a53",
+       "name": "execute_tool Edit",
+       "kind": 1,
+       "startTimeUnixNano": "1760530001000000000",
+       "endTimeUnixNano": "1760530001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "Edit"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "e"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "/workspace/app/src/app.py"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "3"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "4"
+         }
+        },
+        {
+         "key": "hangar.file.path",
+         "value": {
+          "stringValue": "/workspace/app/src/app.py"
+         }
+        },
+        {
+         "key": "hangar.file.repo_path",
+         "value": {
+          "stringValue": "src/app.py"
+         }
+        }
+       ],
+       "parentSpanId": "5b0a9145c04e5fed"
+      },
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "02268211ffb92891",
+       "name": "execute_tool Bash uv",
+       "kind": 1,
+       "startTimeUnixNano": "1760530001000000000",
+       "endTimeUnixNano": "1760530001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "Bash"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "t"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "uv run pytest -q"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "6"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "7"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "test"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "process.executable.name",
+         "value": {
+          "stringValue": "uv"
+         }
+        }
+       ],
+       "parentSpanId": "5b0a9145c04e5fed"
+      },
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "2ff183fa64a9da9e",
+       "name": "approval Bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760530001000000000",
+       "endTimeUnixNano": "1760530001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "approval"
+         }
+        },
+        {
+         "key": "hangar.approval.id",
+         "value": {
+          "stringValue": "ap-000000000001"
+         }
+        },
+        {
+         "key": "hangar.approval.tool",
+         "value": {
+          "stringValue": "Bash"
+         }
+        },
+        {
+         "key": "hangar.approval.detail",
+         "value": {
+          "stringValue": "rm -rf docs/old"
+         }
+        },
+        {
+         "key": "hangar.approval.status",
+         "value": {
+          "stringValue": "allowed"
+         }
+        },
+        {
+         "key": "hangar.approval.by",
+         "value": {
+          "stringValue": "alice"
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "8"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "delete"
+            }
+           ]
+          }
+         }
+        }
+       ],
+       "parentSpanId": "5b0a9145c04e5fed"
+      },
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "7ca68cde737ea955",
+       "name": "execute_tool Bash rm",
+       "kind": 1,
+       "startTimeUnixNano": "1760530001000000000",
+       "endTimeUnixNano": "1760530001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "Bash"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "d"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "rm -rf docs/old"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "9"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "10"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "delete"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "process.executable.name",
+         "value": {
+          "stringValue": "rm"
+         }
+        }
+       ],
+       "parentSpanId": "5b0a9145c04e5fed"
+      },
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "55de0754eda2421f",
+       "name": "execute_tool Bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760530001000000000",
+       "endTimeUnixNano": "1760530001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "Bash"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "c"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "git add -A && git commit -qm fix"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "11"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "12"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "git.commit"
+            }
+           ]
+          }
+         }
+        }
+       ],
+       "parentSpanId": "5b0a9145c04e5fed"
+      },
+      {
+       "traceId": "bde80775e4dcf606d0579275265ecfbe",
+       "spanId": "3c70fb7ff2e0ee23",
+       "name": "execute_tool Bash gh",
+       "kind": 1,
+       "startTimeUnixNano": "1760530001000000000",
+       "endTimeUnixNano": "1760530001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "Bash"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "r"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "gh pr create --fill"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "13"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "14"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "pr.open"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "process.executable.name",
+         "value": {
+          "stringValue": "gh"
+         }
+        }
+       ],
+       "parentSpanId": "5b0a9145c04e5fed"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

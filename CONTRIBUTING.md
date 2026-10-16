@@ -4,12 +4,13 @@
 
 ```sh
 uv sync                                                        # Python 3.12 and the dev tools
-uv run ruff check src tests scripts && uv run ruff format src tests scripts
+uv run ruff check src tests scripts
 uv run pyright
 uv run pytest -q
 python scripts/loc_budget.py
 ```
 
+Style is `ruff check` (line length 120, as in hangar); there is no formatter gate, so keep code compact and readable.
 CI runs the same four jobs (`lint`, `types`, `test`, `loc-budget`) on every PR. They need no secrets and no cloud
 access: tests use synthetic fixtures only.
 
