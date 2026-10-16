@@ -15,11 +15,11 @@ says so.
 | **trial** | One job run for `(task, variant, n)` under pinned conditions, keyed `<task>/<variant>/<n>` | `hangar.experiment/v1` |
 | **experiment** | A batch of trials across tasks and variants. Hangar runs it; flightdeck designs and judges it | hangar spec 0014 §4 |
 | **pin set** | The immutable `{harness_digest, environment_digest, model_id, base_sha, grader_digest, knowledge_snapshot?}` a trial runs against | team plan |
-| **task** | A Harbor-compatible directory: `task.toml`, `instruction.md`, `environment/`, hidden `tests/` | hangar spec 0008 |
+| **task** | A Harbor task directory: `task.toml` (flightdeck's keys under `[flightdeck]`), `instruction.md`, `environment/`, hidden `tests/`, optional `solution/`. Identity: `task_digest`. See [tasks.md](tasks.md) | hangar spec 0008; Harbor |
 | **suite** | A versioned list of tasks and specs | |
 | **holdout** | A sealed suite, scored once | |
-| **check** | The repository's own command hangar runs after a turn (`verify`), recorded as a `test.run` event; `hangar.test.run.trusted = true` when hangar ran it, false for the agent's own in-turn runs | `hangar.trace/v1` |
-| **grader** | A task's hidden tests, run on the trial's patch in a clean sandbox outside the agent's reach | `hangar.experiment/v1` `grade` |
+| **check** | The repository's own command hangar runs after a turn (`verify`), recorded as a `test.run` event; `hangar.test.run.trusted = true` when hangar ran it, false for the agent's own in-turn runs. The agent can see and change it; a grader it never sees | `hangar.trace/v1` |
+| **grader** | A task's hidden tests (`tests/test.sh`, which writes `reward.json`), run on the trial's patch in a clean sandbox outside the agent's reach, from a pristine copy. Identity: `files_digest`. Unlike a check, the agent never sees it | `hangar.experiment/v1` `grade`; [tasks.md](tasks.md) |
 | **spec** | A behavior predicate over a trace export | |
 | **judge** | A model rubric, used only once calibrated against people (κ ≥ 0.6) | |
 | **resolved** | The grader passed (`exit_code == 0` and `applied`), else hangar's verify after the turn passed. Reports always say which | |

@@ -45,7 +45,9 @@ trusted `test.run` events, not the agent's own shell `test` op. Loosening or del
 ## Adding a task
 
 Public smoke tasks go in `tasks/smoke/<id>/` in the Harbor-compatible layout (`task.toml`, `instruction.md`,
-`environment/`, `tests/`). Mined and sealed tasks never go here.
+`environment/`, `tests/`; [docs/tasks.md](docs/tasks.md)). Start from `flightdeck task new`, and after changing
+hidden tests run `flightdeck task digest --write <dir>` and `flightdeck task check <dir>`. Mined and sealed tasks never
+go here.
 
 ## Decisions (ADRs)
 
