@@ -39,9 +39,10 @@ Built so far:
 | --- | --- |
 | `flightdeck.dataplane` | `flightdeck.parquet/v1` tables (runs, spans, events, manifests, grades, test_cases), flatteners from hangar's manifest, OTLP trace and experiment index, DuckDB views; `flightdeck query`. See [docs/data-plane.md](docs/data-plane.md) |
 | `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation. See [docs/statistics.md](docs/statistics.md) |
+| `flightdeck.specs` | `flightdeck.spec/v1` behavior specs: YAML predicates over `hangar.trace/v1`, a Python reference evaluator and a DuckDB compiler, the trusted-test rule; `flightdeck spec lint\|test`. See [docs/behavior-specs.md](docs/behavior-specs.md) |
 
-Planned (see the issue tracker): ingest from hangar exports, `flightdeck stats compare` and the report, the task format, the behavior spec
-language and the experiment submission client.
+Planned (see the issue tracker): ingest from hangar exports, `flightdeck stats compare` and the report, the task format, the nightly spec runner
+and the experiment submission client.
 
 ## Development
 
