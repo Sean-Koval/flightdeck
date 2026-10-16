@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+.env
+.env.*
+# Team data never lives in this public repo (docs/decisions/0002-public-code-private-data.md)
+/data/
+*.parquet
+!tests/fixtures/**/*.parquet

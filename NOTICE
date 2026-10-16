@@ -1,0 +1,11 @@
+flightdeck
+Copyright 2026 Sean Koval
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Portions of this software may be ported from ai-dlc (https://github.com/Sean-Koval/ai-dlc), licensed under the
+MIT License. Ported files live under src/flightdeck/ported/ and keep ai-dlc's copyright and MIT permission notice
+in their headers, as the MIT License requires.
+
+Portions may be ported from hangar (https://github.com/Sean-Koval/hangar), licensed under the Apache License,
+Version 2.0.
