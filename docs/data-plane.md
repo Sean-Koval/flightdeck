@@ -31,6 +31,11 @@ person) are copied onto every span row. Every row has `run_id`, `source` (`job`,
 | `grades` | one grader result for a trial | experiment `trials[].grade` | `data` is the JSON the grader wrote to `$HANGAR_GRADE_OUT` |
 | `test_cases` | one `test.run` (its `case_name` is null) or one `test.case` | trace `test.run`/`test.case` events | `trusted` is false for the agent's own in-turn runs; specs that need proof of testing use `trusted and total > 0` |
 
+`spec_results` is written by flightdeck, not flattened from hangar: one row per spec or ADR check and unit (a turn, job
+or session id in `run_id`), with `spec_id`, `spec_source` (`spec` or `adr:<repo>/<adr>`), `scope`, `result` (`pass`,
+`fail`, `not_applicable`, `unknown`), `repo`, `harness_digest` and `knowledge_snapshot`
+([behavior-specs.md](behavior-specs.md)).
+
 Nullable now, filled as soon as hangar emits them with no schema change: `harness_digest`, `environment_digest`,
 `knowledge_snapshot`, `grader_digest`, and an `infra_error` value of `outcome`.
 
