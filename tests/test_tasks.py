@@ -139,6 +139,8 @@ def test_tasks_share_one_grader_and_ids_fit_hangars_rule(tmp_path: Path) -> None
     c = load_task(_minimal(tmp_path / "c", '[task]\nname = "org/c"\n[flightdeck.grader]\ncommand = "make grade"\n'))
     with pytest.raises(TaskError, match="separate experiments"):
         to_hangar([a, c])
+    with pytest.raises(TaskError, match="unique"):
+        to_hangar([a, a])
 
 
 def _grade(work: Path, out: Path, **env: str) -> subprocess.CompletedProcess:

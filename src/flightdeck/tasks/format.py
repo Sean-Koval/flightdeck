@@ -145,6 +145,8 @@ def to_hangar(tasks: list[Task]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     out, files, commands, timeout = [], {}, set(), 30
     for t in tasks:
         hid, src = hangar_id(t), t.flightdeck.get("source") or {}
+        if any(x["id"] == hid for x in out):
+            raise TaskError(f"task ids must be unique in an experiment (hangar's rule): {hid} twice")
         if len(t.instruction) > MAX_INSTRUCTIONS:
             raise TaskError(f"task {t.id}: instruction.md is over hangar's {MAX_INSTRUCTIONS:,} characters")
         title = ((t.config.get("task") or {}).get("description") or t.id)[:200]
