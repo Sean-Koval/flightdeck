@@ -25,7 +25,8 @@ needs. The governed workspace governs: one policy decision point, approvals and 
   holdouts scored once.
 - **Reports and promotion evidence**: markdown reports on the PR; the approver is never the author.
 
-Vocabulary (run, turn, trial, check vs grader...) is in [docs/concepts.md](docs/concepts.md).
+Vocabulary (run, turn, trial, check vs grader...) is in [docs/concepts.md](docs/concepts.md); the statistics are
+explained once in [docs/statistics.md](docs/statistics.md).
 
 ## Status
 
@@ -37,8 +38,9 @@ Built so far:
 | Module | What |
 | --- | --- |
 | `flightdeck.dataplane` | `flightdeck.parquet/v1` tables (runs, spans, events, manifests, grades, test_cases), flatteners from hangar's manifest, OTLP trace and experiment index, DuckDB views; `flightdeck query`. See [docs/data-plane.md](docs/data-plane.md) |
+| `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation. See [docs/statistics.md](docs/statistics.md) |
 
-Planned (see the issue tracker): ingest from hangar exports, the compare report, the task format, the behavior spec
+Planned (see the issue tracker): ingest from hangar exports, `flightdeck stats compare` and the report, the task format, the behavior spec
 language and the experiment submission client.
 
 ## Development
