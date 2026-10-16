@@ -5,6 +5,7 @@ import os
 import typer
 
 from flightdeck import __version__
+from flightdeck.runners.cli import app as experiment_app
 from flightdeck.tasks.cli import app as task_app
 
 app = typer.Typer(
@@ -12,6 +13,7 @@ app = typer.Typer(
 )
 
 app.add_typer(task_app, name="task")
+app.add_typer(experiment_app, name="experiment")
 
 
 @app.callback()

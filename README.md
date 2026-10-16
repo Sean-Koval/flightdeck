@@ -40,6 +40,7 @@ Built so far:
 | `flightdeck.dataplane` | `flightdeck.parquet/v1` tables (runs, spans, events, manifests, grades, test_cases), flatteners from hangar's manifest, OTLP trace and experiment index, DuckDB views; `flightdeck query`. See [docs/data-plane.md](docs/data-plane.md) |
 | `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation. See [docs/statistics.md](docs/statistics.md) |
 | `flightdeck.tasks` | Harbor-compatible task directories: load, check and digest them, map them onto a `hangar.experiment/v1` spec; `flightdeck task new\|check\|digest`; the semver smoke task in `tasks/smoke/`. See [docs/tasks.md](docs/tasks.md) |
+| `flightdeck.runners` | Trials on hangar: suite files, `hangar.experiment/v1` specs (split over hangar's caps), concrete-model and harness pins, the cost gate (`budgets.yaml`), submit/status/collect behind a `Backend` interface; `flightdeck experiment run\|status\|collect`. See [docs/runners.md](docs/runners.md) |
 
 Planned (see the issue tracker): ingest from hangar exports, `flightdeck stats compare` and the report, the task format, the behavior spec
 language and the experiment submission client.

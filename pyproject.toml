@@ -10,6 +10,7 @@ dependencies = [
     "duckdb>=1.4,<1.5",
     "numpy>=2.5.4",
     "pyarrow>=26.0.0",
+    "pyyaml>=6.0.2",
     "typer>=0.12",
 ]
 
@@ -22,6 +23,7 @@ dev = [
     "ruff>=0.6",
     "pyright[nodejs]>=1.1.390",
     "jsonschema>=4.26.0",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [build-system]

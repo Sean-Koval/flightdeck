@@ -1,0 +1,12 @@
+# The smoke suite: every task under tasks/smoke, two runtimes on their balanced models (docs/runners.md).
+#   flightdeck experiment run tasks/smoke/suite.yaml --dry-run
+suite: smoke
+tasks: ["."]          # task directories, or directories of them, relative to this file
+environment: bare     # else the tasks' [flightdeck] environment, when they agree
+n: 3                  # trials per task and variant (hangar: 1-20)
+budget_usd: 40        # the experiment's cap (hangar stops starting trials past it)
+trial_budget_usd: 3   # each trial's cap
+parallel: 6
+variants:             # hangar's overlay: harness[@version], model (a concrete id), approvals, skills, instructions...
+  claude-code: {harness: claude-code, model: claude-opus-5-5}
+  codex: {harness: codex, model: gpt-6.1-sol}
