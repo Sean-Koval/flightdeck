@@ -8,20 +8,27 @@ authors = [{ name = "Sean Koval" }]
 requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.4,<1.5",
+    "jsonschema>=4.26.0",
     "numpy>=2.5.4",
     "pyarrow>=26.0.0",
+    "pytz>=2026.5",
     "typer>=0.12",
 ]
 
 [project.scripts]
 flightdeck = "flightdeck.cli:app"
 
+[project.optional-dependencies]
+gcs = [
+    "gcsfs>=2025.1",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8",
     "ruff>=0.6",
     "pyright[nodejs]>=1.1.390",
-    "jsonschema>=4.26.0",
+    "fsspec>=2026.9.0",
 ]
 
 [build-system]
@@ -38,6 +45,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest fixtures imported from tests/hangar_export.py look unused or redefined to pyflakes
+"tests/test_{ingest,compare,report}.py" = ["F401", "F811"]
 
 [tool.pyright]
 include = ["src", "tests", "scripts"]
