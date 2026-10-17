@@ -38,7 +38,7 @@ Parquet data plane, never hangar's database or data directory.
 
 ## Adding a behavior spec
 
-Behavior specs are YAML predicates over `hangar.trace/v1` (the language lands with the spec-language issue). Public
+Behavior specs are YAML predicates over `hangar.trace/v1` ([docs/behavior-specs.md](docs/behavior-specs.md)). Public
 examples go in `specs/`; team specs live in the private data repository. Specs that need proof of testing match
 trusted `test.run` events, not the agent's own shell `test` op. Loosening or deleting a check needs a second reviewer.
 
