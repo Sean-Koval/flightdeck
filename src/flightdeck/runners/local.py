@@ -28,6 +28,7 @@ from typing import Any
 from flightdeck.dataplane import ingest
 from flightdeck.ported.aidlc import attempt, budgets, drivers, evidence, git_observer
 from flightdeck.ported.hangar_traces import shell_ops, tool_kind
+from flightdeck.runners import cache
 from flightdeck.runners.hangar import RunnerError, RunSetStatus, TrialPlan, check_models
 from flightdeck.tasks.format import DEFAULT_COMMAND, Task
 
@@ -126,7 +127,8 @@ class LocalDockerBackend:
         root = Path(self.out) / "raw" / run_set
         root.mkdir(parents=True)
         (root / "plan.json").write_text(json.dumps({"suite": plan.suite, "tasks": [t.id for t in plan.tasks],
-                                                    "variants": plan.variants, "n": plan.n}, indent=1))
+                                                    "variants": plan.variants, "n": plan.n, **cache.digests(plan)},
+                                                   indent=1))
         ledger = budgets.RunBudget({"max_tokens": 2**53 - 1, "max_spend_usd": plan.budget_usd or 0})
         for task in plan.tasks:
             image, wd = build(task)
@@ -190,6 +192,8 @@ class LocalDockerBackend:
                 tables[k] += v
         if not tables["runs"]:
             raise RunnerError(f"no local trials of {run_set} under {self.out}/raw")
+        if "task_digests" in (plan := json.loads((root / "plan.json").read_text())):
+            cache.stamp(tables["runs"], plan)
         ingest.write_unit(tables, self.out, run_set)
         return Path(self.out)
 

@@ -39,6 +39,11 @@ From the outbox, `runs` also carries `run.json`'s `outcome_class`, `infra_reason
 and `tainted` (the turn read untrusted content). Promotion evidence leaves out runs with either flag set. Tapes stay
 objects under hangar's `v1/tapes/`; they are not compacted.
 
+Flightdeck stamps `runs.task_digest` (the task directory's digest, [tasks.md](tasks.md#digests)) and
+`runs.variant_digest` (the variant as planned: its hangar overlay and environment) on the trials it submitted, when it
+collects them; they key the [trial cache](runners.md#cache). `trial_reuse` is written by flightdeck too: one row per
+trial the cache reused for a run set (`run_id` is the reused trial's, `experiment_id` the run set's, `age_days`).
+
 `spec_results` is written by flightdeck, not flattened from hangar: one row per spec or ADR check and unit (a turn, job
 or session id in `run_id`), with `spec_id`, `spec_source` (`spec` or `adr:<repo>/<adr>`), `scope`, `result` (`pass`,
 `fail`, `not_applicable`, `unknown`), `repo`, `harness_digest` and `knowledge_snapshot`

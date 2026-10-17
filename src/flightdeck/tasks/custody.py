@@ -199,7 +199,7 @@ def score_cmd(name: str, run_set: Annotated[str, typer.Option(help="The run set 
     from flightdeck.stats.compare import load_trials
 
     con = connect(os.path.expanduser(data))
-    trials = [t for e in run_set.split("+") for t in load_trials(con, e)]
+    trials = load_trials(con, run_set)
     versions = dict(con.execute("select run_id, any_value(json_extract_string(json, '$.hangar.version')) from "
                                 "manifests group by 1").fetchall())
     for t in trials:

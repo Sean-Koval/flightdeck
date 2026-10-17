@@ -8,6 +8,7 @@ from flightdeck import __version__
 from flightdeck.dataplane import compact, github, ingest
 from flightdeck.metrics.weekly import app as metrics_app
 from flightdeck.report import markdown
+from flightdeck.runners.cache import app as cache_app
 from flightdeck.runners.cli import app as experiment_app
 from flightdeck.specs.cli import check_app, spec_app
 from flightdeck.specs.mutate import app as mutate_app
@@ -30,6 +31,7 @@ app.add_typer(task_app, name="task")
 app.add_typer(holdout_app, name="holdout")
 app.add_typer(knowledge_app, name="knowledge")
 app.add_typer(experiment_app, name="experiment")
+app.add_typer(cache_app, name="cache")
 app.command("compact")(compact.compact)
 app.add_typer(metrics_app, name="metrics")
 ingest.app.command("github")(github.prs)

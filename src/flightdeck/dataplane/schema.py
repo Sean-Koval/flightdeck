@@ -35,7 +35,7 @@ RUNS = _schema("runs", """
     cost_usd:float cost_source input_tokens:int output_tokens:int cache_read_tokens:int started_at:ts finished_at:ts
     verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool
     task_invalid:bool contaminated:bool grade_trust job_source job_turn:int job_state
-    steers:int questions:int untrusted:bool tainted:bool""")
+    steers:int questions:int untrusted:bool tainted:bool task_digest variant_digest""")
 
 # One OTLP span. `attrs`: JSON of every attribute without its own column.
 SPANS = _schema("spans", """
@@ -79,7 +79,10 @@ OUTBOX: dict[str, pa.Schema] = {"job_events": JOB_EVENTS, "prs": PRS}
 # Written by flightdeck itself, not flattened from hangar: one spec or ADR check's result for one unit (a turn, job or
 # session; `run_id` is its id, `source` its run source). `spec_source` is `spec` or `adr:<repo>/<adr>`.
 SPEC_RESULTS = _schema("spec_results", "spec_id spec_source scope result repo harness_digest knowledge_snapshot")
-DERIVED: dict[str, pa.Schema] = {"spec_results": SPEC_RESULTS}
+# One trial the cache reused for a run set (runners/cache.py): `run_id` is the reused trial's, `experiment_id` the run
+# set it stands in for.
+TRIAL_REUSE = _schema("trial_reuse", "experiment_id task_id variant age_days:float")
+DERIVED: dict[str, pa.Schema] = {"spec_results": SPEC_RESULTS, "trial_reuse": TRIAL_REUSE}
 ALL = {**TABLES, **OUTBOX, **DERIVED}
 
 

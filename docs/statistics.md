@@ -67,6 +67,8 @@ seen), `drift` (unless `--include-drift`), `truncated trace` (process metrics on
   ($ metrics only).
 - **Saturated tasks** (every trial of every arm had the same outcome) are listed: they carry no information.
 - **Seeds**: every resampling takes one and reports print it.
+- **Reused trials** from the [trial cache](runners.md#cache) count like new ones and are deduplicated by `run_id`,
+  so a trial never counts twice in one analysis; the comparison says how many were reused and how old they are.
 
 ## Mutation scores
 
