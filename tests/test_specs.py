@@ -122,6 +122,10 @@ def test_paths() -> None:
     assert one(spec, []) == "not_applicable"
     only_fc = spec.replace("file.change, diff.files", "file.change")
     assert one(only_fc, [("file", "src/a.py", "write")], diff=["docs/x.md"]) == "pass"
+    some = spec.replace("all:", "any:")  # any: at least one path matches (ai-dlc's path-committed, #17)
+    assert one(some, [("file", "src/a.py", "write")], diff=["docs/x.md"]) == "pass"
+    assert one(some, [("file", "docs/a.md", "write")], diff=["docs/x.md"]) == "fail"
+    assert one(some, []) == "not_applicable"
 
 
 def test_where_tests_and_attributes() -> None:
@@ -171,6 +175,8 @@ def test_sql_equals_python_on_random_traces() -> None:
         "within: {turns: 1}}",
         "assert: {each: {tool: {kind: edit}}, requires_prior: {tool: {kind: read}}}",
         "assert: {all: {paths: {from: [file.change, diff.files]}, match: src/*}}",
+        "assert: {any: {paths: {from: [diff.files]}, match: docs/*}}",
+        "applies_when: {source: [job, session], task_id: '*'}\nassert: {never: {event: steer}}",
         "assert: {never: {event: pr.merge, where: {hangar.pr.merged_by: {not: bot}}}}",
         "assert: {never: {event: steer}}",
     ]

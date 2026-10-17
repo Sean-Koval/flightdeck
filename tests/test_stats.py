@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from flightdeck.stats import (
+from flightdeck.stats.core import (
     clean_run_bound,
     dollars_per_resolved,
     mcnemar_discordant,
@@ -10,10 +10,10 @@ from flightdeck.stats import (
     pass_at_k,
     pass_hat_k,
     pass_hat_k_suite,
+    simulate_power,
     trial_bootstrap,
     wilson,
 )
-from flightdeck.stats.core import simulate_power
 
 
 def test_wilson_known_values() -> None:

@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "id": "real-client-smoke",
+  "scenarios": [
+    {
+      "id": "csv-duplicate-rows",
+      "goal": "In this repository, add duplicate-row detection to csvcheck.validate. A data row whose parsed fields equal those of an earlier data row is reported as Problem(line, 'duplicate-row', 'same as line N'), where N is the first occurrence. The header is not a data row, blank lines are ignored but still count toward line numbers, rows with the wrong column count are reported as before and are not compared, whitespace inside a field is significant, and problems stay ordered by line. Keep the existing tests passing and add tests for the new behavior.",
+      "fixture": {
+        "path": "../../../../tasks/fixtures/csv-validator/environment/workspace",
+        "digest": "c063e7595763c720faf08db5c63b1516904141552836ef7697bd0331b83f0096",
+        "hidden": "../../../../tasks/fixtures/csv-validator/tests"
+      },
+      "answers": [
+        {
+          "match": "quoted",
+          "reply": "Compare parsed fields, so a quoted field equals its unquoted form."
+        }
+      ],
+      "checkpoints": [],
+      "assertions": [
+        {
+          "id": "hidden-tests",
+          "dimension": "correctness",
+          "kind": "hidden-tests"
+        },
+        {
+          "id": "process-commit",
+          "dimension": "workflow",
+          "kind": "commit-present"
+        },
+        {
+          "id": "work-record-committed",
+          "dimension": "workflow",
+          "kind": "path-committed",
+          "path": ".ai-dlc/work/*.toml"
+        },
+        {
+          "id": "implementation-committed",
+          "dimension": "workflow",
+          "kind": "path-committed",
+          "path": "csvcheck/validate.py"
+        },
+        {
+          "id": "work-before-code",
+          "dimension": "workflow",
+          "kind": "ordering",
+          "before": ".ai-dlc/work/*.toml",
+          "after": "csvcheck/validate.py"
+        },
+        {
+          "id": "handoff-rubric",
+          "dimension": "quality",
+          "kind": "human-review"
+        }
+      ],
+      "arms": [
+        "treatment",
+        "baseline"
+      ]
+    }
+  ]
+}

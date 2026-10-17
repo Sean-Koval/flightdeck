@@ -1,6 +1,6 @@
 # 0004: The local runner's adapter counts, and the budget becomes 2,800 lines
 
-Status: Accepted · Oct 17, 2026
+Status: Accepted, raised by [0005](0005-post-v0-budget.md) · Oct 17, 2026
 
 ## Context
 

@@ -24,11 +24,11 @@ and fails when a committed text asset differs, or when a PNG's source page chang
 
 ## The line budget
 
-v0 is deliberately small: at most **2,800** non-blank, non-comment lines under `src/flightdeck/`.
+v0 is deliberately small: a fixed number of non-blank, non-comment lines under `src/flightdeck/` (`LIMIT` in the script).
 `scripts/loc_budget.py` prints the count per area and fails above the limit. Code ported from ai-dlc or hangar and kept
 close to its source goes in `src/flightdeck/ported/`, which is reported but not counted; code that adapts it to
 flightdeck counts. If a change needs more room, cut something or argue for a higher budget in an ADR (the last one:
-[0004](docs/decisions/0004-local-runner-budget.md)); don't move code into `ported/` to dodge the count.
+[0005](docs/decisions/0005-post-v0-budget.md), which the post-v0 batch amends); don't move code into `ported/` to dodge the count.
 
 ## Running the smoke tasks locally
 
