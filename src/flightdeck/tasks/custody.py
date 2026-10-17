@@ -42,6 +42,7 @@ def load(root: Path) -> dict[str, Any]:
 
 
 def save(root: Path, doc: dict[str, Any]) -> None:
+    root.mkdir(parents=True, exist_ok=True)
     (root / "manifest.json").write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
 
 
