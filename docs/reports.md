@@ -1,0 +1,59 @@
+# Reports
+
+A decision about a harness change gets made where the change is reviewed: usually a GitHub pull request, such as
+hangar's canary lock-bump PRs. Flightdeck's report is a markdown comment there, not a dashboard. Code:
+`src/flightdeck/report/markdown.py`.
+
+```sh
+flightdeck report experiment <id> [--baseline control] [--b treat] [--decision decision.yaml] [--details]
+                                  [--hangar URL] [--out report.md] [--post owner/repo#n]
+flightdeck report post report.md --to owner/repo#n
+```
+
+The report reads only the data plane (`--data`, default `~/.flightdeck/data`), so it renders with hangar powered off.
+
+## Anatomy
+
+1. **Verdict**, in plain words, from the pre-registered rule (below): *treat is non-inferior to control on resolved
+   (−2.0 pp, CI −4.0…+1.0, margin −5.0)*, or *No decision: underpowered*. Without a valid `decision.yaml` the report
+   says **No verdict** and shows the numbers only.
+2. **Pins** per variant: harness and version, model, environment, `config_digest`, `harness_digest`,
+   `environment_digest`, the grader command, and hangar's version from the manifests; the number of base SHAs.
+3. **Outcome**, **Process** (tool calls, wall time) and **Cost** tables from `flightdeck stats compare`
+   ([statistics.md](statistics.md)), each with its exclusions, seed and n.
+4. **Exclusions and drift**: the drifted trials.
+5. With `--details`: the **per-task table** (discordant tasks first, base SHA, resolved per arm) inside a collapsed
+   `<details>`, drift messages per trial, and with `--hangar` links to each trial's trace on hangar REST.
+
+Behavior-spec results (pass^k per spec with the clean-run bound) join the report when the behavior spec runner
+lands.
+
+## Pre-registration
+
+`decision.yaml`, written before the experiment runs (flat `key: value` lines):
+
+```yaml
+metric: resolved      # resolved | cost_usd | tool_calls | wall_s
+direction: higher     # higher or lower is better
+margin: -0.05         # non-inferiority margin, in the metric's units (a proportion for resolved)
+min_tasks: 10         # fewer paired tasks: no decision
+```
+
+The report prints a verdict only when the file's modification time is before the first trial finished. The rule:
+fewer than `min_tasks` paired tasks (or an underpowered interval) is *No decision: underpowered*; an interval wholly
+above zero is *better*; wholly above the margin is *non-inferior*; wholly below it is *worse*; anything else is *No
+decision*. In the private data repository the file's git commit time is the stronger evidence; checking it is not
+automated yet.
+
+## Posting
+
+`--post owner/repo#n` (on `report experiment`) or `report post --to` creates one comment on that PR or issue, or
+updates it in place: the comment starts with a hidden marker, `<!-- flightdeck:report:<experiment> -->`. The token
+comes from `GITHUB_TOKEN`: a fine-grained token with `issues:write` / `pull_requests:write` on the target repo, kept in
+the operator's environment. Posting is flightdeck's only GitHub write.
+
+Before posting, the text is re-scanned with the data plane's secret patterns; a match refuses the post. Comments are
+clipped to GitHub's 65,536-character limit with a pointer to the full report (`--out`).
+
+Reports on public repositories must not quote private team code: the default report has counts and intervals only;
+per-task rows and trial links need `--details`.

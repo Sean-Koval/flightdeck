@@ -81,7 +81,7 @@ def run(
     todo = [s for f in files for s in lang.load(f.read_text())] + [s for a in adrs or [] for s in checks.adr_specs(a)]
     con = connect(os.path.expanduser(data))
     rows = checks.run(con, todo, day)
-    write_partitioned("spec_results", rows, out)
+    write_partitioned("spec_results", rows, out, part=f"check-{day}")  # one part per day: reruns replace only that day
     by: dict[tuple, list[dict]] = {}
     for r in rows:
         by.setdefault((r["spec_source"], r["spec_id"]), []).append(r)

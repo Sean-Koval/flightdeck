@@ -6,6 +6,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from flightdeck.dataplane import flatten, schema
+from flightdeck.dataplane.ingest import _vendored as SCHEMAS
 
 FIX = Path(__file__).resolve().parent / "fixtures" / "hangar"
 
@@ -103,7 +104,7 @@ def test_rejects_other_schemas() -> None:
 
 def test_manifest_row() -> None:
     m = load("manifest_turn.json")
-    jsonschema.Draft202012Validator(load("schemas/manifest.schema.json")).validate(m)
+    jsonschema.Draft202012Validator(SCHEMAS("manifest.schema.json")).validate(m)
     row = flatten.flatten_manifest(m)
     assert row["digest"] == m["digest"] and row["run_id"] == "run-j1" and row["harness_name"] == "claude-code"
     assert row["skills_effective"] == ["review@sha256:" + "7" * 64] and row["mcp_servers"] == ["github"]
@@ -112,7 +113,7 @@ def test_manifest_row() -> None:
 
 def test_experiment_rows() -> None:
     index = load("experiment_index.json")
-    jsonschema.Draft202012Validator(load("schemas/experiment.schema.json")).validate(index)
+    jsonschema.Draft202012Validator(SCHEMAS("experiment.schema.json")).validate(index)
     rows = flatten.flatten_experiment(index)
     assert len(rows["runs"]) == 7 and len(rows["grades"]) == 6
     r = next(x for x in rows["runs"] if x["trial_key"] == "retry/treat/1")

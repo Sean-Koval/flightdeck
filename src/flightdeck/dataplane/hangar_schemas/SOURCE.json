@@ -1,0 +1,8 @@
+{
+ "repo": "https://github.com/Sean-Koval/hangar",
+ "commit": "359675a9ba7ff7cef21c291cf2cf32c36d4bc6ca",
+ "files": [
+  "docs/api/experiment.schema.json",
+  "docs/api/manifest.schema.json"
+ ]
+}

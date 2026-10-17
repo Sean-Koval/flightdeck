@@ -32,7 +32,8 @@ RUNS = _schema("runs", """
     job_id session_id turn:int experiment_id trial_key task_id variant trial:int person repo environment harness
     harness_version model_id outcome reason config_digest harness_digest environment_digest manifest_digest base_sha
     cost_usd:float cost_source input_tokens:int output_tokens:int cache_read_tokens:int started_at:ts finished_at:ts
-    verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool""")
+    verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool
+    task_invalid:bool contaminated:bool grade_trust""")
 
 # One OTLP span. `attrs`: JSON of every attribute without its own column.
 SPANS = _schema("spans", """
@@ -78,15 +79,27 @@ def to_table(name: str, rows: list[dict]) -> pa.Table:
     return pa.Table.from_pylist(rows, schema=schema)
 
 
-def write_partitioned(name: str, rows: list[dict], root: str) -> list[str]:
-    """Write rows under `<root>/<name>/dt=YYYY-MM-DD/part-0.parquet` (zstd), one file per day; `dt` lives in the path
-    (hive partitioning), not in the file. Returns the paths."""
+def write_partitioned(name: str, rows: list[dict], root: str, part: str = "part-0") -> list[str]:
+    """Write rows under `<root>/<name>/dt=YYYY-MM-DD/<part>.parquet` (zstd), one file per day; `dt` lives in the path
+    (hive partitioning), not in the file. Files of the same `part` in other days are removed, so rewriting a part
+    replaces it. Returns the paths."""
+    for stale in Path(root).glob(f"{name}/dt=*/{part}.parquet"):
+        stale.unlink()
     paths = []
     for day in sorted({r.get("dt") or "unknown" for r in rows}):
-        part = Path(root) / name / f"dt={day}"
-        part.mkdir(parents=True, exist_ok=True)
-        path = part / "part-0.parquet"
+        part_dir = Path(root) / name / f"dt={day}"
+        part_dir.mkdir(parents=True, exist_ok=True)
+        path = part_dir / f"{part}.parquet"
         table = to_table(name, [r for r in rows if (r.get("dt") or "unknown") == day])
         pq.write_table(table.drop_columns(["dt"]), path, compression="zstd")
         paths.append(str(path))
     return paths
+
+
+def read_part(name: str, root: str, part: str) -> list[dict]:
+    """The rows of one part across its days, with `dt` from the path."""
+    rows = []
+    for path in sorted(Path(root).glob(f"{name}/dt=*/{part}.parquet")):
+        day = path.parent.name.removeprefix("dt=")
+        rows += [{**r, "dt": day} for r in pq.read_table(path).to_pylist()]
+    return rows

@@ -261,7 +261,8 @@ def flatten_experiment(index: dict[str, Any]) -> dict[str, list[Row]]:
                 "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
                 "cache_read_tokens": usage.get("cache_read_tokens"), "started_at": _ts(t.get("started_at")),
                 "finished_at": _ts(t.get("finished_at")), "verify_passed": verify.get("passed"),
-                "drift": t.get("drift") or [],
+                "drift": t.get("drift") or [], "task_invalid": t.get("task_invalid"),
+                "contaminated": t.get("contaminated"), "grade_trust": t.get("trust"),
             }
         )
         if (g := t.get("grade")) is not None:
