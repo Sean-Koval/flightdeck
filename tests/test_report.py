@@ -1,4 +1,6 @@
 import os
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +10,7 @@ from typer.testing import CliRunner
 
 from flightdeck.cli import app
 from flightdeck.dataplane.duck import connect
+from flightdeck.dataplane.schema import write_partitioned
 from flightdeck.report import markdown
 from flightdeck.stats.compare import Comparison
 from flightdeck.stats.core import Interval
@@ -36,15 +39,45 @@ def test_details_put_discordant_tasks_first_with_trial_links(plane: str) -> None
     assert "- `t05/treat/2`: harness drift" in text
 
 
-@pytest.mark.parametrize("when", ["missing", "late"])
-def test_no_verdict_without_a_decision_written_before_the_trials(plane: str, tmp_path: Path, when: str) -> None:
+def _commit(repo: Path, when: float) -> None:
+    env = {**os.environ, "GIT_AUTHOR_DATE": f"@{int(when)} +0000", "GIT_COMMITTER_DATE": f"@{int(when)} +0000"}
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    for args in (["init", "-q"], ["add", "decision.yaml"], ["commit", "-qm", "decision"]):
+        subprocess.run(git + args, check=True, env=env)
+
+
+@pytest.mark.parametrize("when", ["missing", "uncommitted", "committed late", "edited after commit"])
+def test_no_verdict_without_a_decision_committed_before_the_trials(plane: str, tmp_path: Path, when: str) -> None:
     decision = tmp_path / "decision.yaml"
-    if when == "late":
+    if when != "missing":
         decision.write_text("metric: resolved\nmargin: -0.05\n")
-        os.utime(decision, (CREATED + 10_000, CREATED + 10_000))
+        os.utime(decision, (CREATED - 10_000, CREATED - 10_000))  # an old mtime proves nothing
+    if when == "committed late":
+        _commit(tmp_path, CREATED + 100_000)
+    if when == "edited after commit":
+        _commit(tmp_path, CREATED - 10_000)
+        decision.write_text("metric: resolved\nmargin: -0.20\n")
     text = report(plane, decision=decision)
     assert "**Verdict**" not in text and "**No verdict**" in text
+    assert ("committed after" in text) == (when == "committed late")
     assert "### Outcome" in text  # the numbers are still there
+
+
+def test_behavior_spec_section_gives_pass_rates_per_spec_per_variant(plane: str, tmp_path: Path) -> None:
+    assert "No behavior-spec results for these trials" in report(plane)
+    copy = tmp_path / "plane"
+    shutil.copytree(plane, copy)
+    rows = [{"run_id": f"{EXP}/t03/{v}/{n}", "source": "experiment", "dt": "2025-10-16", "spec_id": "tests-before-pr",
+             "spec_source": "spec", "scope": "turn", "result": "pass" if v == "treat" or n == 1 else "fail"}
+            for v in ("control", "treat") for n in (1, 2, 3)]
+    rows += [{**rows[0], "spec_id": "no-force-push", "spec_source": "adr:team/0007", "result": "not_applicable"},
+             {**rows[0], "run_id": f"{EXP}/t08/control/1", "spec_id": "tests-before-pr"}]  # t08: task_invalid
+    write_partitioned("spec_results", rows, str(copy), "check-2025-10-16")
+    text = report(str(copy))
+    section = text.split("### Behavior specs")[1].split("###")[0]
+    # t03/treat/3 was infra_error (excluded), its retry t03/treat/3~2 has no spec result: 2 treat trials counted
+    assert "| tests-before-pr | 1/3 = 33% | 2/2 = 100% |" in section
+    assert "no-force-push" not in section  # not applicable everywhere: no rate
 
 
 def _c(est: float, lo: float, hi: float, n: int = 20, metric: str = "resolved", note: str = "") -> Comparison:
@@ -107,20 +140,41 @@ def test_post_refuses_secrets_bad_targets_and_clips(monkeypatch: pytest.MonkeyPa
         markdown.post(head + "token ghp_" + "a" * 36, "o/r#1", "t", gh=FakeGitHub())
     with pytest.raises(ValueError, match="owner/repo#number"):
         markdown.post(head, "o/r", "t", gh=FakeGitHub())
-    gh = FakeGitHub()
-    markdown.post(head + "x" * 70_000, "o/r#1", "t", full="report.md", gh=gh)
+    with pytest.raises(ValueError, match="https:// URL"):
+        markdown.post(head, "o/r#1", "t", full="report.md", gh=FakeGitHub())
+    gh, url = FakeGitHub(), "https://github.com/team/flightdeck-data/blob/main/reports/e.md"
+    markdown.post(head + "x" * 70_000, "o/r#1", "t", full=url, gh=gh)
     body = gh.comments[-1]["body"]
-    assert len(body) <= markdown.LIMIT and body.rstrip().endswith("full report: report.md.*")
+    assert len(body) <= markdown.LIMIT and body.rstrip().endswith(f"[full report]({url}).*")
+    markdown.post(markdown.marker("f") + "\n" + "x" * 70_000, "o/r#1", "t", gh=gh)
+    assert gh.comments[-1]["body"].rstrip().endswith("the full report is not linked (`--full-url` or `--gist`).*")
+
+
+def test_a_clipped_report_can_link_a_secret_gist(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GITHUB_API_URL", raising=False)
+    calls: list[tuple[str, str, dict | None]] = []
+
+    def gh(method: str, url: str, token: str, body: dict | None = None) -> Any:
+        calls.append((method, url, body))
+        return [] if method == "GET" else {"html_url": "https://gist.github.com/x/1" if "gists" in url else "c"}
+
+    text = markdown.marker("e") + "\n" + "x" * 70_000
+    markdown.post(text, "o/r#1", "t", gist=True, gh=gh)
+    method, url, body = calls[0]
+    assert (method, url) == ("POST", "https://api.github.com/gists") and body
+    assert body["public"] is False and body["files"]["report.md"]["content"] == text
+    assert "[full report](https://gist.github.com/x/1)" in (calls[-1][2] or {})["body"]
 
 
 def test_report_cli_writes_and_posts(plane: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     posted: list[tuple[str, str | None]] = []
-    monkeypatch.setattr(markdown, "post", lambda text, target, token, full=None: posted.append((target, full)) or "u")
+    monkeypatch.setattr(markdown, "post",
+                        lambda text, target, token, full=None, gist=False: posted.append((target, full)) or "u")
     monkeypatch.setenv("GITHUB_TOKEN", "t")
     out = tmp_path / "report.md"
     args = ["report", "experiment", EXP, "--data", plane, "--out", str(out), "--post", "o/r#9"]
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 0, result.output
-    assert out.read_text().startswith(markdown.marker(EXP)) and posted == [("o/r#9", str(out))]
-    result = CliRunner().invoke(app, ["report", "post", str(out), "--to", "o/r#10"])
-    assert result.exit_code == 0 and posted[-1] == ("o/r#10", str(out))
+    assert out.read_text().startswith(markdown.marker(EXP)) and posted == [("o/r#9", None)]  # never a local path
+    result = CliRunner().invoke(app, ["report", "post", str(out), "--to", "o/r#10", "--full-url", "https://x/r.md"])
+    assert result.exit_code == 0 and posted[-1] == ("o/r#10", "https://x/r.md")

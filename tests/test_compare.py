@@ -15,12 +15,12 @@ def trials(plane: str) -> list[dict]:
 def test_resolved_comparison_lists_exclusions_definition_and_saturated_tasks(trials: list[dict]) -> None:
     c = compare(trials, "resolved", "control", "treat")
     assert c.excluded == {"cancelled": 1, "drift": 1, "infra_error": 1, "not finished": 1, "task_invalid": 6}
-    assert c.resolved_from == {"grader": 62} and c.saturated == ["t01", "t02"]
+    assert c.resolved_from == {"grader": 63} and c.saturated == ["t01", "t02"]  # t03's retry counts, not its attempt 1
     assert c.diff is not None and c.diff.n_tasks == 11 and c.diff.seed == 0
     assert c.concordant + c.discordant == 11 and c.concordant >= 2
     out = render(c)
-    for text in ("95% Wilson", "Paired difference treat - control", "95% CI", "11 tasks, 62 trials",
-                 "Resolved: grader for 62 trials", "Excluded: cancelled 1, drift 1, infra_error 1, not finished 1, "
+    for text in ("95% Wilson", "Paired difference treat - control", "95% CI", "11 tasks, 63 trials",
+                 "Resolved: grader for 63 trials", "Excluded: cancelled 1, drift 1, infra_error 1, not finished 1, "
                  "task_invalid 6", "Saturated", "minimum detectable lift", "seed 0"):
         assert text in out, text
     assert "p=" not in out and "p-value" not in out  # no p-value without its interval
@@ -37,7 +37,7 @@ def test_truncated_traces_are_excluded_from_process_metrics_only(trials: list[di
 
 def test_include_drift_keeps_drifted_trials(trials: list[dict]) -> None:
     c = compare(trials, "resolved", "control", "treat", include_drift=True)
-    assert "drift" not in c.excluded and c.diff is not None and c.diff.n_trials == 63
+    assert "drift" not in c.excluded and c.diff is not None and c.diff.n_trials == 64
 
 
 def test_verify_fallback_infra_outcome_and_unknown_values() -> None:
@@ -46,9 +46,14 @@ def test_verify_fallback_infra_outcome_and_unknown_values() -> None:
             "grade_exit": None, "grade_applied": None, "verify_passed": True, "cost_usd": None, "tool_calls": 3}
     assert resolved(base) == (True, "verify")
     assert resolved({**base, "grade_exit": 0, "grade_applied": False}) == (False, "grader")
-    assert exclusion({**base, "outcome": "infra_error"}, "resolved") == "infra_error"
-    assert exclusion({**base, "outcome": "failed", "reason": "capacity exhausted"}, "resolved") == "infra_error"
-    assert exclusion({**base, "outcome": "failed", "reason": "tests failed"}, "resolved") is None
+    failed = {**base, "outcome": "failed"}
+    infra = {**failed, "outcome_class": "infra_error", "infra_reason": "preempted"}
+    assert exclusion(infra, "resolved") == "infra_error"
+    assert exclusion({**failed, "excluded": True}, "resolved") == "infra_error"
+    # hangar's class decides, not the failure reason: no class is unknown, never read as infrastructure's
+    assert exclusion({**failed, "reason": "sandbox pool capacity exhausted"}, "resolved") is None
+    assert exclusion({**failed, "outcome_class": "agent", "reason": "provider quota"}, "resolved") is None
+    assert exclusion({**base, "outcome_class": "human"}, "resolved") == "human"
     assert exclusion({**base, "contaminated": True}, "resolved") == "contaminated"
     assert exclusion({**base, "verify_passed": None}, "resolved") == "no grade or verify"
     assert exclusion(base, "cost_usd") == "unknown cost_usd"

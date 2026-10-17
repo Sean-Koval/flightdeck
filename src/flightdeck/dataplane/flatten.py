@@ -202,7 +202,8 @@ def _turn_row(
         "person": res.get("hangar.person"), "repo": wf.get("hangar.repo"), "environment": res.get("hangar.environment"),
         "harness": a.get("hangar.harness"), "harness_version": a.get("hangar.harness.version"),
         "model_id": a.get("gen_ai.response.model") or a.get("gen_ai.request.model"),
-        "outcome": a.get("hangar.turn.outcome"), "manifest_digest": a.get("hangar.manifest.digest"),
+        "outcome": a.get("hangar.turn.outcome"), "outcome_class": a.get("hangar.outcome.class"),
+        "infra_reason": a.get("hangar.outcome.infra_reason"), "manifest_digest": a.get("hangar.manifest.digest"),
         "cost_usd": a.get("hangar.cost_usd"), "cost_source": a.get("hangar.cost_source"),
         "input_tokens": a.get("gen_ai.usage.input_tokens"), "output_tokens": a.get("gen_ai.usage.output_tokens"),
         "cache_read_tokens": a.get("gen_ai.usage.cache_read.input_tokens"),
@@ -233,8 +234,14 @@ def _test_row(ev: dict, a: dict, rid: str | None, src: str, trace_id: str) -> Ro
 # --- experiments -------------------------------------------------------------------------------------------------
 
 
+def trial_ref(t: dict[str, Any]) -> str:
+    """A trial's own name: its key, plus `~<attempt>` for a retry after an infra error (hangar#166)."""
+    return t["key"] + (f"~{t['attempt']}" if (t.get("attempt") or 1) > 1 else "")
+
+
 def flatten_experiment(index: dict[str, Any]) -> dict[str, list[Row]]:
-    """One `hangar.experiment/v1` index as `runs` (one per trial, `run_id` = experiment id + trial key) and `grades`."""
+    """One `hangar.experiment/v1` index as `runs` (one per trial attempt, `run_id` = experiment id + `trial_ref`) and
+    `grades`. An `infra_error` trial hangar retried stays, `excluded`, beside its retry under the same key."""
     if index.get("schema") != "hangar.experiment/v1":
         raise ValueError(f"not a hangar.experiment/v1: {index.get('schema')!r}")
     index = scrub(index)
@@ -243,7 +250,7 @@ def flatten_experiment(index: dict[str, Any]) -> dict[str, list[Row]]:
     runs: list[Row] = []
     grades: list[Row] = []
     for t in index.get("trials", []):
-        rid = f"{exp_id}/{t['key']}"
+        rid = f"{exp_id}/{trial_ref(t)}"
         day = _dt(t.get("finished_at") or t.get("started_at") or index.get("created_at"))
         v, task, usage = variants.get(t["variant"]) or {}, tasks.get(t["task"]) or {}, t.get("usage") or {}
         verify = t.get("verify") or {}
@@ -254,7 +261,9 @@ def flatten_experiment(index: dict[str, Any]) -> dict[str, list[Row]]:
                 "variant": t["variant"], "trial": t["trial"], "person": index.get("person"), "repo": task.get("repo"),
                 "environment": v.get("environment"), "harness": v.get("harness"),
                 "harness_version": v.get("harness_version"), "model_id": usage.get("model") or v.get("model"),
-                "outcome": t.get("outcome"), "reason": t.get("reason"), "config_digest": t.get("config_digest"),
+                "outcome": t.get("outcome"), "reason": t.get("reason"), "outcome_class": t.get("outcome_class"),
+                "infra_reason": t.get("infra_reason"), "excluded": t.get("excluded"), "attempt": t.get("attempt"),
+                "config_digest": t.get("config_digest"),
                 "harness_digest": t.get("harness_digest"), "environment_digest": t.get("environment_digest"),
                 "manifest_digest": next((m for m in t.get("manifests") or [] if m), None),
                 "base_sha": task.get("base_sha"), "cost_usd": usage.get("cost_usd"),

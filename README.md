@@ -49,7 +49,7 @@ Built so far:
 
 ## End to end
 
-On the synthetic fixture experiment (12 tasks × 2 variants × 3 trials, with an infrastructure failure, a cancelled,
+On the synthetic fixture experiment (12 tasks × 2 variants × 3 trials, with an infrastructure failure hangar retried, a cancelled,
 a drifted and a still-running trial, a truncated trace and an invalid task; no team data):
 
 ```sh

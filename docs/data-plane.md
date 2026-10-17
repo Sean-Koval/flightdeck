@@ -37,7 +37,9 @@ or session id in `run_id`), with `spec_id`, `spec_source` (`spec` or `adr:<repo>
 ([behavior-specs.md](behavior-specs.md)).
 
 Nullable now, filled as soon as hangar emits them with no schema change: `harness_digest`, `environment_digest`,
-`knowledge_snapshot`, `grader_digest`, and an `infra_error` value of `outcome`.
+`knowledge_snapshot`, `grader_digest`. `runs.outcome_class` (`agent`, `infra_error`, `cancelled`, `human`; null for
+records from before hangar#166) and `infra_reason` come from the trial or the turn span's `hangar.outcome.class` and
+`hangar.outcome.infra_reason`; `excluded` and `attempt` from the trial.
 
 ## Decoding
 
@@ -63,10 +65,13 @@ All write to `--out` (default `~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`), w
 `session`.
 
 - **REST and export are one path.** REST ingest streams the index and each trial's `links.manifest`/`links.trace` to
-  `<out>/raw/<id>/` in `hangar experiment export`'s layout (`index.json`, `trials/<task>__<variant>__<n>/*.json`), then
+  `<out>/raw/<id>/` in `hangar experiment export`'s layout (`index.json`, `trials/<task>__<variant>__<n>[~<attempt>]/*.json`), then
   reads that directory like an export. Both produce identical tables, and nothing large is held in memory.
-- **Experiments.** One `runs` row per trial key, from the index. A trial's spans, events and test results take the
+- **Experiments.** One `runs` row per trial, from the index. A trial's spans, events and test results take the
   trial's `run_id` (`<experiment>/<task>/<variant>/<n>`), and its run row is `truncated` when its trace was. A trial
+  hangar retried after an infrastructure error (hangar#166) keeps its row, `excluded`, and the retry is a second row
+  under the same `trial_key` with `run_id` `<experiment>/<task>/<variant>/<n>~<attempt>`. Pins that break hangar's
+  model rule are warned about, as `experiment status` reports them. A trial
   still pending or running has `outcome` null; statistics leave it out. Drifted trials (`trials[].drift`) are kept,
   with `drift` set; `flightdeck stats compare` excludes them unless `--include-drift`. Hangar's #127 anti-forgery
   fields land in `runs.task_invalid`, `runs.contaminated` and `runs.grade_trust`.

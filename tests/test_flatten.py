@@ -56,6 +56,7 @@ def test_job_trace_runs_and_test_cases() -> None:
     rows = flatten.flatten_trace(load("trace_job.json"))
     (run,) = rows["runs"]
     assert run["source"] == "job" and run["job_id"] == "job-fixture01" and run["run_id"] == "run-j1"
+    assert run["outcome_class"] == "agent" and run["infra_reason"] is None  # hangar#166's turn attributes
     assert run["verify_passed"] is True and run["pr_number"] == 7 and run["merged"] is True
     assert run["merged_by"] == "reviewer-b" and run["diff_files"] == ["src/reaper.py", "tests/test_reaper.py"]
     assert run["cost_usd"] == pytest.approx(0.42) and run["truncated"] is False

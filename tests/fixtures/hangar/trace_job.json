@@ -177,7 +177,7 @@
         {
          "key": "gen_ai.response.model",
          "value": {
-          "stringValue": "claude-sonnet-5"
+          "stringValue": "claude-sonnet-5-1"
          }
         },
         {
@@ -697,6 +697,12 @@
          }
         },
         {
+         "key": "hangar.outcome.class",
+         "value": {
+          "stringValue": "agent"
+         }
+        },
+        {
          "key": "hangar.turn.exit_code",
          "value": {
           "intValue": "0"
@@ -741,7 +747,7 @@
         {
          "key": "gen_ai.response.model",
          "value": {
-          "stringValue": "claude-sonnet-5"
+          "stringValue": "claude-sonnet-5-1"
          }
         },
         {
