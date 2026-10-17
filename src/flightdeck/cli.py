@@ -5,7 +5,7 @@ import os
 import typer
 
 from flightdeck import __version__
-from flightdeck.specs.cli import spec_app
+from flightdeck.specs.cli import check_app, spec_app
 from flightdeck.tasks.cli import app as task_app
 
 app = typer.Typer(
@@ -13,6 +13,7 @@ app = typer.Typer(
 )
 
 app.add_typer(spec_app, name="spec")
+app.add_typer(check_app, name="check")
 app.add_typer(task_app, name="task")
 
 

@@ -39,11 +39,10 @@ Built so far:
 | --- | --- |
 | `flightdeck.dataplane` | `flightdeck.parquet/v1` tables (runs, spans, events, manifests, grades, test_cases), flatteners from hangar's manifest, OTLP trace and experiment index, DuckDB views; `flightdeck query`. See [docs/data-plane.md](docs/data-plane.md) |
 | `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation. See [docs/statistics.md](docs/statistics.md) |
-| `flightdeck.specs` | `flightdeck.spec/v1` behavior specs: YAML predicates over `hangar.trace/v1`, a Python reference evaluator and a DuckDB compiler, the trusted-test rule; `flightdeck spec lint\|test`. See [docs/behavior-specs.md](docs/behavior-specs.md) |
+| `flightdeck.specs` | `flightdeck.spec/v1` behavior specs: YAML predicates over `hangar.trace/v1`, a Python reference evaluator and a DuckDB compiler, the trusted-test rule; `flightdeck spec lint\|test`; the nightly runner over the data plane with ADR `checks:`, change-point alerts and `flightdeck check run\|diff`. See [docs/behavior-specs.md](docs/behavior-specs.md) |
 | `flightdeck.tasks` | Harbor-compatible task directories: load, check and digest them, map them onto a `hangar.experiment/v1` spec; `flightdeck task new\|check\|digest`; the semver smoke task in `tasks/smoke/`. See [docs/tasks.md](docs/tasks.md) |
 
-Planned (see the issue tracker): ingest from hangar exports, `flightdeck stats compare` and the report, the nightly spec runner
-and the experiment submission client.
+Planned (see the issue tracker): ingest from hangar exports, `flightdeck stats compare` and the report, and the experiment submission client.
 
 ## Development
 
