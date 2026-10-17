@@ -32,7 +32,8 @@ RUNS = _schema("runs", """
     job_id session_id turn:int experiment_id trial_key task_id variant trial:int person repo environment harness
     harness_version model_id outcome reason config_digest harness_digest environment_digest manifest_digest base_sha
     cost_usd:float cost_source input_tokens:int output_tokens:int cache_read_tokens:int started_at:ts finished_at:ts
-    verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool""")
+    verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool
+    task_invalid:bool contaminated:bool grade_trust""")
 
 # One OTLP span. `attrs`: JSON of every attribute without its own column.
 SPANS = _schema("spans", """
@@ -63,25 +64,42 @@ TEST_CASES = _schema("test_cases", """
 TABLES: dict[str, pa.Schema] = {"runs": RUNS, "spans": SPANS, "events": EVENTS, "manifests": MANIFESTS,
                                 "grades": GRADES, "test_cases": TEST_CASES}
 
+# Written by flightdeck itself, not flattened from hangar: one spec or ADR check's result for one unit (a turn, job or
+# session; `run_id` is its id, `source` its run source). `spec_source` is `spec` or `adr:<repo>/<adr>`.
+SPEC_RESULTS = _schema("spec_results", "spec_id spec_source scope result repo harness_digest knowledge_snapshot")
+DERIVED: dict[str, pa.Schema] = {"spec_results": SPEC_RESULTS}
+
 
 def to_table(name: str, rows: list[dict]) -> pa.Table:
     """Rows as a table of the named schema: missing columns are null, unknown keys are an error."""
-    schema = TABLES[name]
+    schema = TABLES.get(name) or DERIVED[name]
     extra = {k for r in rows for k in r} - set(schema.names)
     if extra:
         raise ValueError(f"{name}: columns not in {VERSION}: {sorted(extra)}")
     return pa.Table.from_pylist(rows, schema=schema)
 
 
-def write_partitioned(name: str, rows: list[dict], root: str) -> list[str]:
-    """Write rows under `<root>/<name>/dt=YYYY-MM-DD/part-0.parquet` (zstd), one file per day; `dt` lives in the path
-    (hive partitioning), not in the file. Returns the paths."""
+def write_partitioned(name: str, rows: list[dict], root: str, part: str = "part-0") -> list[str]:
+    """Write rows under `<root>/<name>/dt=YYYY-MM-DD/<part>.parquet` (zstd), one file per day; `dt` lives in the path
+    (hive partitioning), not in the file. Files of the same `part` in other days are removed, so rewriting a part
+    replaces it. Returns the paths."""
+    for stale in Path(root).glob(f"{name}/dt=*/{part}.parquet"):
+        stale.unlink()
     paths = []
     for day in sorted({r.get("dt") or "unknown" for r in rows}):
-        part = Path(root) / name / f"dt={day}"
-        part.mkdir(parents=True, exist_ok=True)
-        path = part / "part-0.parquet"
+        part_dir = Path(root) / name / f"dt={day}"
+        part_dir.mkdir(parents=True, exist_ok=True)
+        path = part_dir / f"{part}.parquet"
         table = to_table(name, [r for r in rows if (r.get("dt") or "unknown") == day])
         pq.write_table(table.drop_columns(["dt"]), path, compression="zstd")
         paths.append(str(path))
     return paths
+
+
+def read_part(name: str, root: str, part: str) -> list[dict]:
+    """The rows of one part across its days, with `dt` from the path."""
+    rows = []
+    for path in sorted(Path(root).glob(f"{name}/dt=*/{part}.parquet")):
+        day = path.parent.name.removeprefix("dt=")
+        rows += [{**r, "dt": day} for r in pq.read_table(path).to_pylist()]
+    return rows

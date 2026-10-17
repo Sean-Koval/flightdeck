@@ -1,0 +1,10 @@
+"""Hidden tests: never given to the agent. Import the code under test from $GRADE_WORK (test.sh sets it)."""
+
+import os
+import sys
+
+sys.path.insert(0, os.environ.get("GRADE_WORK", os.getcwd()))
+
+
+def test_replace_me() -> None:
+    raise AssertionError("write the hidden tests for this task")

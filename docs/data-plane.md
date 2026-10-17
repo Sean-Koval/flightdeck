@@ -31,6 +31,11 @@ person) are copied onto every span row. Every row has `run_id`, `source` (`job`,
 | `grades` | one grader result for a trial | experiment `trials[].grade` | `data` is the JSON the grader wrote to `$HANGAR_GRADE_OUT` |
 | `test_cases` | one `test.run` (its `case_name` is null) or one `test.case` | trace `test.run`/`test.case` events | `trusted` is false for the agent's own in-turn runs; specs that need proof of testing use `trusted and total > 0` |
 
+`spec_results` is written by flightdeck, not flattened from hangar: one row per spec or ADR check and unit (a turn, job
+or session id in `run_id`), with `spec_id`, `spec_source` (`spec` or `adr:<repo>/<adr>`), `scope`, `result` (`pass`,
+`fail`, `not_applicable`, `unknown`), `repo`, `harness_digest` and `knowledge_snapshot`
+([behavior-specs.md](behavior-specs.md)).
+
 Nullable now, filled as soon as hangar emits them with no schema change: `harness_digest`, `environment_digest`,
 `knowledge_snapshot`, `grader_digest`, and an `infra_error` value of `outcome`.
 
@@ -42,15 +47,60 @@ A different `hangar.trace.schema`, manifest or experiment schema is refused. Han
 flatteners also mask anything that still looks like a credential (private keys, GitHub, Anthropic/OpenAI, AWS and
 Slack tokens) as `***`, and clip event text to 2,000 characters.
 
+## Ingest
+
+Until the outbox and compactor exist (and afterwards, for an author who wants one experiment's results now),
+`flightdeck ingest` pulls from hangar directly. Code: `src/flightdeck/dataplane/ingest.py`.
+
+```sh
+flightdeck ingest export DIR                                  # files from `hangar experiment export <id> -o DIR`
+flightdeck ingest experiment <id> --hangar URL                # REST; bearer token from HANGAR_TOKEN
+flightdeck ingest job <id> --hangar URL                       # GET /api/jobs/{id}/trace + /manifest?turn=N
+flightdeck ingest session <name> [--turn N] --hangar URL      # GET /api/sessions/{name}/trace + /manifest?turn=N
+```
+
+All write to `--out` (default `~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`), with `source` = `experiment`, `job` or
+`session`.
+
+- **REST and export are one path.** REST ingest streams the index and each trial's `links.manifest`/`links.trace` to
+  `<out>/raw/<id>/` in `hangar experiment export`'s layout (`index.json`, `trials/<task>__<variant>__<n>/*.json`), then
+  reads that directory like an export. Both produce identical tables, and nothing large is held in memory.
+- **Experiments.** One `runs` row per trial key, from the index. A trial's spans, events and test results take the
+  trial's `run_id` (`<experiment>/<task>/<variant>/<n>`), and its run row is `truncated` when its trace was. A trial
+  still pending or running has `outcome` null; statistics leave it out. Drifted trials (`trials[].drift`) are kept,
+  with `drift` set; `flightdeck stats compare` excludes them unless `--include-drift`. Hangar's #127 anti-forgery
+  fields land in `runs.task_invalid`, `runs.contaminated` and `runs.grade_trust`.
+- **Idempotent.** Each unit (an experiment, a job, a session) owns one Parquet part per table and day,
+  `part-<unit>.parquet`. Re-ingesting replaces the unit's rows by `run_id`, so it adds no duplicates, and a trial that
+  finished on a later day moves partitions instead of staying behind.
+- **Validation.** The index and manifests are checked against hangar's `experiment.schema.json` and
+  `manifest.schema.json`, vendored in `src/flightdeck/dataplane/hangar_schemas/` with the hangar commit they came from
+  (`SOURCE.json`); `python scripts/sync_hangar_schemas.py --hangar ../hangar` refreshes them. A mismatch warns and the
+  ingest continues: the flatteners keep what they understand, and the raw JSON stays in the export or `raw/` directory.
+- **Tokens.** Hangar scopes every record to its owner (spec 0014 §1): a member token sees its own experiments, jobs and
+  sessions, an admin token everyone's, a `jobs` token what it submitted. A 404 means missing *or not yours* and is
+  reported that way. A report on your own experiment needs only your member token; a team-wide report needs an admin
+  token, kept in the operator's environment.
+
 ## Querying
 
 ```sh
 flightdeck query "select variant, count(*) from runs join grades using (run_id) group by 1" --data ./plane
 ```
 
-`duck.connect(uri)` registers one view per table that has files (`read_parquet(..., hive_partitioning=true,
-union_by_name=true)`). For `gs://` it loads DuckDB's `httpfs`; the caller supplies a DuckDB GCS secret (HMAC or
-credential chain), since flightdeck holds no credentials.
+`duck.connect(uri)` registers one view per table (`read_parquet(..., hive_partitioning=true, union_by_name=true)`); a
+table without files is an empty view of its schema. Timestamps are shown in UTC. For `gs://`, install the `gcs` extra
+(`uv sync --extra gcs`, or `pip install 'flightdeck[gcs]'`): DuckDB then reads through gcsfs with your Google
+application-default credentials (`gcloud auth application-default login`). Without it, DuckDB's `httpfs` is loaded and
+the caller supplies a DuckDB GCS secret (HMAC keys). Flightdeck holds no credentials either way.
+
+```sh
+uv sync --extra gcs
+flightdeck query "select count(*) from runs" --data gs://<private-bucket>/plane
+```
+
+Truncated exports (`hangar.export.truncated`, hangar's 20,000-item cap) set `runs.truncated`; process metrics (tool
+calls, cost, wall time) leave those trials out by default and say so, while outcome metrics keep them.
 
 ## Size
 

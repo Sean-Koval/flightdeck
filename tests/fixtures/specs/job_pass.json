@@ -1,0 +1,578 @@
+{
+ "resourceSpans": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "hangar.trace.schema",
+      "value": {
+       "stringValue": "hangar.trace/v1"
+      }
+     },
+     {
+      "key": "hangar.job.id",
+      "value": {
+       "stringValue": "job-job_pass"
+      }
+     },
+     {
+      "key": "hangar.session.id",
+      "value": {
+       "stringValue": "ses-job_pass"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "hangar.trace",
+      "version": "1"
+     },
+     "spans": [
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "b2b8ed808798b0bf",
+       "name": "invoke_workflow hangar.job",
+       "kind": 1,
+       "startTimeUnixNano": "1760700000000000000",
+       "endTimeUnixNano": "1760710000000000000",
+       "events": [
+        {
+         "timeUnixNano": "1760700005000000000",
+         "name": "test.run",
+         "attributes": [
+          {
+           "key": "hangar.kind",
+           "value": {
+            "stringValue": "test.run"
+           }
+          },
+          {
+           "key": "hangar.test.run.trusted",
+           "value": {
+            "boolValue": false
+           }
+          },
+          {
+           "key": "hangar.test.total",
+           "value": {
+            "intValue": "0"
+           }
+          },
+          {
+           "key": "hangar.test.complete",
+           "value": {
+            "boolValue": true
+           }
+          },
+          {
+           "key": "hangar.test.run.kind",
+           "value": {
+            "stringValue": "verify"
+           }
+          }
+         ]
+        },
+        {
+         "timeUnixNano": "1760700010000000000",
+         "name": "verify",
+         "attributes": [
+          {
+           "key": "hangar.kind",
+           "value": {
+            "stringValue": "verify"
+           }
+          },
+          {
+           "key": "hangar.verify.phase",
+           "value": {
+            "stringValue": "after_turn"
+           }
+          },
+          {
+           "key": "hangar.verify.passed",
+           "value": {
+            "boolValue": true
+           }
+          }
+         ]
+        },
+        {
+         "timeUnixNano": "1760700011000000000",
+         "name": "test.run",
+         "attributes": [
+          {
+           "key": "hangar.kind",
+           "value": {
+            "stringValue": "test.run"
+           }
+          },
+          {
+           "key": "hangar.test.run.trusted",
+           "value": {
+            "boolValue": true
+           }
+          },
+          {
+           "key": "hangar.test.total",
+           "value": {
+            "intValue": "42"
+           }
+          },
+          {
+           "key": "hangar.test.complete",
+           "value": {
+            "boolValue": true
+           }
+          },
+          {
+           "key": "hangar.test.run.kind",
+           "value": {
+            "stringValue": "verify"
+           }
+          }
+         ]
+        },
+        {
+         "timeUnixNano": "1760700012000000000",
+         "name": "git.commit",
+         "attributes": [
+          {
+           "key": "hangar.kind",
+           "value": {
+            "stringValue": "git.commit"
+           }
+          }
+         ]
+        },
+        {
+         "timeUnixNano": "1760700013000000000",
+         "name": "pr.open",
+         "attributes": [
+          {
+           "key": "hangar.kind",
+           "value": {
+            "stringValue": "pr.open"
+           }
+          },
+          {
+           "key": "hangar.pr.number",
+           "value": {
+            "intValue": "7"
+           }
+          }
+         ]
+        }
+       ],
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "job"
+         }
+        },
+        {
+         "key": "hangar.repo",
+         "value": {
+          "stringValue": "https://github.com/example/app.git"
+         }
+        },
+        {
+         "key": "hangar.diff.files",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "src/app.py"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "6bd59dc575661132",
+       "parentSpanId": "b2b8ed808798b0bf",
+       "name": "invoke_agent claude-code",
+       "kind": 1,
+       "startTimeUnixNano": "1760700000000000000",
+       "endTimeUnixNano": "1760700001000000000",
+       "events": [
+        {
+         "timeUnixNano": "1760700003000000000",
+         "name": "file.change",
+         "attributes": [
+          {
+           "key": "hangar.kind",
+           "value": {
+            "stringValue": "file.change"
+           }
+          },
+          {
+           "key": "hangar.file.repo_path",
+           "value": {
+            "stringValue": "src/app.py"
+           }
+          },
+          {
+           "key": "hangar.file.op",
+           "value": {
+            "stringValue": "update"
+           }
+          },
+          {
+           "key": "hangar.seq",
+           "value": {
+            "intValue": "3"
+           }
+          }
+         ]
+        }
+       ],
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "turn"
+         }
+        },
+        {
+         "key": "hangar.run.id",
+         "value": {
+          "stringValue": "run-1"
+         }
+        },
+        {
+         "key": "hangar.turn.number",
+         "value": {
+          "intValue": "1"
+         }
+        },
+        {
+         "key": "hangar.session.id",
+         "value": {
+          "stringValue": "ses-job_pass"
+         }
+        },
+        {
+         "key": "hangar.harness",
+         "value": {
+          "stringValue": "claude-code"
+         }
+        },
+        {
+         "key": "hangar.turn.outcome",
+         "value": {
+          "stringValue": "exited"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "f0b0c0c174a3d913",
+       "parentSpanId": "6bd59dc575661132",
+       "name": "execute_tool x",
+       "kind": 1,
+       "startTimeUnixNano": "1760700001000000000",
+       "endTimeUnixNano": "1760700001000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "plan"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "plan"
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "1"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "d0f72f642207791e",
+       "parentSpanId": "6bd59dc575661132",
+       "name": "execute_tool x",
+       "kind": 1,
+       "startTimeUnixNano": "1760700002000000000",
+       "endTimeUnixNano": "1760700002000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "src/app.py"
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "2"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "577b0c6de8b5a99b",
+       "parentSpanId": "6bd59dc575661132",
+       "name": "execute_tool x",
+       "kind": 1,
+       "startTimeUnixNano": "1760700004000000000",
+       "endTimeUnixNano": "1760700004000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "uv run pytest --collect-only -q"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "test"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "4"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "d8bb46bb24e5d34c",
+       "parentSpanId": "6bd59dc575661132",
+       "name": "approval Bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760700006000000000",
+       "endTimeUnixNano": "1760700006000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "approval"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "delete"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "hangar.approval.status",
+         "value": {
+          "stringValue": "allowed"
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "6"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "c01636030205474b",
+       "parentSpanId": "6bd59dc575661132",
+       "name": "execute_tool x",
+       "kind": 1,
+       "startTimeUnixNano": "1760700007000000000",
+       "endTimeUnixNano": "1760700007000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "rm -rf build/old"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "delete"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "7"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "f21a33697624636f",
+       "parentSpanId": "6bd59dc575661132",
+       "name": "execute_tool x",
+       "kind": 1,
+       "startTimeUnixNano": "1760700008000000000",
+       "endTimeUnixNano": "1760700008000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "git commit -qam fix"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "git.commit"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "8"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "4a4624c9211a4440c995ccb5f4c1a363",
+       "spanId": "3c4f764bcce7781b",
+       "parentSpanId": "6bd59dc575661132",
+       "name": "execute_tool x",
+       "kind": 1,
+       "startTimeUnixNano": "1760700009000000000",
+       "endTimeUnixNano": "1760700009000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "git push origin fix"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "git.push"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "9"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

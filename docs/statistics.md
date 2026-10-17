@@ -36,6 +36,26 @@ Every result is an `Interval` carrying its estimate, bounds, level, number of ta
 note. Fewer than 10 paired tasks is labelled *underpowered: do not decide on this*. No p-value is reported without
 its interval and n.
 
+## `flightdeck stats compare`
+
+```sh
+flightdeck stats compare <experiment> [--a control] [--b treat] [--metric resolved|cost_usd|tool_calls|wall_s]
+                         [--include-drift] [--seed 0] [--data DIR]
+```
+
+Code: `src/flightdeck/stats/compare.py`. Per variant: trials and the resolve rate with its Wilson interval (or the
+metric's mean), and dollars per resolved task with its task-bootstrap interval. Then the paired difference B − A with
+its 95% task-bootstrap interval, the numbers of tasks and trials, concordant and discordant tasks (resolved), a power
+line (the smallest lift the r1 simulation detects at 80% power with this many tasks and trials, cached per n), the
+resolved definition used, the exclusions with counts, and the saturated tasks. `tool_calls` counts the trial's
+`tool.call` spans; `wall_s` is the trial's finish minus start.
+
+Exclusions, first match wins: `not finished` (pending or running), `infra_error` (`outcome = infra_error`, or until
+hangar emits it, a failure whose reason names hangar's side: could not start, sandbox, pool, provider, capacity,
+quota), `cancelled`, `task_invalid` (the task failed hangar's base check), `contaminated` (the grader's canary was
+seen), `drift` (unless `--include-drift`), `truncated trace` (process metrics only), `no grade or verify`, and
+`unknown <metric>` (for cost: no usage recorded).
+
 ## Rules for reports
 
 - **Resolved** is the grader passing (`grades.exit_code = 0` and `applied`), else hangar's after-turn verify. The

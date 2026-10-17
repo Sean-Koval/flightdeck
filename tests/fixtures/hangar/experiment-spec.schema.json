@@ -1,0 +1,604 @@
+{
+ "$comment": "Generated from hangar src/hangar/experiments.py ExperimentSpec.model_json_schema() at hangar main 359675a (2026-10-16): the body POST /api/experiments accepts. Pydantic validators beyond the schema (grader files <= 1 MB in all, relative paths, a task needs instructions or an issue, unique task ids) are not in it.",
+ "$defs": {
+  "Budget": {
+   "description": "Caps for one agent turn; the turn is stopped (outcome `over_budget`) when it crosses any of them.",
+   "properties": {
+    "max_cost_usd": {
+     "anyOf": [
+      {
+       "exclusiveMinimum": 0,
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Cost Usd"
+    },
+    "max_minutes": {
+     "anyOf": [
+      {
+       "maximum": 1440,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Minutes"
+    },
+    "max_tokens": {
+     "anyOf": [
+      {
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Tokens"
+    }
+   },
+   "title": "Budget",
+   "type": "object"
+  },
+  "Grader": {
+   "additionalProperties": false,
+   "description": "A command run outside the agent's sandbox after each trial: in a clean, sealed sandbox, on the trial's\npatch. `files` (the hidden tests) go to `$HANGAR_HIDDEN_TESTS`, outside the repo (`files_mode: pristine`), or\ninto the repo as before (`in_repo`, recorded as `trust: low`). `network`: `none` (nothing), or `mirror` (hangar's\nread-only package mirror, when it is on, for a grader that installs packages).",
+   "properties": {
+    "canary": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "minLength": 16,
+       "pattern": "^[A-Za-z0-9._:-]+$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Canary"
+    },
+    "command": {
+     "maxLength": 4000,
+     "minLength": 1,
+     "title": "Command",
+     "type": "string"
+    },
+    "files": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "maxProperties": 64,
+     "title": "Files",
+     "type": "object"
+    },
+    "files_mode": {
+     "default": "pristine",
+     "enum": [
+      "pristine",
+      "in_repo"
+     ],
+     "title": "Files Mode",
+     "type": "string"
+    },
+    "network": {
+     "default": "none",
+     "enum": [
+      "none",
+      "mirror"
+     ],
+     "title": "Network",
+     "type": "string"
+    },
+    "timeout_seconds": {
+     "default": 900,
+     "maximum": 3600,
+     "minimum": 30,
+     "title": "Timeout Seconds",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "command"
+   ],
+   "title": "Grader",
+   "type": "object"
+  },
+  "JobBudget": {
+   "description": "--- frontdoor: caps for a whole job: all its agent turns together (the first, follow-ups, verify-fix and\nauto-fix turns, every best-of-N attempt and the judge). See jobbudget.py.",
+   "properties": {
+    "max_cost_usd": {
+     "anyOf": [
+      {
+       "exclusiveMinimum": 0,
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Cost Usd"
+    },
+    "max_tokens": {
+     "anyOf": [
+      {
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Tokens"
+    },
+    "max_turns": {
+     "anyOf": [
+      {
+       "maximum": 1000,
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Turns"
+    }
+   },
+   "title": "JobBudget",
+   "type": "object"
+  },
+  "SkillRef": {
+   "additionalProperties": false,
+   "description": "One skill a variant's agent gets: one of the environment's (`name`), or a directory next to the\nenvironment's spec (`path`, as an environment's own `skills:` entries).",
+   "properties": {
+    "name": {
+     "anyOf": [
+      {
+       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Name"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Path"
+    }
+   },
+   "title": "SkillRef",
+   "type": "object"
+  },
+  "Task": {
+   "additionalProperties": false,
+   "description": "A prompt with its repo, or a GitHub issue (`owner/repo#N`, whose text goes to the agent as untrusted\ncontext).",
+   "properties": {
+    "base_branch": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Base Branch"
+    },
+    "base_sha": {
+     "anyOf": [
+      {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Base Sha"
+    },
+    "id": {
+     "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$",
+     "title": "Id",
+     "type": "string"
+    },
+    "instructions": {
+     "anyOf": [
+      {
+       "maxLength": 64000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Instructions"
+    },
+    "issue": {
+     "anyOf": [
+      {
+       "pattern": "^[\\w.-]+/[\\w.-]+#\\d+$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Issue"
+    },
+    "reference_patch": {
+     "anyOf": [
+      {
+       "maxLength": 1048576,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Reference Patch"
+    },
+    "repo": {
+     "anyOf": [
+      {
+       "maxLength": 500,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Repo"
+    },
+    "title": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Title"
+    },
+    "verify": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Verify"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "Task",
+   "type": "object"
+  },
+  "Variant": {
+   "additionalProperties": false,
+   "description": "An environment plus an overlay. Unset fields are the experiment's (then the environment's).\n\nThe only overlay on an environment (spec 0014 \u00a74). `skills` has the semantics an environment's `skills` has under\n`extends` (#132): the whole set, `[]` for none; `skills_remove` drops named ones. It gains no new fields: once\nharness locks exist (#133) a variant shrinks to `{harness: name@sha256, environment}` (#135).",
+   "properties": {
+    "approvals": {
+     "anyOf": [
+      {
+       "enum": [
+        "auto",
+        "deny-risky"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Approvals"
+    },
+    "environment": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Environment"
+    },
+    "harness": {
+     "anyOf": [
+      {
+       "maxLength": 80,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Harness"
+    },
+    "instructions": {
+     "anyOf": [
+      {
+       "maxLength": 64000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Instructions"
+    },
+    "instructions_append": {
+     "anyOf": [
+      {
+       "maxLength": 64000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Instructions Append"
+    },
+    "model": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model"
+    },
+    "skills": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/SkillRef"
+       },
+       "maxItems": 50,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Skills"
+    },
+    "skills_remove": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "maxItems": 50,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Skills Remove"
+    }
+   },
+   "title": "Variant",
+   "type": "object"
+  }
+ },
+ "additionalProperties": false,
+ "properties": {
+  "budget": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/JobBudget"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  },
+  "environment": {
+   "title": "Environment",
+   "type": "string"
+  },
+  "grader": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/Grader"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  },
+  "harness": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Harness"
+  },
+  "keep_minutes": {
+   "default": 30,
+   "maximum": 1440,
+   "minimum": 0,
+   "title": "Keep Minutes",
+   "type": "integer"
+  },
+  "model": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Model"
+  },
+  "name": {
+   "maxLength": 100,
+   "minLength": 1,
+   "title": "Name",
+   "type": "string"
+  },
+  "parallel": {
+   "anyOf": [
+    {
+     "maximum": 64,
+     "minimum": 1,
+     "type": "integer"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Parallel"
+  },
+  "provider": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Provider"
+  },
+  "tasks": {
+   "items": {
+    "$ref": "#/$defs/Task"
+   },
+   "maxItems": 100,
+   "minItems": 1,
+   "title": "Tasks",
+   "type": "array"
+  },
+  "timeout_minutes": {
+   "anyOf": [
+    {
+     "maximum": 720,
+     "minimum": 1,
+     "type": "integer"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Timeout Minutes"
+  },
+  "trial_budget": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/Budget"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  },
+  "trial_job_budget": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/JobBudget"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  },
+  "trials": {
+   "default": 1,
+   "maximum": 20,
+   "minimum": 1,
+   "title": "Trials",
+   "type": "integer"
+  },
+  "variants": {
+   "additionalProperties": {
+    "$ref": "#/$defs/Variant"
+   },
+   "maxProperties": 8,
+   "minProperties": 1,
+   "title": "Variants",
+   "type": "object"
+  },
+  "verify_in_loop": {
+   "default": false,
+   "title": "Verify In Loop",
+   "type": "boolean"
+  }
+ },
+ "required": [
+  "name",
+  "environment",
+  "tasks",
+  "variants"
+ ],
+ "title": "ExperimentSpec",
+ "type": "object"
+}

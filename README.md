@@ -32,7 +32,7 @@ explained once in [docs/statistics.md](docs/statistics.md).
 
 ## Status
 
-v0, pre-release. The v0 analysis code stays under **1,500 lines** (`scripts/loc_budget.py`, enforced in CI) and has to
+v0, pre-release. The v0 analysis code stays under **2,500 lines** (`scripts/loc_budget.py`, enforced in CI) and has to
 change one real team decision before anything else, a UI included, gets built.
 
 Built so far:
@@ -40,10 +40,31 @@ Built so far:
 | Module | What |
 | --- | --- |
 | `flightdeck.dataplane` | `flightdeck.parquet/v1` tables (runs, spans, events, manifests, grades, test_cases), flatteners from hangar's manifest, OTLP trace and experiment index, DuckDB views; `flightdeck query`. See [docs/data-plane.md](docs/data-plane.md) |
-| `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation. See [docs/statistics.md](docs/statistics.md) |
+| `flightdeck.dataplane.ingest` | `flightdeck ingest export\|experiment\|job\|session`: hangar REST or `hangar experiment export` into local Parquet, idempotent, validated against vendored hangar schemas. See [docs/data-plane.md](docs/data-plane.md#ingest) |
+| `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation; `flightdeck stats compare` with exclusions and saturated tasks. See [docs/statistics.md](docs/statistics.md) |
+| `flightdeck.report` | `flightdeck report experiment`: the markdown report with a pre-registered verdict, posted as one PR or issue comment. See [docs/reports.md](docs/reports.md) |
+| `flightdeck.specs` | `flightdeck.spec/v1` behavior specs: YAML predicates over `hangar.trace/v1`, a Python reference evaluator and a DuckDB compiler, the trusted-test rule; `flightdeck spec lint\|test`; the nightly runner over the data plane with ADR `checks:`, change-point alerts and `flightdeck check run\|diff`. See [docs/behavior-specs.md](docs/behavior-specs.md) |
+| `flightdeck.tasks` | Harbor-compatible task directories: load, check and digest them, map them onto a `hangar.experiment/v1` spec; `flightdeck task new\|check\|digest`; the semver smoke task in `tasks/smoke/`. See [docs/tasks.md](docs/tasks.md) |
+| `flightdeck.runners` | The experiment submission client: suite plans to `hangar.experiment/v1` specs, a cost gate, `flightdeck experiment run\|status\|collect`. See [docs/runners.md](docs/runners.md) |
 
-Planned (see the issue tracker): ingest from hangar exports, `flightdeck stats compare` and the report, the task format, the behavior spec
-language and the experiment submission client.
+## End to end
+
+On the synthetic fixture experiment (12 tasks × 2 variants × 3 trials, with an infrastructure failure, a cancelled,
+a drifted and a still-running trial, a truncated trace and an invalid task; no team data):
+
+```sh
+uv run python scripts/fixture_export.py /tmp/fd/export          # what `hangar experiment export <id> -o DIR` writes
+uv run flightdeck ingest export /tmp/fd/export --out /tmp/fd/plane
+uv run flightdeck stats compare job-expdemo --data /tmp/fd/plane                   # resolved, paired by task
+uv run flightdeck stats compare job-expdemo --data /tmp/fd/plane --metric cost_usd
+uv run flightdeck report experiment job-expdemo --data /tmp/fd/plane \
+    --decision /tmp/fd/export/decision.yaml --out /tmp/fd/report.md
+GITHUB_TOKEN=... uv run flightdeck report post /tmp/fd/report.md --to owner/repo#123   # one comment, updated in place
+```
+
+Against a real hangar: `HANGAR_TOKEN=... flightdeck ingest experiment <id> --hangar https://<your hangar>` (or `ingest
+job` / `ingest session`), then the same `stats compare` and `report` with the default data directory
+(`~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`). Keep that directory private (ADR-0002).
 
 ## Development
 

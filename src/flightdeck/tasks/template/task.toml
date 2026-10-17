@@ -1,0 +1,34 @@
+# A Harbor task (task.toml schema 1.4) with flightdeck's keys under [flightdeck] (docs/tasks.md).
+schema_version = "1.4"
+
+[task]
+name = "local/{id}"
+version = "0.1.0"
+description = "One line on what the agent must do."
+keywords = []
+
+[metadata]
+
+[agent]
+timeout_sec = 1800.0
+
+[verifier]
+timeout_sec = 600.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 600.0
+
+[flightdeck]
+tags = []
+sealed = false
+# environment = "bare"  # the hangar environment trials run in
+
+[flightdeck.source]
+# repo = "https://github.com/OWNER/REPO.git"
+# base_sha = "<40-character commit>"
+# issue = "OWNER/REPO#123"
+
+[flightdeck.grader]
+command = "bash tests/test.sh"
+files_digest = ""

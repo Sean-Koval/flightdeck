@@ -23,9 +23,13 @@ What gets easier, what gets harder, what has to be built or removed, and what wo
 
 ## Checks (optional)
 
-Trace predicates flightdeck runs nightly against this decision (format: the spec-runner issue). Loosening or deleting
-one needs two people.
+Trace predicates flightdeck runs nightly once this decision is Accepted ([behavior-specs.md](../behavior-specs.md):
+the `flightdeck.spec/v1` grammar without the header). Loosening or deleting one needs two people.
 
 ```yaml
 checks: []
+# checks:
+#   - id: never-push-main
+#     scope: turn
+#     assert: {never: {tool: {kind: shell, ops: [git.push]}, where: {input: {regex: "\\b(main|master)\\b"}}}}
 ```
