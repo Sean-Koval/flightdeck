@@ -6,6 +6,7 @@ import typer
 
 from flightdeck import __version__
 from flightdeck.dataplane import compact, github, ingest
+from flightdeck.judges import app as judge_app
 from flightdeck.metrics.weekly import app as metrics_app
 from flightdeck.report import markdown
 from flightdeck.runners.cache import app as cache_app
@@ -34,6 +35,7 @@ app.add_typer(experiment_app, name="experiment")
 app.add_typer(cache_app, name="cache")
 app.command("compact")(compact.compact)
 app.add_typer(metrics_app, name="metrics")
+app.add_typer(judge_app, name="judge")
 ingest.app.command("github")(github.prs)
 
 

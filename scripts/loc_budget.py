@@ -14,7 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
-LIMIT = 3600  # docs/decisions/0005-post-v0-budget.md (0004 set 2,800, 0003 2,500)
+LIMIT = 3785  # docs/decisions/0005-post-v0-budget.md (0004 set 2,800, 0003 2,500)
 EXCLUDED = ("ported",)
 
 

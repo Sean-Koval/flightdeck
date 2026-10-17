@@ -14,6 +14,7 @@ from typing import Any
 
 import typer
 
+from flightdeck import judges
 from flightdeck.dataplane.flatten import SECRET
 from flightdeck.stats.compare import Comparison, compare, exclusion, load_trials, render
 
@@ -74,6 +75,10 @@ def _short(values: set[Any]) -> str:
 def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", decision: Path | None = None,
                   details: bool = False, hangar: str | None = None, seed: int = 0) -> str:
     """The report, from Parquet alone. Per-task rows and trial links only with `details` (public PRs: counts only)."""
+    rubric = read_decision(decision).get("rubric") if decision and decision.is_file() else None
+    if rubric and decision and (st := judges.status(decision.parent / rubric)) != "usable":
+        raise ValueError(f"decision.yaml uses rubric {rubric}, which is {st}: only a usable rubric (kappa's "
+                         "lower bound >= 0.6, docs/judges.md) may decide")
     trials = load_trials(con, exp_id)
     if not trials:
         raise ValueError(f"no trials of experiment {exp_id!r} in the data plane")
