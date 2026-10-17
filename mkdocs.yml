@@ -66,9 +66,15 @@ nav:
   - Home: index.md
   - Get started:
       - Concepts: concepts.md
+  - Guides:
+      - Tasks: tasks.md
+      - Running experiments: runners.md
+      - Behavior specs: behavior-specs.md
+      - Reports: reports.md
   - Reference:
       - Data plane: data-plane.md
       - Statistics: statistics.md
   - Decisions:
       - "0001: Boundary with hangar": decisions/0001-boundary-with-hangar.md
       - "0002: Public code, private data": decisions/0002-public-code-private-data.md
+      - "0003: The v0 line budget": decisions/0003-line-budget.md
