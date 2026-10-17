@@ -14,3 +14,6 @@ htmlcov/
 /data/
 *.parquet
 !tests/fixtures/**/*.parquet
+
+# Docs site build output (zensical build)
+/site/
