@@ -5,10 +5,13 @@ import os
 import typer
 
 from flightdeck import __version__
+from flightdeck.tasks.cli import app as task_app
 
 app = typer.Typer(
     help="Judge coding-agent runs from hangar: paired statistics, behavior specs, task sets.", no_args_is_help=True
 )
+
+app.add_typer(task_app, name="task")
 
 
 @app.callback()
