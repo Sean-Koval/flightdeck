@@ -1,6 +1,6 @@
 # 0005: The post-v0 batch is counted, and the budget rises by each piece's measured size
 
-Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #24) (agent-proposed; owner review requested)
+Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #27, which closes the batch) (agent-proposed; owner review requested)
 
 ## Context
 
@@ -27,6 +27,10 @@ records them here. The cuts so far:
   no cut found.
 - #24 lets `load_trials` take a run set, so `holdout score` and `mutate score` drop their own loops over experiment
   ids (two lines); no larger cut found.
+- #27 reuses `cohen_kappa` from #21, the model-concreteness rule and the custody-style digests; no cut found.
+
+The batch ends at 3,785 counted lines, under rule 3's 3,800. The next piece (#25, #26, #28-#32) starts its own ADR
+and should begin with #23's cleanup and the real-client question.
 
 Cuts considered and not taken:
 
@@ -64,6 +68,7 @@ B.
 | #53 | #16 | `specs/mutate.py`: operators, plan, run through the cost gate, kill scoring and the survivors' report (+167); `stats compare` no longer fails when no trial has a known cost (+1); registration (+2) | +170 | 3,273 |
 | #54 | #21 | `tasks/knowledge.py`: seal, citation classes, correctness by raters, the paired report and the 15-point rule (+130); `cohen_kappa` in `stats/core.py`, which #27's calibration reuses (+10); `custody.save` creates its directory (+1); registration (+2) | +143 | 3,416 |
 | #55 | #24 | `runners/cache.py`: key, lookup, plan reduction, reuse rows, `cache drop` and the drift sentinel (+148); `--cache` in `experiment run` and digest stamping in both backends (+21); `load_trials` reads run sets and reused trials once each, and `stats compare` reports them (+12); schema and registration (+3) | +184 | 3,600 |
+| #56 | #27 | `judges/`: rubric versions and digests, label sheets, calibration with weighted kappa and its interval, judge-label storage and the PPI estimate line (+141); `stats/ppi.py`, PPI++ and stratified (+36); the `decision.yaml` rubric gate (+5); schema and registration (+3) | +185 | 3,785 |
 
 ## Consequences
 

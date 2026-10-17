@@ -82,7 +82,10 @@ SPEC_RESULTS = _schema("spec_results", "spec_id spec_source scope result repo ha
 # One trial the cache reused for a run set (runners/cache.py): `run_id` is the reused trial's, `experiment_id` the run
 # set it stands in for.
 TRIAL_REUSE = _schema("trial_reuse", "experiment_id task_id variant age_days:float")
-DERIVED: dict[str, pa.Schema] = {"spec_results": SPEC_RESULTS, "trial_reuse": TRIAL_REUSE}
+# One judge label for one run (judges/): the rubric version and digest, the concrete judge model, the label, the
+# rationale's digest (its text stays in the private bucket) and the rubric's calibration status when it was stored.
+JUDGE_LABELS = _schema("judge_labels", "rubric rubric_digest judge label:float rationale_digest status")
+DERIVED: dict[str, pa.Schema] = {"spec_results": SPEC_RESULTS, "trial_reuse": TRIAL_REUSE, "judge_labels": JUDGE_LABELS}
 ALL = {**TABLES, **OUTBOX, **DERIVED}
 
 

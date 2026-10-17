@@ -87,8 +87,19 @@ needs every judged trial to pass on the base to reach 0.9 on a small suite, so t
 base and loose on the mutant: one failing task on the mutant is enough to kill it. Read a survived mutant as "this
 suite didn't notice", not as "this component is useless".
 
+## PPI
+
+Prediction-powered inference (`stats/ppi.py`, used by [judges](judges.md)) estimates a mean from `n` human labels and
+`N` judge labels. PPI++: `θ = λ·mean(f over the N unlabelled) + mean(y − λ·f over the n labelled)`, with
+`λ = cov(y, f) / ((1 + n/N)·var(f))` clipped to [0, 1], and a normal interval from
+`λ²·var(f_unlabelled)/N + var(y − λ·f_labelled)/n`. The residuals correct the judge's bias, so a biased judge only
+costs width; `λ = 0` is the human-only mean. `ppi_stratified` combines per-stratum estimates weighted by each
+stratum's share of items. In the acceptance simulation (100 human labels, 2,000 judge labels from a judge that agrees
+85% of the time) the 95% interval covers the true mean at about the nominal rate and is narrower than the human-only
+interval almost every time (`tests/test_judges.py`). Reports print the PPI estimate, never a raw judge mean alone.
+
 ## Later
 
-Sequential and adaptive designs (no peeking at fixed-n experiments), prediction-powered inference for model judges,
+Sequential and adaptive designs (no peeking at fixed-n experiments),
 CUPED and confidence sequences for shadow traffic, and mixed-effects models (a random effect per task) as the
 preferred model once the task bootstrap is in routine use.

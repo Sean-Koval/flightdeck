@@ -74,6 +74,7 @@ nav:
       - Running experiments: runners.md
       - Holdouts: holdouts.md
       - Knowledge evals: knowledge-evals.md
+      - Judges: judges.md
       - Behavior specs: behavior-specs.md
       - Reports: reports.md
   - Reference:
