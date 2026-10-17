@@ -31,6 +31,7 @@ budget can't see them. `tests/test_stats.py::test_power_reproduces_the_r1_table`
 | `trial_bootstrap(per_task)` | The naive trial-level interval | Contrast only: it is too narrow when tasks differ |
 | `dollars_per_resolved(per_task)` | Total cost / resolved count (ratio of sums), task bootstrap | Cost efficiency. Trials with unknown cost are excluded and counted |
 | `mcnemar_discordant(pairs)` | Concordant and discordant task counts, exact McNemar p | Reported with every outcome comparison; feeds adaptive allocation later |
+| `cohen_kappa(pairs)` | Cohen's κ for two raters' binary labels | Rater agreement on the knowledge gold set; judges' calibration (#27) |
 
 Every result is an `Interval` carrying its estimate, bounds, level, number of tasks and trials, the seed, and a
 note. Fewer than 10 paired tasks is labelled *underpowered: do not decide on this*. No p-value is reported without

@@ -18,6 +18,7 @@ says so.
 | **task** | A Harbor task directory: `task.toml` (flightdeck's keys under `[flightdeck]`), `instruction.md`, `environment/`, hidden `tests/`, optional `solution/`. Identity: `task_digest`. See [tasks.md](tasks.md) | hangar spec 0008; Harbor |
 | **suite** | A versioned list of tasks and specs | |
 | **holdout** | A sealed suite, scored once | |
+| **knowledge snapshot** | The identity of what a retrieval tool could read for a trial (an index's version or digest), recorded in the manifest as `knowledge.snapshot` and in the pin set. The knowledge gold set ([knowledge-evals.md](knowledge-evals.md)) pins questions to `as_of` commits instead | hangar manifest `knowledge` |
 | **check** | The repository's own command hangar runs after a turn (`verify`), recorded as a `test.run` event; `hangar.test.run.trusted = true` when hangar ran it, false for the agent's own in-turn runs. The agent can see and change it; a grader it never sees | `hangar.trace/v1` |
 | **grader** | A task's hidden tests (`tests/test.sh`, which writes `reward.json`), run on the trial's patch in a clean sandbox outside the agent's reach, from a pristine copy. Identity: `files_digest`. Unlike a check, the agent never sees it | `hangar.experiment/v1` `grade`; [tasks.md](tasks.md) |
 | **spec** | A behavior predicate over a trace export | |

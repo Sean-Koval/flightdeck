@@ -14,6 +14,7 @@ from flightdeck.specs.mutate import app as mutate_app
 from flightdeck.stats import compare
 from flightdeck.tasks.cli import app as task_app
 from flightdeck.tasks.custody import app as holdout_app
+from flightdeck.tasks.knowledge import app as knowledge_app
 
 app = typer.Typer(
     help="Judge coding-agent runs from hangar: paired statistics, behavior specs, task sets.", no_args_is_help=True
@@ -27,6 +28,7 @@ app.add_typer(check_app, name="check")
 app.add_typer(mutate_app, name="mutate")
 app.add_typer(task_app, name="task")
 app.add_typer(holdout_app, name="holdout")
+app.add_typer(knowledge_app, name="knowledge")
 app.add_typer(experiment_app, name="experiment")
 app.command("compact")(compact.compact)
 app.add_typer(metrics_app, name="metrics")

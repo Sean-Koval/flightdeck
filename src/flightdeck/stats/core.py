@@ -157,6 +157,18 @@ def mcnemar_discordant(pairs: Sequence[tuple[bool, bool]]) -> dict[str, float | 
     return {"concordant": len(pairs) - n, "b": b, "c": c, "n_discordant": n, "p_exact": min(1.0, 2 * tail)}
 
 
+def cohen_kappa(pairs: Sequence[tuple[bool, bool]]) -> float:
+    """Cohen's kappa for two raters' binary labels on the same items: agreement beyond chance. 1.0 when both raters
+    give one constant label and agree."""
+    if not pairs:
+        raise ValueError("no items rated by both")
+    n = len(pairs)
+    po = sum(bool(a) == bool(b) for a, b in pairs) / n
+    pa, pb = sum(bool(a) for a, _ in pairs) / n, sum(bool(b) for _, b in pairs) / n
+    pe = pa * pb + (1 - pa) * (1 - pb)
+    return 1.0 if pe == 1 else (po - pe) / (1 - pe)
+
+
 def simulate_power(tasks: int, trials: int, delta: float, sims: int = 2000, seed: int = 0, paired: bool = True,
                    alpha: float = 0.05) -> float:
     """Power of a one-sided z test at `alpha` for a `delta` lift, with task base rates from Beta(1.2, 1.2).
