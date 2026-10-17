@@ -26,7 +26,7 @@ PART = "part-0.parquet"
 ROW_GROUP_BYTES = 64 << 20
 RUN_KEYS = ("person", "repo", "environment", "harness", "harness_version", "outcome", "config_digest", "harness_digest",
             "environment_digest", "manifest_digest", "base_sha", "diff_files", "truncated", "outcome_class",
-            "infra_reason", "job_source", "job_turn", "job_state", "questions", "untrusted", "tainted")
+            "infra_reason", "job_source", "job_turn", "job_state", "questions", "untrusted", "tainted", "attempt")
 
 
 def _read(fs: Any, path: str) -> tuple[Any, str]:

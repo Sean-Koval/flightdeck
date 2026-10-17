@@ -34,7 +34,7 @@ RUNS = _schema("runs", """
     harness_digest environment_digest manifest_digest base_sha
     cost_usd:float cost_source input_tokens:int output_tokens:int cache_read_tokens:int started_at:ts finished_at:ts
     verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool
-    task_invalid:bool contaminated:bool grade_trust outcome_class infra_reason job_source job_turn:int job_state
+    task_invalid:bool contaminated:bool grade_trust job_source job_turn:int job_state
     steers:int questions:int untrusted:bool tainted:bool""")
 
 # One OTLP span. `attrs`: JSON of every attribute without its own column.
