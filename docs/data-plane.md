@@ -27,7 +27,7 @@ person) are copied onto every span row. Every row has `run_id`, `source` (`job`,
 | --- | --- | --- | --- |
 | `runs` | one turn (`run_id` = `hangar.run.id`) or one trial (`run_id` = `<experiment>/<task>/<variant>/<n>`) | trace `turn` span + its job's events; experiment `trials[]` | `verify_passed` from the job's `verify` event (`phase = after_turn`) or the trial's `verify.passed`; `diff_files` from `hangar.diff.files`, since shell writes aren't `file.change` events; `merged`/`merged_by` from `pr.merge`; `truncated` from `hangar.export.truncated` |
 | `spans` | one OTLP span | trace | Columns for the taxonomy (`kind` = `hangar.kind`, `tool_kind`, `shell_ops`, `seq`, `seq_end`, `file_repo_path`, `mcp_*`, `approval_*`); everything else in `attrs` JSON. Job/session root spans take the job or session id as `run_id` |
-| `events` | one span event, except test results | trace | `seq` is null for `steer`/`interrupt` (hangar gives them none yet), so their order is by time only |
+| `events` | one span event, except test results | trace | `steer`/`interrupt` events carry `seq` and, in `attrs`, `hangar.steer.class` since hangar#162; older ones have no seq, so their order is by time only |
 | `manifests` | one `hangar.manifest/v1`, deduplicated by `digest` | manifest | `skills_effective` as `name@digest`; `json` keeps the whole manifest |
 | `grades` | one grader result for a trial | experiment `trials[].grade` | `data` is the JSON the grader wrote to `$HANGAR_GRADE_OUT` |
 | `test_cases` | one `test.run` (its `case_name` is null) or one `test.case` | trace `test.run`/`test.case` events; outbox `tests.json` | `trusted` is false for the agent's own in-turn runs; specs that need proof of testing use `trusted and total > 0` |

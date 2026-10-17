@@ -86,9 +86,17 @@ Python `re` and RE2 (DuckDB): no lookaround or backreferences.
 | `any: {paths: {from: [...]}, match: <glob or list>}` | at least one path matches (a delivered file, for ai-dlc's `path-committed`); `not_applicable` with no paths |
 
 **Order** is `hangar.seq` within a session, the event log's position, because many items share a timestamp. Items
-without a seq (job events, test runs, `steer`/`interrupt`) are compared by time, so mixed comparisons are by time
-(traces.md 'Order'). A `within: {seq: N}` window on an item without a seq is `unknown`. Across sessions (best-of-N
-attempts) order is by time only.
+without a seq (job events, test runs, steers recorded before hangar#162) are compared by time, so mixed comparisons
+are by time (traces.md 'Order'). A `within: {seq: N}` window on an item without a seq is `unknown`. Across sessions
+(best-of-N attempts) order is by time only.
+
+**Steers.** Since hangar#162, `steer` and `interrupt` events carry `hangar.seq` (the event-log position where the
+steer was delivered) and `hangar.steer.class` (`correction`, `redirect`, `new_info` or `unclassified`, with
+`hangar.steer.classified_by`); a later classification is also a `steer.classified` event. A steer that arrives after
+its turn ended is `queued` and starts the next turn, so its seq is that turn's start. Steer-avoidance counts only
+corrections: `never: {event: steer, where: {hangar.steer.class: correction}}`. For steers recorded before #162 (no
+seq, class `unclassified`), analyses that need a fork point (#29) take the nearest preceding seq and a judge's class
+(a [calibrated rubric](judges.md)), and say the result is approximate.
 
 ### Results
 
