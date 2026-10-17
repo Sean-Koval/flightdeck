@@ -57,14 +57,17 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.snippets
 
-# The ADR template is a copy-me file, not a page.
+# The ADR template is a copy-me file, not a page; the front page's report source is an asset, not a page.
 exclude_docs: |
   decisions/0000-template.md
+  assets/report.md
+  assets/build.py
 
 # Guides (reports, tasks, behavior specs, runners) join the nav as their pages land on main.
 nav:
   - Home: index.md
   - Get started:
+      - Getting started: getting-started.md
       - Concepts: concepts.md
   - Guides:
       - Tasks: tasks.md

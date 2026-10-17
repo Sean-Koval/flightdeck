@@ -4,15 +4,23 @@
 
 ```sh
 uv sync                                                        # Python 3.12 and the dev tools
-uv run ruff check src tests scripts
+uv run ruff check src tests scripts docs/assets
 uv run pyright
 uv run pytest -q
 python scripts/loc_budget.py
 ```
 
 Style is `ruff check` (line length 120, as in hangar); there is no formatter gate, so keep code compact and readable.
-CI runs the same four jobs (`lint`, `types`, `test`, `loc-budget`) on every PR. They need no secrets and no cloud
+CI runs the same four jobs (`lint`, `types`, `test`, `loc-budget`) on every PR, plus `assets`. They need no secrets and no cloud
 access: tests use synthetic fixtures only.
+
+## Front-page assets
+
+The README and the docs home page show a recording, a report screenshot and a diagram. They are generated, never hand
+made: `uv run --group assets python docs/assets/build.py` (once: `uv run --group assets playwright install chromium`)
+runs the real CLI on the fixture experiment and rewrites everything in `docs/assets/`. The `assets` CI job re-runs it
+and fails when a committed text asset differs, or when a PNG's source page changed without a re-render
+(`docs/assets/sources.sha256`). Change the CLI's output, the report or the fixture, and re-run it in the same PR.
 
 ## The line budget
 
