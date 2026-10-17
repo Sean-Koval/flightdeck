@@ -529,6 +529,7 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
+    { name = "fsspec" },
     { name = "jsonschema" },
     { name = "numpy" },
     { name = "pyarrow" },
@@ -548,7 +549,6 @@ assets = [
     { name = "playwright" },
 ]
 dev = [
-    { name = "fsspec" },
     { name = "pyright", extra = ["nodejs"] },
     { name = "pytest" },
     { name = "ruff" },
@@ -558,6 +558,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "duckdb", specifier = ">=1.4,<1.5" },
+    { name = "fsspec", specifier = ">=2026.9.0" },
     { name = "gcsfs", marker = "extra == 'gcs'", specifier = ">=2025.1" },
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "numpy", specifier = ">=2.5.4" },
@@ -574,7 +575,6 @@ assets = [
     { name = "playwright", specifier = "==1.56.0" },
 ]
 dev = [
-    { name = "fsspec", specifier = ">=2026.9.0" },
     { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.390" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.6" },

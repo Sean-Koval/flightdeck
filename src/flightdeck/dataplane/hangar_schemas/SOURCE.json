@@ -3,6 +3,7 @@
  "commit": "6dc8a395639c164dd884f10f8baa32ba2cc85c49",
  "files": [
   "docs/api/experiment.schema.json",
-  "docs/api/manifest.schema.json"
+  "docs/api/manifest.schema.json",
+  "docs/api/run.schema.json"
  ]
 }

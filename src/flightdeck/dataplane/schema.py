@@ -34,7 +34,8 @@ RUNS = _schema("runs", """
     harness_digest environment_digest manifest_digest base_sha
     cost_usd:float cost_source input_tokens:int output_tokens:int cache_read_tokens:int started_at:ts finished_at:ts
     verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool
-    task_invalid:bool contaminated:bool grade_trust""")
+    task_invalid:bool contaminated:bool grade_trust job_source job_turn:int job_state
+    steers:int questions:int untrusted:bool tainted:bool""")
 
 # One OTLP span. `attrs`: JSON of every attribute without its own column.
 SPANS = _schema("spans", """
@@ -65,15 +66,26 @@ TEST_CASES = _schema("test_cases", """
 TABLES: dict[str, pa.Schema] = {"runs": RUNS, "spans": SPANS, "events": EVENTS, "manifests": MANIFESTS,
                                 "grades": GRADES, "test_cases": TEST_CASES}
 
+# Outbox-only (docs/data-plane.md#compactor): one `hangar.job_event/v1` (`run_id` = job id; `reason`, `by` and
+# `green_to_merge_seconds` lifted from `data`), and one closed GitHub pull request (`run_id` null, `source` github;
+# `reverts` = the number of the PR it reverts).
+JOB_EVENTS = _schema("job_events", """
+    job_id kind ts:ts job_source repo person environment session_id run_ids:strs pr_url pr_number:int untrusted:bool
+    reason by green_to_merge_seconds:float data""")
+PRS = _schema("prs", """
+    repo number:int url title author author_bot:bool created_at:ts merged_at:ts closed_at:ts merge_sha reverts:int""")
+OUTBOX: dict[str, pa.Schema] = {"job_events": JOB_EVENTS, "prs": PRS}
+
 # Written by flightdeck itself, not flattened from hangar: one spec or ADR check's result for one unit (a turn, job or
 # session; `run_id` is its id, `source` its run source). `spec_source` is `spec` or `adr:<repo>/<adr>`.
 SPEC_RESULTS = _schema("spec_results", "spec_id spec_source scope result repo harness_digest knowledge_snapshot")
 DERIVED: dict[str, pa.Schema] = {"spec_results": SPEC_RESULTS}
+ALL = {**TABLES, **OUTBOX, **DERIVED}
 
 
 def to_table(name: str, rows: list[dict]) -> pa.Table:
     """Rows as a table of the named schema: missing columns are null, unknown keys are an error."""
-    schema = TABLES.get(name) or DERIVED[name]
+    schema = ALL[name]
     extra = {k for r in rows for k in r} - set(schema.names)
     if extra:
         raise ValueError(f"{name}: columns not in {VERSION}: {sorted(extra)}")
