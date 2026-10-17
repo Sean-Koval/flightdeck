@@ -119,7 +119,8 @@ def compare(trials: list[dict[str, Any]], metric: str, a: str, b: str, seed: int
             cost.setdefault(t["task_id"], []).append((t.get("cost_usd"), bool(resolved(t)[0])))
         c.arms[arm] = {"n": len(ts), "mean": sum(vals) / len(vals) if vals else None, "k": k,
                        "wilson": wilson(k, len(ts)) if metric == "resolved" else None,
-                       "per_resolved": dollars_per_resolved(cost, b_resamples, seed) if cost else None}
+                       "per_resolved": dollars_per_resolved(cost, b_resamples, seed) if any(
+                           c is not None for v in cost.values() for c, _ in v) else None}  # none known: no ratio
     paired = {task: v for task, v in c.per_task.items() if v[0] and v[1]}
     if paired:
         c.diff = paired_bootstrap(paired, b_resamples, seed)

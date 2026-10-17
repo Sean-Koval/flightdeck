@@ -1,6 +1,6 @@
 # 0005: The post-v0 batch is counted, and the budget rises by each piece's measured size
 
-Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #13) (agent-proposed; owner review requested)
+Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #16) (agent-proposed; owner review requested)
 
 ## Context
 
@@ -21,6 +21,8 @@ records them here. The cuts so far:
   both and covers `task_id` and `variant` too, for a few lines less (#17).
 - #13 found no cut in what it touches; it moved `task digest --write`'s logic into `tasks/format.py` so sealing
   reuses it instead of adding a third copy.
+- #16 reuses `stats compare`, `pass_hat_k_suite`, `wilson`, the spec SQL compiler and `experiment run`'s cost gate
+  rather than adding its own; no cut found in `specs/`.
 
 Cuts considered and not taken:
 
@@ -55,6 +57,7 @@ B.
 | (ADR 0004) | #18 | the local runner's adapter | | 2,800 |
 | #51 | #17 | `tasks/aidlc.py` and `task import-aidlc` (+131); the `any` path operator and `task_id`/`variant` scope in specs, after the `applies_when` cut (-4); the stats re-export cut (-14) | +113 | 2,896 |
 | #52 | #13 | `tasks/custody.py`: manifest, seal, canary scan, score once, briefs, and the `holdout` CLI (+204); `write_digest` moved to `tasks/format.py` so the CLI, the importer and sealing share it (+1); registration (+2) | +207 | 3,103 |
+| #53 | #16 | `specs/mutate.py`: operators, plan, run through the cost gate, kill scoring and the survivors' report (+167); `stats compare` no longer fails when no trial has a known cost (+1); registration (+2) | +170 | 3,273 |
 
 ## Consequences
 

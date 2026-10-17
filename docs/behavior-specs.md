@@ -208,6 +208,49 @@ second reviewer looks. A GitHub Action in the team repo runs it on PRs that touc
 (`git show origin/main:<path> > old`) and adds the label; branch protection plus a CODEOWNERS entry for those paths
 (the hangar/ai-dlc side) require a reviewer other than the author for `checks:loosened` and `checks:removed`.
 
+## Mutation scoring
+
+A suite with a low mutation score is decoration: if deleting part of the harness changes nothing the suite can see,
+the suite isn't testing that part. `flightdeck mutate` removes one component of a harness at a time and checks that
+some grader or spec notices (code: `src/flightdeck/specs/mutate.py`).
+
+```sh
+flightdeck mutate plan tasks/smoke/suite.yaml --harness claude-code --out mutants.yaml [--ops ...] [--max 12] \
+  [--n 2] [--data <plane>]
+flightdeck mutate run mutants.yaml [--max-usd 40] [--dry-run]
+flightdeck mutate score mutants.yaml <run-set> --specs specs/team.yaml --data <plane> [--out score.md]
+```
+
+**Operators**, over the base variant's hangar overlay (`Variant{skills, skills_remove, instructions,
+instructions_append, approvals}`):
+
+| Operator | Mutants |
+| --- | --- |
+| `drop-skill` | one per skill: the variant's `skills` minus it, or `skills_remove: [name]` for the skills seen in `--data`'s traces when the variant names none |
+| `drop-instruction-line` | one per block of `instructions` and `instructions_append`: blocks start at markdown headings, else each non-empty line is one |
+| `approvals` | `approvals: auto` when the base is `deny-risky` |
+| `noop` | the variant unchanged: a control that must come out equivalent |
+| `drop-hook`, `widen-egress` | not generated, and said so: hooks need harness locks (hangar#133); hangar fixes egress per experiment, so widening it is a separate experiment |
+
+`plan` writes a suite file: the base and its mutants as variants named `mutant-<op>-<component>`, `n` trials each
+(default 2; keep tasks cheap, since a changed instruction changes the prompt prefix and every trial runs in full),
+plus `base:` and `mutants:` for `score`. **Equivalent** mutants (the no-op, and a dropped skill no trace in `--data`
+ever used, by `spans.skill_name`) are listed but not run, and never counted. `run` submits through
+`experiment run`'s cost gate: it prints the projection first and refuses a plan above `--max-usd` (default $40).
+Mutants are per harness; hooks and the in-turn verify gate differ by runtime. A mutant is never promoted:
+`decision.yaml` and `stats compare` name the variants they read, and `mutant-*` variants appear nowhere else.
+
+**Killed** ([statistics](statistics.md#mutation-scores)): the resolved rate differs from the base's (paired task
+bootstrap interval excluding 0), or a spec that held on the base (pass^k at or above `--bound`, default 0.9) falls
+below it on the mutant. Otherwise it **survived**. The score is killed / (killed + survived) with a Wilson interval;
+equivalent and not-run mutants are left out. `score` prints a markdown section for the report or PR: the score, each
+mutant's verdict and why, and each survivor's component with a spec worth adding (for a dropped skill,
+`eventually: {tool: {skill: <name>}}`).
+
+Example: on the semver smoke task with `tests-before-commit`, a base variant whose `instructions_append` says "Write
+your own tests ... and make them pass" and the mutant without that block. When the mutant's trials commit without a
+trusted test run, the spec's pass^k falls from 1 to 0 and the mutant is killed; the no-op is equivalent.
+
 ## Versioning
 
 `flightdeck.spec/v1` is additive: a new operator, matcher key or field is not a new version; renaming or removing one

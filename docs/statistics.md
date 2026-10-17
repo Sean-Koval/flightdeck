@@ -67,6 +67,23 @@ seen), `drift` (unless `--include-drift`), `truncated trace` (process metrics on
 - **Saturated tasks** (every trial of every arm had the same outcome) are listed: they carry no information.
 - **Seeds**: every resampling takes one and reports print it.
 
+## Mutation scores
+
+`flightdeck mutate score` ([behavior specs](behavior-specs.md#mutation-scoring)) counts a mutant **killed** when
+either:
+
+- **the outcome moved**: the paired task bootstrap of resolved (mutant − base, tasks resampled, seed 0) has a 95%
+  interval that excludes 0; or
+- **a spec broke**: the spec held on the base, meaning its pass^k over tasks (k = the fewest judged trials of any
+  task) is at least the bound (default 0.9), and on the mutant it is below the bound. Only `pass` and `fail` count;
+  `not_applicable` and `unknown` units are left out.
+
+The **mutation score** is killed / (killed + survived) with a 95% Wilson interval. Equivalent mutants (no observable
+difference expected) and mutants without trials are reported but not counted. With n = 2 trials per task, a spec
+needs every judged trial to pass on the base to reach 0.9 on a small suite, so the spec criterion is strict on the
+base and loose on the mutant: one failing task on the mutant is enough to kill it. Read a survived mutant as "this
+suite didn't notice", not as "this component is useless".
+
 ## Later
 
 Sequential and adaptive designs (no peeking at fixed-n experiments), prediction-powered inference for model judges,
