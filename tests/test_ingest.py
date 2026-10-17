@@ -32,9 +32,9 @@ def test_export_ingest_fills_all_six_tables_one_run_per_trial(plane: str) -> Non
     con = connect(plane)
     counts = {t: con.sql(f"select count(*) from {t}").fetchone() for t in schema.TABLES}
     assert all(n and n[0] > 0 for n in counts.values()), counts
-    keys = con.sql("select trial_key, run_id, source from runs order by trial_key").fetchall()
-    assert len(keys) == 72 == len({k for k, _, _ in keys})
-    assert all(rid == f"{EXP}/{k}" and src == "experiment" for k, rid, src in keys)
+    keys = con.sql("select trial_key, attempt, run_id, source from runs order by trial_key").fetchall()
+    assert len(keys) == 73 == len({rid for _, _, rid, _ in keys})  # 72 trials and one infra_error retry
+    assert all(rid == f"{EXP}/{k}" + (f"~{n}" if n > 1 else "") and src == "experiment" for k, n, rid, src in keys)
     # a trial's spans hang off the trial's run row
     orphans = con.sql("select count(*) from spans where run_id not in (select run_id from runs)").fetchone()
     assert orphans == (0,)
@@ -62,7 +62,7 @@ def test_reingest_adds_no_duplicates_and_replaces_a_finished_trial(export_dir: P
     (changed / "index.json").write_text(json.dumps(index))
     ingest.write_unit(ingest.read_export(changed), out, f"experiment-{EXP}")
     con = connect(out)
-    assert con.sql("select count(*), count(distinct run_id) from runs").fetchone() == (72, 72)
+    assert con.sql("select count(*), count(distinct run_id) from runs").fetchone() == (73, 73)
     assert con.sql("select outcome from runs where trial_key = 't06/treat/3'").fetchone() == ("succeeded",)
 
 
@@ -76,6 +76,36 @@ def test_rest_and_export_ingest_yield_identical_tables(
     assert tables(str(tmp_path)) == tables(plane)
     assert {auth for _, auth in hangar.requests} == {"Bearer member-token"}
     assert (tmp_path / "raw" / EXP / "index.json").is_file()  # streamed to disk, in the export layout
+
+
+def test_an_infra_error_trial_and_its_retry_keep_hangars_class(plane: str) -> None:
+    con = connect(plane)
+    rows = con.sql("select run_id, outcome_class, infra_reason, excluded, outcome from runs "
+                   "where trial_key = 't03/treat/3' order by attempt").fetchall()
+    assert rows == [(f"{EXP}/t03/treat/3", "infra_error", "sandbox_create", True, "failed"),
+                    (f"{EXP}/t03/treat/3~2", "agent", None, False, "succeeded")]
+    assert con.sql(f"select count(*) > 0 from spans where run_id = '{EXP}/t03/treat/3~2'").fetchone() == (True,)
+
+
+def test_ingest_warns_about_pins_hangars_model_rule_refuses(export_dir: Path, tmp_path: Path) -> None:
+    bad = tmp_path / "export"
+    shutil.copytree(export_dir, bad)
+    index = json.loads((bad / "index.json").read_text())
+    index["pins"]["variants"]["treat"]["model"] = "claude-opus-latest"
+    (bad / "index.json").write_text(json.dumps(index))
+    result = CliRunner().invoke(app, ["ingest", "export", str(bad), "--out", str(tmp_path / "plane")])
+    assert result.exit_code == 0
+    assert "variant treat: pinned model 'claude-opus-latest' is a floating alias" in result.output
+
+
+def test_experiment_collect_and_ingest_produce_identical_tables(
+    export_dir: Path, plane: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, no_proxy: None
+) -> None:
+    with Recorded(export_routes(export_dir)) as hangar:
+        monkeypatch.setenv("HANGAR_URL", hangar.url)
+        result = CliRunner().invoke(app, ["experiment", "collect", EXP, "--data", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert tables(str(tmp_path)) == tables(plane)  # traces and manifests arrive with the runs and grades
 
 
 def test_rest_404_is_reported_as_missing_or_not_yours(tmp_path: Path, no_proxy: None) -> None:
@@ -114,7 +144,7 @@ def test_schema_mismatch_warns_and_keeps_going(export_dir: Path, tmp_path: Path)
     (bad / "index.json").write_text(json.dumps(index))
     result = CliRunner().invoke(app, ["ingest", "export", str(bad), "--out", str(tmp_path / "plane")])
     assert result.exit_code == 0, result.output
-    assert "does not match hangar experiment.schema.json" in result.output and "72 runs" in result.output
+    assert "does not match hangar experiment.schema.json" in result.output and "73 runs" in result.output
 
 
 def test_vendored_schemas_carry_their_hangar_commit_and_the_sync_script_updates_them(tmp_path: Path) -> None:

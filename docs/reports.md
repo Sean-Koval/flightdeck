@@ -6,8 +6,8 @@ hangar's canary lock-bump PRs. Flightdeck's report is a markdown comment there, 
 
 ```sh
 flightdeck report experiment <id> [--baseline control] [--b treat] [--decision decision.yaml] [--details]
-                                  [--hangar URL] [--out report.md] [--post owner/repo#n]
-flightdeck report post report.md --to owner/repo#n
+                                  [--hangar URL] [--out report.md] [--post owner/repo#n] [--full-url URL | --gist]
+flightdeck report post report.md --to owner/repo#n [--full-url URL | --gist]
 ```
 
 The report reads only the data plane (`--data`, default `~/.flightdeck/data`), so it renders with hangar powered off.
@@ -21,12 +21,12 @@ The report reads only the data plane (`--data`, default `~/.flightdeck/data`), s
    `environment_digest`, the grader command, and hangar's version from the manifests; the number of base SHAs.
 3. **Outcome**, **Process** (tool calls, wall time) and **Cost** tables from `flightdeck stats compare`
    ([statistics.md](statistics.md)), each with its exclusions, seed and n.
-4. **Exclusions and drift**: the drifted trials.
-5. With `--details`: the **per-task table** (discordant tasks first, base SHA, resolved per arm) inside a collapsed
+4. **Behavior specs**: pass rate per spec per variant, from `spec_results` (written by `flightdeck check run`,
+   [behavior-specs.md](behavior-specs.md)) over the trials the Outcome table counts; `not_applicable` and `unknown`
+   results are left out, and a spec with none of either has no row.
+5. **Exclusions and drift**: the drifted trials.
+6. With `--details`: the **per-task table** (discordant tasks first, base SHA, resolved per arm) inside a collapsed
    `<details>`, drift messages per trial, and with `--hangar` links to each trial's trace on hangar REST.
-
-Behavior-spec results (pass^k per spec with the clean-run bound) join the report when the behavior spec runner
-lands.
 
 ## Pre-registration
 
@@ -39,11 +39,12 @@ margin: -0.05         # non-inferiority margin, in the metric's units (a proport
 min_tasks: 10         # fewer paired tasks: no decision
 ```
 
-The report prints a verdict only when the file's modification time is before the first trial finished. The rule:
+The report prints a verdict only when the file is committed as it is and the last commit that changed it is older
+than the first finished trial: the git commit time, not the file's modification time, which any copy or checkout
+resets. An uncommitted or locally edited `decision.yaml` gives **No verdict**. The rule:
 fewer than `min_tasks` paired tasks (or an underpowered interval) is *No decision: underpowered*; an interval wholly
 above zero is *better*; wholly above the margin is *non-inferior*; wholly below it is *worse*; anything else is *No
-decision*. In the private data repository the file's git commit time is the stronger evidence; checking it is not
-automated yet.
+decision*.
 
 ## Posting
 
@@ -53,7 +54,10 @@ comes from `GITHUB_TOKEN`: a fine-grained token with `issues:write` / `pull_requ
 the operator's environment. Posting is flightdeck's only GitHub write.
 
 Before posting, the text is re-scanned with the data plane's secret patterns; a match refuses the post. Comments are
-clipped to GitHub's 65,536-character limit with a pointer to the full report (`--out`).
+clipped to GitHub's 65,536-character limit with a link to the full report: `--full-url` (an `https://` URL, such as
+the report committed to the private data repository) or `--gist` (a secret gist of it, created with the same token,
+which then needs the `gist` scope). Without either the comment says the full report is not linked; it never points at
+a local path.
 
 Reports on public repositories must not quote private team code: the default report has counts and intervals only;
 per-task rows and trial links need `--details`.

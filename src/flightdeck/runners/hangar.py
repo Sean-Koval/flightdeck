@@ -8,7 +8,6 @@ replace `HangarBatchBackend` without touching them.
 from __future__ import annotations
 
 import json
-import re
 import time
 import urllib.error
 import urllib.request
@@ -18,38 +17,29 @@ from typing import Any, Protocol
 
 import yaml
 
+from flightdeck.ported.modelpolicy import concreteness
 from flightdeck.tasks.format import Task, hangar_id, load_task, to_hangar
 
 MAX_TASKS, MAX_VARIANTS, MAX_TRIALS, MAX_TOTAL = 100, 8, 20, 200  # hangar ExperimentSpec; HANGAR_EXPERIMENT_MAX_TRIALS
 VARIANT_KEYS = {"environment", "harness", "model", "approvals", "skills", "skills_remove", "instructions",
                 "instructions_append"}  # hangar experiments.Variant
 TERMINAL = {"succeeded", "failed", "cancelled"}
-# Model pins (hangar #167's rule): policies and aliases float; a concrete id names a version (or a date)
-POLICIES = {"frontier", "balanced", "latest", "default", "auto", "best", "fast", "cheap"}
-CONCRETE = re.compile(
-    r"^(claude-(fable|mythos|opus|sonnet|haiku)-\d+[-.]\d+(-\d{8})?|claude-\d+(-\d+)?-(opus|sonnet|haiku)-\d{8}"
-    r"|gpt-\d+(\.\d+)?-(astra|sol|terra|luna)(-\d{4}-\d{2}-\d{2})?|(gpt|o)[\w.-]*-\d{4}-\d{2}-\d{2}"
-    r"|gemini-\d+(\.\d+)?-(pro|flash|flash-lite)(-[a-z0-9]+)*)$")
 
 
 class RunnerError(Exception):
     """A plan flightdeck or hangar refuses; the message says why."""
 
 
-def model_problem(model: str | None, allowed: frozenset[str] = frozenset()) -> str | None:
-    """Why `model` isn't a concrete id a trial can be pinned to, or None when it is."""
-    if not model:
-        return "no model: the environment's default can change between trials"
-    if model in allowed:
+def model_problem(model: str | None, allowed: frozenset[str] = frozenset(), harness: str | None = None) -> str | None:
+    """Why `model` isn't a concrete id a trial can be pinned to, or None when it is: hangar's rule (#167,
+    flightdeck.ported.modelpolicy), so suites, status and ingest refuse what hangar refuses."""
+    if model and model in allowed:
         return None
-    base = model.split("/")[-1]  # openrouter/<vendor>/<id>
-    if model.split("@")[0] in POLICIES:
-        return f"'{model}' is a policy, resolved anew as providers ship models"
-    if base.startswith("~") or re.search(r"(^|[-:.])latest$", base):
-        return f"'{model}' is a floating alias"
-    if not CONCRETE.match(base):
-        return f"'{model}' names no version or date (a family alias such as opus or gpt-5?)"
-    return None
+    return {"none": "no model: the environment's default can change between trials",
+            "policy": f"'{model}' is a policy, resolved anew as providers ship models",
+            "alias": f"'{model}' is a floating alias",
+            "unknown": f"'{model}' names no version or date (a family alias such as opus or gpt-5?)",
+            }.get(concreteness(harness, model)[1])
 
 
 @dataclass
@@ -90,7 +80,8 @@ def load_plan(path: Path) -> TrialPlan:
 
 
 def check_models(plan: TrialPlan, allowed: frozenset[str] = frozenset()) -> None:
-    errors = [f"variant {k}: {p}" for k, v in plan.variants.items() if (p := model_problem(v.get("model"), allowed))]
+    errors = [f"variant {k}: {p}" for k, v in plan.variants.items()
+              if (p := model_problem(v.get("model"), allowed, (v.get("harness") or "").split("@")[0]))]
     if errors:
         raise RunnerError("trials need a concrete model id (e.g. claude-opus-5-5, gpt-6.1-sol); `hangar env list` "
                           "shows what a policy resolves to today, --allow-model accepts an id as concrete:\n  "
@@ -193,7 +184,7 @@ def pin_problems(index: dict[str, Any]) -> list[str]:
     out = [f"task {k}: no base_sha pinned" for k, t in (pins.get("tasks") or {}).items() if not t.get("base_sha")]
     asked: dict[str, set[str]] = {}
     for name, v in (pins.get("variants") or {}).items():
-        if p := model_problem(v.get("model")):
+        if p := model_problem(v.get("model"), harness=v.get("harness")):
             out.append(f"variant {name}: pinned model {p}")
         req = ((index.get("spec") or {}).get("variants") or {}).get(name, {}).get("model")
         asked.setdefault(req or v.get("model") or "", set()).add(v.get("model") or "")
@@ -247,23 +238,16 @@ class HangarBatchBackend:
         return RunSetStatus(run_set, state, counts, exps, problems, notes)
 
     def collect(self, run_set: str) -> Path:
-        """Each experiment's trials (runs) and grades into the data plane, one part per experiment (re-collecting
-        replaces it). Traces and manifests: `flightdeck ingest experiment` (#7)."""
-        import pyarrow.parquet as pq
-
-        from flightdeck.dataplane import flatten, schema
+        """Each experiment through the ingest path (#7): runs, grades, traces and manifests into the data plane, the
+        raw files under `<out>/raw/<id>/`; the same tables `flightdeck ingest experiment` writes."""
+        from flightdeck.dataplane import ingest
 
         if not self.out:
             raise RunnerError("no data plane: pass --out or set FLIGHTDECK_DATA_URI")
         for exp in run_set.split("+"):
-            for name, rows in flatten.flatten_experiment(self._call("GET", f"/api/experiments/{exp}")).items():
-                for stale in Path(self.out).glob(f"{name}/dt=*/part-experiment-{exp}.parquet"):
-                    stale.unlink()  # a trial's day can change between two collects
-                for day in sorted({r.get("dt") or "unknown" for r in rows}):
-                    part = Path(self.out) / name / f"dt={day}"
-                    part.mkdir(parents=True, exist_ok=True)
-                    table = schema.to_table(name, [r for r in rows if (r.get("dt") or "unknown") == day])
-                    pq.write_table(table.drop_columns(["dt"]), part / f"part-experiment-{exp}.parquet",
-                                   compression="zstd")
+            try:
+                raw = ingest.fetch_experiment(exp, self.url, self.token, Path(self.out) / "raw" / exp)
+            except (ingest.NotFound, urllib.error.URLError) as e:
+                raise RunnerError(f"collect {exp}: {e}") from None
+            ingest.write_unit(ingest.read_export(raw), self.out, f"experiment-{exp}")
         return Path(self.out)
-

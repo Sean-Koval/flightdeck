@@ -18,7 +18,7 @@
     "environment": "plain",
     "harness": "claude-code",
     "harness_version": "2.3.1",
-    "model": "claude-sonnet-5",
+    "model": "claude-sonnet-5-1",
     "model_policy": null,
     "approvals": "auto",
     "skills": null
@@ -27,7 +27,7 @@
     "environment": "plain",
     "harness": "claude-code",
     "harness_version": "2.3.1",
-    "model": "claude-sonnet-5",
+    "model": "claude-sonnet-5-1",
     "model_policy": null,
     "approvals": "auto",
     "skills": [
@@ -90,7 +90,7 @@
     "input_tokens": 1200,
     "output_tokens": 800,
     "cache_read_tokens": 5000,
-    "model": "claude-sonnet-5"
+    "model": "claude-sonnet-5-1"
    },
    "grade": {
     "command": "bash tests/test.sh",
@@ -144,7 +144,7 @@
     "input_tokens": 1200,
     "output_tokens": 800,
     "cache_read_tokens": 5000,
-    "model": "claude-sonnet-5"
+    "model": "claude-sonnet-5-1"
    },
    "grade": {
     "command": "bash tests/test.sh",
@@ -198,7 +198,7 @@
     "input_tokens": 1200,
     "output_tokens": 800,
     "cache_read_tokens": 5000,
-    "model": "claude-sonnet-5"
+    "model": "claude-sonnet-5-1"
    },
    "grade": {
     "command": "bash tests/test.sh",
@@ -252,7 +252,7 @@
     "input_tokens": 1200,
     "output_tokens": 800,
     "cache_read_tokens": 5000,
-    "model": "claude-sonnet-5"
+    "model": "claude-sonnet-5-1"
    },
    "grade": {
     "command": "bash tests/test.sh",
@@ -306,7 +306,7 @@
     "input_tokens": 1200,
     "output_tokens": 800,
     "cache_read_tokens": 5000,
-    "model": "claude-sonnet-5"
+    "model": "claude-sonnet-5-1"
    },
    "grade": {
     "command": "bash tests/test.sh",
@@ -360,7 +360,7 @@
     "input_tokens": 1200,
     "output_tokens": 800,
     "cache_read_tokens": 5000,
-    "model": "claude-sonnet-5"
+    "model": "claude-sonnet-5-1"
    },
    "grade": {
     "command": "bash tests/test.sh",
@@ -416,7 +416,7 @@
     "input_tokens": 1200,
     "output_tokens": 800,
     "cache_read_tokens": 5000,
-    "model": "claude-sonnet-5"
+    "model": "claude-sonnet-5-1"
    },
    "grade": null,
    "stored": [

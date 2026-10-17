@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 
 import pytest
 
-from flightdeck.dataplane import ingest
+from flightdeck.dataplane import flatten, ingest
 
 ROOT = Path(__file__).resolve().parent.parent
 _spec = importlib.util.spec_from_file_location("fixture_export", ROOT / "scripts" / "fixture_export.py")
@@ -80,7 +80,7 @@ def export_routes(d: Path) -> dict[str, Path]:
     for t in index["trials"]:
         for name, link in (t.get("links") or {}).items():
             if name in ("manifest", "trace") and link:
-                routes[link] = d / "trials" / t["key"].replace("/", "__") / f"{name}.json"
+                routes[link] = d / "trials" / flatten.trial_ref(t).replace("/", "__") / f"{name}.json"
     return routes
 
 

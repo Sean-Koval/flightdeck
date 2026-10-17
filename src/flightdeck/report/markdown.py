@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ from typing import Any
 import typer
 
 from flightdeck.dataplane.flatten import SECRET
-from flightdeck.stats.compare import Comparison, compare, load_trials, render
+from flightdeck.stats.compare import Comparison, compare, exclusion, load_trials, render
 
 LIMIT = 65_536  # GitHub's comment size limit
 PROCESS = ("tool_calls", "wall_s")
@@ -32,6 +33,15 @@ def read_decision(path: Path) -> dict[str, Any]:
         if sep and val.strip():
             out[key.strip()] = val.strip()
     return out
+
+
+def committed_at(path: Path) -> float | None:
+    """The commit time of the last commit that changed `path`, or None when it isn't committed as it now is."""
+    git = lambda *a: subprocess.run(["git", "-C", str(path.parent), *a], capture_output=True, text=True)  # noqa: E731
+    log = git("log", "-1", "--format=%ct", "--", path.name)
+    if log.returncode or not log.stdout.strip() or git("diff", "--quiet", "HEAD", "--", path.name).returncode:
+        return None
+    return float(log.stdout)
 
 
 def verdict(decision: dict[str, Any], c: Comparison) -> str:
@@ -70,10 +80,13 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", d
     out = [marker(exp_id), f"## flightdeck report: `{exp_id}` ({b} vs {a})", ""]
     rule = read_decision(decision) if decision and decision.is_file() else None
     first = min((t["finished_epoch"] for t in trials if t["finished_epoch"]), default=None)
+    when = committed_at(decision) if rule is not None and decision else None
     if rule is None:
         out.append("**No verdict**: no pre-registered `decision.yaml`.")
-    elif first is not None and decision and decision.stat().st_mtime > first:
-        out.append("**No verdict**: `decision.yaml` was written after the first trial finished.")
+    elif when is None:
+        out.append("**No verdict**: `decision.yaml` is not committed as it is (its commit time pre-registers it).")
+    elif first is not None and when > first:
+        out.append("**No verdict**: `decision.yaml` was committed after the first trial finished.")
     else:
         metric = rule.get("metric", "resolved")
         out.append(f"**Verdict**: {verdict(rule, compare(trials, metric, a, b, seed))}")
@@ -98,7 +111,9 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", d
     outcome = compare(trials, "resolved", a, b, seed)
     out += ["", "### Outcome", "", render(outcome), "", "### Process", ""]
     out += [render(compare(trials, m, a, b, seed)) + "\n" for m in PROCESS]
-    out += ["### Cost", "", render(compare(trials, "cost_usd", a, b, seed)), "", "### Exclusions and drift", ""]
+    out += ["### Cost", "", render(compare(trials, "cost_usd", a, b, seed)), "", "### Behavior specs", ""]
+    out += spec_rates(con, [t for t in trials if not exclusion(t, "resolved")], a, b)
+    out += ["", "### Exclusions and drift", ""]
     drift = [t for t in trials if t["drift"] and t["variant"] in (a, b)]
     out.append(f"{len(drift)} drifted trial(s) excluded from paired analysis (`--include-drift` keeps them).")
     out += [f"- `{t['trial_key']}`: {'; '.join(t['drift'])}" for t in drift] if details else []
@@ -119,6 +134,25 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", d
     return "\n".join(out) + "\n"
 
 
+def spec_rates(con: Any, trials: list[dict[str, Any]], a: str, b: str) -> list[str]:
+    """Pass rate per behavior spec per variant, from `spec_results` over the trials the Outcome table counts."""
+    arm = {t["run_id"]: t["variant"] for t in trials}
+    has = con.execute("select count(*) from information_schema.tables where table_name = 'spec_results'").fetchone()
+    rows = con.execute("select spec_source, spec_id, run_id, result from spec_results where scope = 'turn' and "
+                       "result in ('pass', 'fail')").fetchall() if has and has[0] else []
+    rates: dict[tuple[str, str], dict[str, list[int]]] = {}
+    for src, sid, rid, result in rows:
+        if rid in arm:
+            k = rates.setdefault((src, sid), {a: [0, 0], b: [0, 0]})[arm[rid]]
+            k[0], k[1] = k[0] + (result == "pass"), k[1] + 1
+    if not rates:
+        return ["No behavior-spec results for these trials (`flightdeck check run` writes them)."]
+    cell = lambda k: f"{k[0]}/{k[1]} = {k[0] / k[1]:.0%}" if k[1] else "-"  # noqa: E731
+    return [f"| spec | {a} pass | {b} pass |", "| --- | --- | --- |"] + [
+        f"| {sid}" + (f" ({src})" if src != "spec" else "") + f" | {cell(r[a])} | {cell(r[b])} |"
+        for (src, sid), r in sorted(rates.items())]
+
+
 def _gh(method: str, url: str, token: str, body: dict | None = None) -> Any:
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
                "X-GitHub-Api-Version": "2022-11-28"}
@@ -127,8 +161,10 @@ def _gh(method: str, url: str, token: str, body: dict | None = None) -> Any:
         return json.load(resp)
 
 
-def post(text: str, target: str, token: str, full: str | None = None, gh: Any = _gh) -> str:
-    """Create or update (by the report's marker) one comment on `owner/repo#n`, a PR or an issue. Returns its URL."""
+def post(text: str, target: str, token: str, full: str | None = None, gist: bool = False, gh: Any = _gh) -> str:
+    """Create or update (by the report's marker) one comment on `owner/repo#n`, a PR or an issue. Returns its URL.
+    A report over GitHub's limit is clipped and links `full` (a URL: the report in the private data repo), or with
+    `gist` a secret gist of it; never a local path."""
     m = re.fullmatch(r"([\w.-]+/[\w.-]+)#(\d+)", target)
     if not m:
         raise ValueError(f"target must be owner/repo#number, got {target!r}")
@@ -137,10 +173,17 @@ def post(text: str, target: str, token: str, full: str | None = None, gh: Any = 
     mark = text.split("\n", 1)[0]
     if not mark.startswith("<!-- flightdeck:report:"):
         raise ValueError("not a flightdeck report (no marker on its first line)")
+    if full and not full.startswith("https://"):
+        raise ValueError(f"--full-url must be an https:// URL others can open, not {full!r}")
+    root = os.environ.get("GITHUB_API_URL", "https://api.github.com")
     if len(text) > LIMIT:
-        note = f"\n\n*Clipped at GitHub's {LIMIT:,}-character limit; full report: {full or 'not saved'}.*\n"
+        if gist and not full:
+            full = gh("POST", f"{root}/gists", token, {"public": False, "description": mark[5:-4],
+                                                       "files": {"report.md": {"content": text}}})["html_url"]
+        where = f"[full report]({full})" if full else "the full report is not linked (`--full-url` or `--gist`)"
+        note = f"\n\n*Clipped at GitHub's {LIMIT:,}-character limit; {where}.*\n"
         text = text[: LIMIT - len(note)] + note
-    api = os.environ.get("GITHUB_API_URL", "https://api.github.com") + f"/repos/{m[1]}/issues"
+    api = f"{root}/repos/{m[1]}/issues"
     page, existing = 1, None
     while existing is None:
         batch = gh("GET", f"{api}/{m[2]}/comments?per_page=100&page={page}", token)
@@ -159,15 +202,17 @@ DECISION = typer.Option(None, help="Pre-registered decision.yaml; the verdict ne
 DETAILS = typer.Option(False, help="Per-task rows and trial links (keep off for public repos).")
 HANGAR = typer.Option(None, envvar="HANGAR_URL", help="Hangar base URL for trial links.")
 OUT = typer.Option(None, help="Also write the report here.")
+FULL = typer.Option(None, "--full-url", help="Where the full report is (https), linked when a comment is clipped.")
+GIST = typer.Option(False, "--gist", help="Link a clipped comment to a secret gist of the full report.")
 DATA = typer.Option("~/.flightdeck/data", "--data", envvar="FLIGHTDECK_DATA_URI")
 
 
-def _post(text: str, target: str, full: str | None) -> None:
+def _post(text: str, target: str, full: str | None, gist: bool) -> None:
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         raise typer.BadParameter("set GITHUB_TOKEN (issues:write / pull_requests:write on the target repo)")
     try:
-        typer.echo(post(text, target, token, full))
+        typer.echo(post(text, target, token, full, gist))
     except ValueError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from None
@@ -177,7 +222,7 @@ def _post(text: str, target: str, full: str | None) -> None:
 def report_experiment(experiment: str, a: str = typer.Option("control", "--a", "--baseline"),
                       b: str = typer.Option("treat", "--b"), decision: Path = DECISION, details: bool = DETAILS,
                       hangar: str = HANGAR, out: Path = OUT, post_to: str = POST, seed: int = 0,
-                      data: str = DATA) -> None:
+                      data: str = DATA, full_url: str = FULL, gist: bool = GIST) -> None:
     """Render an experiment's report from the data plane; print it, write it, post it."""
     from flightdeck.dataplane.duck import connect
 
@@ -185,12 +230,13 @@ def report_experiment(experiment: str, a: str = typer.Option("control", "--a", "
     if out:
         out.write_text(text, encoding="utf-8")
     if post_to:
-        _post(text, post_to, str(out) if out else None)
+        _post(text, post_to, full_url, gist)
     elif not out:
         typer.echo(text)
 
 
 @app.command("post")
-def report_post(report: Path, to: str = typer.Option(..., "--to", help="owner/repo#n")) -> None:
+def report_post(report: Path, to: str = typer.Option(..., "--to", help="owner/repo#n"), full_url: str = FULL,
+                gist: bool = GIST) -> None:
     """Post (or update in place) a rendered report as a PR or issue comment."""
-    _post(report.read_text(encoding="utf-8"), to, str(report))
+    _post(report.read_text(encoding="utf-8"), to, full_url, gist)

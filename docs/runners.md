@@ -9,7 +9,7 @@ that hands flightdeck's plan to hangar and brings the results back into the data
 class Backend(Protocol):
     def submit(self, plan: TrialPlan) -> str          # a run-set id
     def status(self, run_set: str) -> RunSetStatus    # state, trial counts, pin problems, hangar's notes
-    def collect(self, run_set: str) -> Path           # writes runs and grades into the data plane
+    def collect(self, run_set: str) -> Path           # ingests runs, grades, traces and manifests
 ```
 
 The CLI and suites call only this interface (a test double proves it), so pin-set trials (`POST /api/trials`, #25)
@@ -55,12 +55,15 @@ The tasks become the experiment's tasks and its one grader (docs/tasks.md#on-han
 
 ## Pins
 
-- **Models.** Every variant names a concrete model id. Policies (`frontier`, `balanced`, `latest`, `frontier@openai`),
+- **Models.** Every variant names a concrete model id. Policies (`frontier`, `balanced`, `frontier@openai`),
   aliases (`*-latest`, OpenRouter's `~…`) and family names without a version (`opus`, `sonnet`, `gpt-5`,
   `claude-opus-5`) are refused before anything is sent, because the provider can move them between two trials. The rule
-  matches hangar #167: a concrete id names a version or a date (`claude-opus-5-5`, `claude-opus-4-5-20251101`,
-  `gpt-6.1-sol`, `gpt-4o-2024-08-06`, `gemini-3.8-flash`, `openrouter/anthropic/claude-opus-5.5`). `hangar env list`
-  shows what a policy resolves to today; `--allow-model ID` accepts an id the rule doesn't know.
+  is hangar's `modelpolicy.is_concrete` (#167), ported to `src/flightdeck/ported/modelpolicy.py` and checked against
+  hangar's own test table (`tests/fixtures/hangar/model_concreteness.json`): a concrete id names a version or a date
+  (`claude-opus-5-5`, `claude-opus-4-5-20251101`, `gpt-6.1-sol`, `gpt-4o-2024-08-06`, `gemini-3.8-flash`,
+  `openrouter/anthropic/claude-opus-5.5`). `run`, `status` and `ingest` share it. Without the provider's model list
+  flightdeck decides by shape only, so an id hangar accepts because its provider lists it (`claude-opus-5`) needs
+  `--allow-model ID`; `hangar env list` shows what a policy resolves to today.
 - **Harness versions.** `harness@version` must be the version hangar's lock pins (`harnesses.lock.yaml`); hangar
   refuses the experiment otherwise, and `run` prints hangar's message.
 - **After the start**, `status` checks the index's pins: every task has a `base_sha`, no variant's model was pinned to
@@ -88,7 +91,7 @@ authors:              # per-author monthly sub-caps; with any set, runs must nam
 
 ## Collecting
 
-`collect` reads each experiment's index and writes its trials (`runs`, one row per trial) and grades (`grades`) as one
-Parquet part per experiment and day (`part-experiment-<id>.parquet`); collecting again replaces the experiment's parts
-in every day. Traces and manifests come from `flightdeck ingest experiment` (the ingest work, #7), which writes the same
-part names, so either replaces the other's rows rather than duplicating them.
+`collect` is `flightdeck ingest experiment` for each experiment of the run set ([data-plane.md](data-plane.md#ingest)):
+the index, and each trial's manifest and trace, are streamed to `<data>/raw/<id>/` and ingested into every table (runs,
+grades, spans, events, manifests, test cases) as one part per experiment and day. Both commands produce identical
+tables and replace each other's rows rather than duplicating them.
