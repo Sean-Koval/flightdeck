@@ -19,13 +19,20 @@ METRICS = ("resolved", "cost_usd", "tool_calls", "wall_s")
 
 
 def load_trials(con: duckdb.DuckDBPyConnection, exp_id: str) -> list[dict[str, Any]]:
-    """One dict per trial of the experiment: its `runs` row, its grade and its tool-call count."""
-    rel = con.execute("select r.* exclude (started_at, finished_at), epoch(r.finished_at) as finished_epoch, "
-                      "epoch(r.finished_at) - epoch(r.started_at) as wall_s, g.exit_code as grade_exit, "
-                      "g.applied as grade_applied, g.command as grade_command, (select case when count(*) > 0 then "
-                      "count(*) filter (s.kind = 'tool.call') end from spans s where s.run_id = r.run_id) as "
-                      "tool_calls from runs r left join grades g "
-                      "using (run_id) where r.experiment_id = ? order by task_id, variant, trial", [exp_id])
+    """One dict per trial of an experiment or run set (ids joined by '+'), with the trials the cache reused for it
+    (`trial_reuse`; `reused_age_days` set): its `runs` row, its grade and its tool-call count, each run_id once."""
+    ids = exp_id.split("+")
+    have = {r[0] for r in con.execute("select table_name from information_schema.tables").fetchall()}
+    reuse = ("select run_id, min(age_days) as age from trial_reuse where experiment_id = ? group by 1"
+             if "trial_reuse" in have else "select null::varchar as run_id, null::double as age where ? is null")
+    rel = con.execute(f"with u as ({reuse}) select r.* exclude (started_at, finished_at), epoch(r.finished_at) as "
+                      "finished_epoch, epoch(r.finished_at) - epoch(r.started_at) as wall_s, g.exit_code as "
+                      "grade_exit, g.applied as grade_applied, g.command as grade_command, (select case when count(*) "
+                      "> 0 then count(*) filter (s.kind = 'tool.call') end from spans s where s.run_id = r.run_id) as "
+                      "tool_calls, u.age as reused_age_days from runs r left join grades g using (run_id) left join u "
+                      f"using (run_id) where r.experiment_id in ({', '.join('?' * len(ids))}) or u.run_id is not null "
+                      "qualify row_number() over (partition by r.run_id) = 1 order by task_id, variant, trial",
+                      [exp_id, *ids])
     cols = [d[0] for d in rel.description]
     return [dict(zip(cols, row, strict=True)) for row in rel.fetchall()]
 
@@ -89,6 +96,7 @@ class Comparison:
     excluded: dict[str, int] = field(default_factory=dict)
     resolved_from: dict[str, int] = field(default_factory=dict)
     saturated: list[str] = field(default_factory=list)
+    reused: list[float] = field(default_factory=list)  # ages in days of the trials the cache reused
     concordant: int = 0
     discordant: int = 0
     power: str = ""
@@ -107,6 +115,7 @@ def compare(trials: list[dict[str, Any]], metric: str, a: str, b: str, seed: int
             c.excluded[why] = c.excluded.get(why, 0) + 1
             continue
         kept.append(t)
+        c.reused += [t["reused_age_days"]] if t.get("reused_age_days") is not None else []
         src = resolved(t)[1]
         c.resolved_from[src] = c.resolved_from.get(src, 0) + 1
         c.per_task.setdefault(t["task_id"], ([], []))[t["variant"] == b].append(value(t, metric) or 0.0)
@@ -172,6 +181,9 @@ def render(c: Comparison) -> str:
     if c.metric == "resolved":
         out.append("Resolved: " + ", ".join(f"{src} for {n} trials" for src, n in sorted(c.resolved_from.items()))
                    + " (grader = exit 0 and applied; verify = hangar's after-turn verify when no grader ran).")
+    if c.reused:
+        out.append(f"Reused from the trial cache: {len(c.reused)} of {sum(s['n'] for s in c.arms.values())} trials, "
+                   f"{min(c.reused):.0f}-{max(c.reused):.0f} days old.")
     out.append("Excluded: " + (", ".join(f"{why} {n}" for why, n in sorted(c.excluded.items())) or "none") + ".")
     if c.saturated:
         out.append(f"Saturated (same outcome in every trial of both arms, no information): {', '.join(c.saturated)}.")

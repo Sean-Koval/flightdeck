@@ -169,7 +169,7 @@ def run_cmd(plan_file: Path, max_usd: float = 40.0, dry_run: bool = False, data:
     from flightdeck.runners.cli import run
 
     run(plan_file, dry_run=dry_run, max_usd=max_usd, assume=3.0, budgets=None, author=os.environ.get(
-        "FLIGHTDECK_AUTHOR", ""), allow_model=None, data=data or "", kind="hangar")
+        "FLIGHTDECK_AUTHOR", ""), allow_model=None, data=data or "", kind="hangar", cache=False)
 
 
 @app.command("score")
@@ -184,7 +184,7 @@ def score_cmd(plan_file: Path, run_set: str, specs: Annotated[list[Path], typer.
     doc = yaml.safe_load(plan_file.read_text())
     con = connect(os.path.expanduser(data))
     exps = run_set.split("+")
-    trials = [t for e in exps for t in load_trials(con, e)]
+    trials = load_trials(con, run_set)
     lang.prepare(con)
     todo = [s for p in specs for s in lang.load(p.read_text())]
     units: dict[str, tuple[str, str]] = {}

@@ -47,6 +47,7 @@ def run(
     allow_model: Annotated[list[str] | None, typer.Option("--allow-model", help="Accept this id as concrete.")] = None,
     data: str = DATA,
     kind: str = typer.Option("hangar", "--backend", help="hangar, or local: Docker on this machine (fixtures, CI)."),
+    cache: bool = typer.Option(False, "--cache", help="Reuse matching trials from --data; submit only the rest."),
 ) -> None:
     """Gate a suite's plan on model pins and projected cost, then submit it (or print it with --dry-run)."""
     if kind == "local":  # runs now, spends no hangar budget; docs/runners.md#local
@@ -59,9 +60,18 @@ def run(
     try:
         plan = h.load_plan(suite)
         h.check_models(plan, frozenset(allow_model or ()))
-        specs = h.build_specs(plan)
+        hits, todo = {}, [plan]
+        if cache:  # docs/runners.md#cache
+            from flightdeck.dataplane.duck import connect
+            from flightdeck.runners import cache as c
+
+            if not data or "://" in data:
+                raise RunnerError("--cache reads and writes a local data plane: pass --data <dir>")
+            hits = c.lookup(connect(os.path.expanduser(data)), plan, os.path.expanduser(data))
+            todo = c.reduce(plan, hits)
+        specs = [s for p in todo for s in h.build_specs(p)]
         p50, team, mine = h.history(data and os.path.expanduser(data), author)
-        total, per = h.project(plan, p50, assume)
+        total, per = round(sum(h.project(p, p50, assume)[0] for p in todo), 2), h.project(plan, p50, assume)[1]
         if budgets is None and Path("budgets.yaml").is_file():
             budgets = Path("budgets.yaml")
         if budgets is not None and not budgets.is_file():
@@ -72,6 +82,10 @@ def run(
     typer.echo(f"projection: ${total:,.2f} = {len(plan.tasks)} task(s) x {len(plan.variants)} variant(s) x "
                f"{plan.n} trial(s); per trial: " + ", ".join(f"{k} ${v:,.2f}" + ("" if k in p50 else " (assumed)")
                                                             for k, v in per.items()))
+    if cache:
+        ages = [a for rs in hits.values() for _, a in rs]
+        typer.echo(f"cache: {len(hits)} of {len(plan.tasks) * len(plan.variants)} (task, variant) pairs reused"
+                   + (f", {min(ages):.0f}-{max(ages):.0f} days old" if ages else ""))
     if budgets is None:
         typer.echo("no budgets file: only --max-usd applies (hangar's budgets still enforce)")
     if refusals:
@@ -80,10 +94,17 @@ def run(
         typer.echo(json.dumps(specs[0] if len(specs) == 1 else specs, indent=1))
         return
     try:
-        run_set = backend(data).submit(plan)
+        run_set = "+".join(backend(data).submit(p) for p in todo) or f"reuse-{plan.suite}-{plan.suite_run}"
     except (RunnerError, TaskError) as e:
         raise _fail(e) from None
-    typer.echo(f"submitted {run_set} (suite run {plan.suite_run}): flightdeck experiment status {run_set}")
+    if hits:
+        from flightdeck.dataplane.schema import write_partitioned
+        from flightdeck.runners.cache import reuse_rows
+
+        write_partitioned("trial_reuse", reuse_rows(run_set, hits), os.path.expanduser(data or ""),
+                          part="reuse-" + run_set.replace("+", "_"))
+    typer.echo(f"submitted {run_set} (suite run {plan.suite_run}): flightdeck experiment status {run_set}" if todo
+               else f"submitted nothing: every trial reused; flightdeck stats compare {run_set}")
 
 
 @app.command()

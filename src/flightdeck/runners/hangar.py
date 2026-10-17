@@ -219,7 +219,14 @@ class HangarBatchBackend:
             raise RunnerError(f"hangar refused {method} {path} ({e.code}): {detail or e.reason}") from None
 
     def submit(self, plan: TrialPlan) -> str:
-        return "+".join(self._call("POST", "/api/experiments", spec)["id"] for spec in build_specs(plan))
+        from flightdeck.runners.cache import digests
+
+        ids = [self._call("POST", "/api/experiments", spec)["id"] for spec in build_specs(plan)]
+        for exp in ids if self.out and "://" not in self.out else []:  # collect stamps the rows for the cache
+            raw = Path(str(self.out)) / "raw" / exp
+            raw.mkdir(parents=True, exist_ok=True)
+            (raw / "plan.json").write_text(json.dumps(digests(plan), indent=1))
+        return "+".join(ids)
 
     def status(self, run_set: str) -> RunSetStatus:
         counts: dict[str, int] = {}
@@ -249,5 +256,10 @@ class HangarBatchBackend:
                 raw = ingest.fetch_experiment(exp, self.url, self.token, Path(self.out) / "raw" / exp)
             except (ingest.NotFound, urllib.error.URLError) as e:
                 raise RunnerError(f"collect {exp}: {e}") from None
-            ingest.write_unit(ingest.read_export(raw), self.out, f"experiment-{exp}")
+            tables = ingest.read_export(raw)
+            if (raw / "plan.json").is_file():
+                from flightdeck.runners.cache import stamp
+
+                stamp(tables["runs"], json.loads((raw / "plan.json").read_text()))
+            ingest.write_unit(tables, self.out, f"experiment-{exp}")
         return Path(self.out)

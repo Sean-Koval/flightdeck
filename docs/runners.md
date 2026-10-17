@@ -99,6 +99,38 @@ the index, and each trial's manifest and trace, are streamed to `<data>/raw/<id>
 grades, spans, events, manifests, test cases) as one part per experiment and day. Both commands produce identical
 tables and replace each other's rows rather than duplicating them.
 
+## Cache
+
+Tokens cost far more than compute (about $2-3 a trial against well under a cent), so a trial whose inputs haven't
+changed is reused rather than re-run. `experiment run <suite> --cache --data <dir>` looks each planned
+`(task, variant)` up in the data plane and submits only what is missing; code: `src/flightdeck/runners/cache.py`.
+
+- **Key.** `task_digest` (which covers the task's tests and grader command, so it stands in for `grader_digest`),
+  `variant_digest` (the variant's overlay and environment as planned), the model id and the task's `base_sha`, all
+  stamped on the runs when flightdeck collects them. On top, the identity hangar recorded must equal the latest one
+  that variant recorded: `harness_digest + environment_digest`, else `config_digest` plus the manifest's
+  `environment.build.id`, since `config_digest` misses a repository rebuild. A changed skill is a new
+  `variant_digest`, so only that variant runs again; a provider or environment change shows up as a new identity on
+  the next trial, and older trials stop matching.
+- **What counts.** Completed trials only: never `infra_error`, cancelled, human, tainted, contaminated, drifted or
+  `task_invalid` ones. A pair is a hit only with at least `n` such trials; the `n` most recent are reused.
+- **Invalidation.** A 30-day TTL; a model change (it's in the key); and `flightdeck cache drop --task <id>` or
+  `--identity <digest>`, which ignores trials finished before the drop (kept in `<data>/cache-drops.json`).
+- **Reports.** The run set's reused trials go to `trial_reuse`, so `stats compare <run-set>` and the report read them
+  with the new trials, each `run_id` once, and say how many were reused and how old they are. When everything hits,
+  nothing is submitted and the run set is `reuse-<suite>-<time>`.
+- Cache reads spend nobody's budget. Trials without an identity (older hangar records) never hit.
+
+**Drift sentinel.** A silent provider-side change keeps every key the same, so a nightly suite of about 5 fixed
+tasks × 2 trials runs on the `stable` harness *without* `--cache` (about $20 a night, on the team budget line), and
+
+```sh
+flightdeck cache sentinel sentinel.yaml stable --data <dir> [--alerts-repo owner/repo]
+```
+
+compares the latest night with its trailing 14 days: a resolved rate whose Wilson interval misses the window's, or a
+median cost or wall time outside 0.67-1.5× the window's, prints an alert (and opens an issue), exit 1.
+
 ## Local
 
 `flightdeck experiment run <suite> --backend local --data <dir>` runs every trial of the suite now, one after another,

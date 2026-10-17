@@ -1,6 +1,6 @@
 # 0005: The post-v0 batch is counted, and the budget rises by each piece's measured size
 
-Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #21) (agent-proposed; owner review requested)
+Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #24) (agent-proposed; owner review requested)
 
 ## Context
 
@@ -25,6 +25,8 @@ records them here. The cuts so far:
   rather than adding its own; no cut found in `specs/`.
 - #21 reuses the custody manifest, canaries and `canary-scan` for the gold set instead of a second sealing scheme;
   no cut found.
+- #24 lets `load_trials` take a run set, so `holdout score` and `mutate score` drop their own loops over experiment
+  ids (two lines); no larger cut found.
 
 Cuts considered and not taken:
 
@@ -61,6 +63,7 @@ B.
 | #52 | #13 | `tasks/custody.py`: manifest, seal, canary scan, score once, briefs, and the `holdout` CLI (+204); `write_digest` moved to `tasks/format.py` so the CLI, the importer and sealing share it (+1); registration (+2) | +207 | 3,103 |
 | #53 | #16 | `specs/mutate.py`: operators, plan, run through the cost gate, kill scoring and the survivors' report (+167); `stats compare` no longer fails when no trial has a known cost (+1); registration (+2) | +170 | 3,273 |
 | #54 | #21 | `tasks/knowledge.py`: seal, citation classes, correctness by raters, the paired report and the 15-point rule (+130); `cohen_kappa` in `stats/core.py`, which #27's calibration reuses (+10); `custody.save` creates its directory (+1); registration (+2) | +143 | 3,416 |
+| #55 | #24 | `runners/cache.py`: key, lookup, plan reduction, reuse rows, `cache drop` and the drift sentinel (+148); `--cache` in `experiment run` and digest stamping in both backends (+21); `load_trials` reads run sets and reused trials once each, and `stats compare` reports them (+12); schema and registration (+3) | +184 | 3,600 |
 
 ## Consequences
 
