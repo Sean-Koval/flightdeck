@@ -73,6 +73,7 @@ nav:
       - Reports: reports.md
   - Reference:
       - Data plane: data-plane.md
+      - Weekly metrics: metrics.md
       - Statistics: statistics.md
   - Decisions:
       - "0001: Boundary with hangar": decisions/0001-boundary-with-hangar.md

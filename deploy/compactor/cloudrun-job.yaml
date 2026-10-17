@@ -1,0 +1,37 @@
+# Cloud Run job for the nightly compactor; setup.sh fills the ${...} values and runs `gcloud run jobs replace`.
+# Lines marked `# github` are dropped when no --github-repos is given.
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: flightdeck-compactor
+  labels:
+    app: flightdeck
+spec:
+  template:
+    spec:
+      taskCount: 1
+      template:
+        spec:
+          serviceAccountName: ${SERVICE_ACCOUNT}
+          timeoutSeconds: 1800
+          maxRetries: 1
+          containers:
+            - image: ${IMAGE}
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: 2Gi
+              env:
+                - name: FLIGHTDECK_RUNS_URI
+                  value: gs://${RUNS_BUCKET}
+                - name: FLIGHTDECK_DATA_URI
+                  value: gs://${DATA_BUCKET}/parquet/v1
+                - name: FLIGHTDECK_REPORTS_URI
+                  value: gs://${DATA_BUCKET}/reports
+                - name: FLIGHTDECK_GITHUB_REPOS  # github
+                  value: "${GITHUB_REPOS}"  # github
+                - name: GITHUB_TOKEN  # github
+                  valueFrom:  # github
+                    secretKeyRef:  # github
+                      name: flightdeck-github-token  # github
+                      key: latest  # github

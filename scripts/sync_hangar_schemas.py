@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Refresh the vendored copies of hangar's interface schemas from a hangar checkout.
 
-Copies `docs/api/{experiment,manifest}.schema.json` at a git ref into `src/flightdeck/dataplane/hangar_schemas/` and
+Copies `docs/api/{experiment,manifest,run}.schema.json` at a git ref into `src/flightdeck/dataplane/hangar_schemas/` and
 records the hangar commit they came from in `SOURCE.json`, which `flightdeck ingest` prints when it warns about a
 mismatch. Standard library and git only.
 
@@ -16,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-FILES = ("experiment.schema.json", "manifest.schema.json")
+FILES = ("experiment.schema.json", "manifest.schema.json", "run.schema.json")
 DEST = Path(__file__).resolve().parent.parent / "src" / "flightdeck" / "dataplane" / "hangar_schemas"
 
 
