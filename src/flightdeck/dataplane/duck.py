@@ -7,7 +7,7 @@ import importlib.util
 
 import duckdb
 
-from flightdeck.dataplane.schema import DERIVED, TABLES, to_table
+from flightdeck.dataplane.schema import ALL, DERIVED, to_table
 
 
 def connect(uri: str) -> duckdb.DuckDBPyConnection:
@@ -24,10 +24,10 @@ def connect(uri: str) -> duckdb.DuckDBPyConnection:
         con.register_filesystem(importlib.import_module("gcsfs").GCSFileSystem())
     elif base.startswith(("gs://", "s3://")):
         con.execute("INSTALL httpfs; LOAD httpfs;")
-    for name in {**TABLES, **DERIVED}:
+    for name in ALL:
         glob = f"{base}/{name}/dt=*/*.parquet"
         if con.execute("select count(*) from glob(?)", [glob]).fetchone() == (0,):
-            if name in TABLES:  # derived tables (spec_results) stay absent until written, so readers can tell
+            if name not in DERIVED:  # derived tables (spec_results) stay absent until written, so readers can tell
                 con.register(name, to_table(name, []))
             continue
         con.execute(

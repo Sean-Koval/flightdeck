@@ -1,0 +1,5 @@
+# gcloud builds submit . --config deploy/compactor/cloudbuild.yaml --substitutions _IMAGE=<registry>/compactor:latest
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "deploy/compactor/Dockerfile", "-t", "$_IMAGE", "."]
+images: ["$_IMAGE"]

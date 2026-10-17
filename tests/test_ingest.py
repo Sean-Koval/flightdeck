@@ -122,7 +122,7 @@ def test_vendored_schemas_carry_their_hangar_commit_and_the_sync_script_updates_
     assert re.fullmatch(r"[0-9a-f]{40}", pinned["commit"])
     repo = tmp_path / "hangar"
     (repo / "docs" / "api").mkdir(parents=True)
-    for name in ("experiment.schema.json", "manifest.schema.json"):
+    for name in ("experiment.schema.json", "manifest.schema.json", "run.schema.json"):
         (repo / "docs" / "api" / name).write_text(json.dumps({"title": name}))
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com"]
     subprocess.run(["git", "init", "-q", str(repo)], check=True)

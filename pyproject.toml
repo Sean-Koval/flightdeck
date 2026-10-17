@@ -8,6 +8,7 @@ authors = [{ name = "Sean Koval" }]
 requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.4,<1.5",
+    "fsspec>=2026.9.0",
     "jsonschema>=4.26.0",
     "numpy>=2.5.4",
     "pyarrow>=26.0.0",
@@ -29,7 +30,6 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
     "pyright[nodejs]>=1.1.390",
-    "fsspec>=2026.9.0",
     "types-pyyaml>=6.0.12.20260906",
 ]
 

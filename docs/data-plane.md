@@ -1,12 +1,13 @@
 # Data plane: `flightdeck.parquet/v1`
 
 Flightdeck reads hangar's runs from Parquet files, never from a live hangar (ADR-0001 point 3), so reports work while
-hangar's sandbox pools are off. The plan: hangar writes each finished run to a GCS outbox
-(`gs://<bucket>/v1/{date}/{run_id}/{manifest.json, trace.otlp.json, grade.json, ...}`), a nightly compactor turns it
-into these tables, and DuckDB queries them. Until the outbox exists, the same flatteners run over
-`hangar experiment export` and REST exports.
+hangar's sandbox pools are off. Hangar writes each finished run once to a GCS outbox (`hangar.run/v1`, hangar
+`docs/api/outbox.md`), the nightly [compactor](#compactor) turns it into these tables, and DuckDB queries them. For
+one experiment's results right away, the same flatteners run over `hangar experiment export` and REST exports
+([ingest](#ingest)).
 
-Code: `src/flightdeck/dataplane/` (`schema.py` the tables, `flatten.py` the flatteners, `duck.py` the views).
+Code: `src/flightdeck/dataplane/` (`schema.py` the tables, `flatten.py` the flatteners, `duck.py` the views,
+`compact.py` the compactor, `github.py` the `prs` table).
 
 ## Layout and versioning
 
@@ -29,7 +30,14 @@ person) are copied onto every span row. Every row has `run_id`, `source` (`job`,
 | `events` | one span event, except test results | trace | `seq` is null for `steer`/`interrupt` (hangar gives them none yet), so their order is by time only |
 | `manifests` | one `hangar.manifest/v1`, deduplicated by `digest` | manifest | `skills_effective` as `name@digest`; `json` keeps the whole manifest |
 | `grades` | one grader result for a trial | experiment `trials[].grade` | `data` is the JSON the grader wrote to `$HANGAR_GRADE_OUT` |
-| `test_cases` | one `test.run` (its `case_name` is null) or one `test.case` | trace `test.run`/`test.case` events | `trusted` is false for the agent's own in-turn runs; specs that need proof of testing use `trusted and total > 0` |
+| `test_cases` | one `test.run` (its `case_name` is null) or one `test.case` | trace `test.run`/`test.case` events; outbox `tests.json` | `trusted` is false for the agent's own in-turn runs; specs that need proof of testing use `trusted and total > 0` |
+| `job_events` | one `hangar.job_event/v1` (`run_id` = job id) | outbox `v1/jobs/{date}/{job_id}/events/` | `kind` (`pr.open`, `review.first`, `pr.merge`, `pr.close`, `abandon`, ...); `reason`, `by` and `green_to_merge_seconds` lifted from `data`, which keeps the rest |
+| `prs` | one closed GitHub pull request on the team's repos (`run_id` null, `source` = `github`) | GitHub REST, `flightdeck ingest github` | `reverts` is the number of the PR it reverts; for [agent share and reverts](metrics.md#where-the-data-comes-from) |
+
+From the outbox, `runs` also carries `run.json`'s `outcome_class`, `infra_reason`, `job_source`, `job_turn`,
+`job_state`, `steers` (`steers.n`), `questions`, `untrusted` (the job's task text came from outside the trusted list)
+and `tainted` (the turn read untrusted content). Promotion evidence leaves out runs with either flag set. Tapes stay
+objects under hangar's `v1/tapes/`; they are not compacted.
 
 `spec_results` is written by flightdeck, not flattened from hangar: one row per spec or ADR check and unit (a turn, job
 or session id in `run_id`), with `spec_id`, `spec_source` (`spec` or `adr:<repo>/<adr>`), `scope`, `result` (`pass`,
@@ -49,8 +57,8 @@ Slack tokens) as `***`, and clip event text to 2,000 characters.
 
 ## Ingest
 
-Until the outbox and compactor exist (and afterwards, for an author who wants one experiment's results now),
-`flightdeck ingest` pulls from hangar directly. Code: `src/flightdeck/dataplane/ingest.py`.
+For an author who wants one experiment's results now, without waiting for the night's compaction (or where the
+outbox is off), `flightdeck ingest` pulls from hangar directly. Code: `src/flightdeck/dataplane/ingest.py`.
 
 ```sh
 flightdeck ingest export DIR                                  # files from `hangar experiment export <id> -o DIR`
@@ -81,6 +89,64 @@ All write to `--out` (default `~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`), w
   sessions, an admin token everyone's, a `jobs` token what it submitted. A 404 means missing *or not yours* and is
   reported that way. A report on your own experiment needs only your member token; a team-wide report needs an admin
   token, kept in the operator's environment.
+
+## Compactor
+
+`flightdeck compact` turns hangar's outbox into the tables above. Code: `src/flightdeck/dataplane/compact.py`;
+deployment: [`deploy/compactor/`](https://github.com/Sean-Koval/flightdeck/tree/main/deploy/compactor). It runs as a
+Cloud Run job at 02:30 ET, inside the pools-off window: the control plane and GCS stay up, the cluster doesn't need to.
+
+```sh
+flightdeck compact --input gs://<runs-bucket> --out gs://<team>-flightdeck/parquet/v1     # today and 3 days back
+flightdeck compact --date 2026-11-03 --rebuild                                            # rewrite those dates
+flightdeck compact --input file:///tmp/outbox --out /tmp/plane                            # a local outbox tree
+```
+
+`--input` (`FLIGHTDECK_RUNS_URI`) and `--out` (`FLIGHTDECK_DATA_URI`) take `gs://`, `file://`, a plain path or any
+fsspec URL; `gs://` needs the `gcs` extra.
+
+- **Complete runs only.** It reads `v1/runs/{date}/{session_id}.{run_id}/` directories that have a `run.json`: hangar
+  uploads it after the run's other objects, so a directory without one is still arriving and waits for a later night.
+  A run's rows come from `run.json` (the `runs` row, laid over the trace's turn row), `trace.otlp.json` (spans,
+  events), `tests.json` (test_cases), `manifest.json` and `grade.json`. Job events come from `v1/jobs/{date}/`.
+  Everything passes through the flatteners' credential masking again.
+- **One partition per date.** Each outbox date is one `dt=` partition per table, `part-0.parquet`, rewritten whole:
+  written as `part-0.parquet.tmp`, then renamed, so readers never see half a file. Rows are sorted by `run_id, seq`,
+  so a rebuild of the same inputs is byte-identical. Row groups are sized to about 64 MB.
+- **Late arrivals.** `<out>/_compactor/{date}.json` records the date's input objects (path, size, GCS generation and,
+  for what was read, sha256). Each night looks back `--lookback` days (3) and recompacts a date only when its listing
+  changed: a late `run.json`, a `grade.json` that followed its run, or a deleted run. One prefix listing per date, no
+  per-object metadata calls.
+- **Identity.** The job's service account has `storage.objectViewer` on the outbox bucket and `storage.objectAdmin`
+  on the flightdeck bucket, nothing else; no hangar endpoint or token (a test asserts the module imports no HTTP
+  client).
+
+### Runbook
+
+- **Rebuild a date** (after a fix to the flatteners, or to pick up something older than the lookback):
+  `gcloud run jobs execute flightdeck-compactor --region <r> --args=--date,2026-11-03,--lookback,0,--rebuild`, or run
+  `flightdeck compact --date 2026-11-03 --lookback 0 --rebuild` locally with read access to both buckets.
+- **Delete a run** (personal data): delete its objects from the outbox with an admin credential
+  (`gcloud storage rm -r gs://<runs-bucket>/v1/runs/<date>/<session_id>.<run_id>/`, and its job's event objects), or,
+  where objects can't be deleted yet, list it in `gs://<runs-bucket>/v1/_deletions/<request>.json` as
+  `{"runs": ["<session_id>.<run_id>" or "<run_id>", ...]}`. Then rebuild its date. Within the lookback window the next
+  night does this on its own, so a deletion is out of Parquet within 24 hours.
+- **Check a night:** the job's log prints rows per table per date, or `unchanged`.
+
+## `flightdeck.weekly/v1`
+
+[`flightdeck metrics weekly`](metrics.md) writes `<reports>/weekly/<week>.json`, `<week>.md` and `latest.json`, with
+`FLIGHTDECK_REPORTS_URI` = `gs://<team>-flightdeck/reports`. Hangar's standup line and digest read `latest.json` and
+never recompute. JSON Schema:
+[`src/flightdeck/metrics/weekly.schema.json`](https://github.com/Sean-Koval/flightdeck/blob/main/src/flightdeck/metrics/weekly.schema.json);
+additive within v1.
+
+| Field | Meaning |
+| --- | --- |
+| `schema`, `week`, `start`, `end` | `flightdeck.weekly/v1`; the ISO week (`2026-W45`), its Monday and the next Monday (UTC) |
+| `scope` | `{person, repo}`; both null in the shared files |
+| `metrics` | one object per metric in [metrics.md](metrics.md): rates as `{k, n, rate, ci95}` (Wilson 95%; null when `n` is 0), `review_wait` and `green_to_merge` as `{n, p50_h, p90_h}`, the rest as `{n, value}`; `abandon.by_reason` maps reason to count |
+| `trailing` | the four weeks ending with `week`, oldest first, each `{week, metrics}` |
 
 ## Querying
 

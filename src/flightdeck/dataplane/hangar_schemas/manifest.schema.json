@@ -38,18 +38,20 @@
         "locked": {"type": ["string", "null"], "description": "The version harnesses.lock.yaml pins (the session's, pinned at its creation)."},
         "pack": {"type": ["string", "null"], "description": "The pack image mounted (a digest reference where the registry gives one)."},
         "mode": {"enum": ["pack", "bake", "image"]},
-        "live": {"type": ["boolean", "null"], "description": "The turn ran under hangar's driver (steer, interrupt, approvals)."}
+        "live": {"type": ["boolean", "null"], "description": "The turn ran under hangar's driver (steer, interrupt, approvals)."},
+        "lock": {"type": "object", "required": ["name", "revision", "digest"], "properties": {"name": {"type": "string"}, "revision": {"type": "integer"}, "digest": {"$ref": "#/$defs/digest"}}, "description": "Optional (#134), present only then: the harness lock the session was thawed from. harness_digest equals its digest unless the turn drifted from it (docs/harness-lock.md)."}
       }
     },
     "model": {
       "type": "object",
       "required": ["id", "policy", "source", "provider"],
       "properties": {
-        "id": {"type": ["string", "null"], "description": "The concrete model id the harness was given (null: the harness's own default)."},
+        "id": {"type": ["string", "null"], "description": "The model id the harness was given (null: the harness's own default). A policy is always resolved to an id; an id given as it is can still be a floating alias (see concrete)."},
         "policy": {"type": ["string", "null"], "description": "The policy it was resolved from (frontier, balanced), or null when pinned."},
         "source": {"type": ["string", "null"]},
         "provider": {"type": ["string", "null"], "description": "gen_ai.provider.name"},
-        "cache_ttl": {"type": ["string", "null"]}
+        "cache_ttl": {"type": ["string", "null"]},
+        "concrete": {"type": "boolean", "description": "Whether id is a concrete, dated model id the provider can't move between two runs: in the provider's model list or of a known versioned shape, and not a floating alias (*-latest, OpenRouter's ~vendor/..., a bare family name such as opus or gpt-5). False with no id. Runs with concrete false are not pinned and evaluation leaves them out; experiments refuse to start on one. Optional (absent from manifests stored before it). Added within v1 (#167)."}
       }
     },
     "instructions": {
@@ -86,6 +88,17 @@
         "effective": {"oneOf": [{"type": "null"}, {"type": "array", "items": {"type": "object", "required": ["name", "digest", "files"], "properties": {"name": {"type": "string"}, "digest": {"$ref": "#/$defs/digest"}, "files": {"type": "integer"}}}}], "description": "The skill directories in the sandbox as the turn started (null: not read)."}
       }
     },
+    "plugins": {"description": "Optional (absent from manifests stored before it). Claude Code plugins from the environment's read-only seed (#136; docs/harnesses.md#plugins); null when it declares none. Part of harness_digest.",
+      "oneOf": [{"type": "null"}, {"type": "array", "items": {"type": "object",
+        "required": ["name", "marketplace", "version", "path", "digest", "enabled", "source"],
+        "properties": {
+          "name": {"type": "string"}, "marketplace": {"type": ["string", "null"]}, "version": {"type": ["string", "null"]},
+          "path": {"type": ["string", "null"], "description": "Where Claude Code loads it from in the sandbox, under the seed (/opt/hangar/claude-seed)."},
+          "digest": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}], "description": "sha256 over its marketplace entry and its directory as declared (the control plane's copy); Claude Code's writable caches are not inputs."},
+          "files": {"type": ["integer", "null"]},
+          "enabled": {"type": "boolean"},
+          "effective": {"type": "boolean", "description": "Whether hangar's settings load it for this harness, hardened (ask, deny-risky) turns included."},
+          "source": {"const": "seed"}, "error": {"type": "string"}}}}]},
     "mcp_servers": {
       "type": "array",
       "items": {
@@ -161,7 +174,11 @@
       }
     },
     "repo": {"type": "object", "properties": {"url": {"type": ["string", "null"]}, "base_branch": {"type": ["string", "null"]}, "base_sha": {"type": ["string", "null"]}, "branch": {"type": ["string", "null"]}}},
-    "probe": {"type": ["object", "null"], "properties": {"ok": {"type": "boolean"}, "error": {"type": ["string", "null"]}}},
+    "probe": {"type": ["object", "null"], "properties": {"ok": {"type": "boolean"}, "error": {"type": ["string", "null"]},
+      "plugins": {"description": "The declared seed plugins' directories in the sandbox as the turn started (#136; null: none declared, or not read).",
+        "oneOf": [{"type": "null"}, {"type": "array", "items": {"type": "object", "required": ["id", "present"], "properties": {
+          "id": {"type": "string"}, "present": {"type": "boolean"}, "digest": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
+          "files": {"type": "integer"}}}}]}}},
     "warnings": {"type": "array", "items": {"type": "string"}}
   },
   "$defs": {
