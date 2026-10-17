@@ -20,7 +20,7 @@ import yaml
 
 from flightdeck.ported.aidlc import contracts, planning
 from flightdeck.specs.lang import SCHEMA
-from flightdeck.tasks.format import load_task
+from flightdeck.tasks.format import write_digest
 
 BASE = "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de"  # ai-dlc's pinned base
 PENDING = "pending: a person records it against the versioned rubric; a judge only after calibration (#27)"
@@ -92,7 +92,7 @@ def write_task(sc: contracts.Scenario, fixture: Path, hidden: list[Path], d: Pat
             ("command", "bash tests/test.sh"), ("files_digest", "")]
     text = "\n".join(r if isinstance(r, str) else f"{r[0]} = {_toml(r[1])}" for r in rows) + "\n"
     (d / "task.toml").write_text(text)
-    (d / "task.toml").write_text(text.replace('files_digest = ""', f'files_digest = "{load_task(d).files_digest}"'))
+    write_digest(d)
 
 
 def import_suite(path: Path, out: Path) -> list[tuple[str, str, str, str]]:

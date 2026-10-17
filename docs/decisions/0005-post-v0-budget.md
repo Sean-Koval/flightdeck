@@ -1,6 +1,6 @@
 # 0005: The post-v0 batch is counted, and the budget rises by each piece's measured size
 
-Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (agent-proposed; owner review requested)
+Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #13) (agent-proposed; owner review requested)
 
 ## Context
 
@@ -19,6 +19,8 @@ records them here. The cuts so far:
 - `stats/__init__.py` re-exported `stats.core` (14 lines of duplication); callers import `stats.core` (#17).
 - `applies_when` matched `source` and `repo` with two special cases; one glob rule over the `runs` columns replaces
   both and covers `task_id` and `variant` too, for a few lines less (#17).
+- #13 found no cut in what it touches; it moved `task digest --write`'s logic into `tasks/format.py` so sealing
+  reuses it instead of adding a third copy.
 
 Cuts considered and not taken:
 
@@ -52,6 +54,7 @@ B.
 | --- | --- | --- | --- | --- |
 | (ADR 0004) | #18 | the local runner's adapter | | 2,800 |
 | #51 | #17 | `tasks/aidlc.py` and `task import-aidlc` (+131); the `any` path operator and `task_id`/`variant` scope in specs, after the `applies_when` cut (-4); the stats re-export cut (-14) | +113 | 2,896 |
+| #52 | #13 | `tasks/custody.py`: manifest, seal, canary scan, score once, briefs, and the `holdout` CLI (+204); `write_digest` moved to `tasks/format.py` so the CLI, the importer and sealing share it (+1); registration (+2) | +207 | 3,103 |
 
 ## Consequences
 
