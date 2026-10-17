@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "Budgets": {
+      "additionalProperties": false,
+      "description": "Explicit on purpose: a missing spend setting must not become an unlimited one.",
+      "properties": {
+        "max_spend_usd": {
+          "minimum": 0,
+          "title": "Max Spend Usd",
+          "type": "number"
+        },
+        "max_tokens": {
+          "minimum": 0,
+          "title": "Max Tokens",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_tokens",
+        "max_spend_usd"
+      ],
+      "title": "Budgets",
+      "type": "object"
+    },
+    "Driver": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "deterministic",
+            "codex",
+            "claude-code"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "script": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Script"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "version"
+      ],
+      "title": "Driver",
+      "type": "object"
+    },
+    "Egress": {
+      "additionalProperties": false,
+      "properties": {
+        "hosts": {
+          "items": {
+            "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Hosts",
+          "type": "array"
+        },
+        "proxy_image": {
+          "pattern": "^([^\\s@]+@)?sha256:[0-9a-f]{64}$",
+          "title": "Proxy Image",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hosts",
+        "proxy_image"
+      ],
+      "title": "Egress",
+      "type": "object"
+    },
+    "Engine": {
+      "additionalProperties": false,
+      "description": "The candidate's identity, and the prebuilt image that already contains it.",
+      "properties": {
+        "artifact": {
+          "minLength": 1,
+          "title": "Artifact",
+          "type": "string"
+        },
+        "image": {
+          "pattern": "^([^\\s@]+@)?sha256:[0-9a-f]{64}$",
+          "title": "Image",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact",
+        "sha256",
+        "image"
+      ],
+      "title": "Engine",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attempts": {
+      "minimum": 1,
+      "title": "Attempts",
+      "type": "integer"
+    },
+    "budgets": {
+      "$ref": "#/$defs/Budgets"
+    },
+    "credentials": {
+      "default": [],
+      "items": {
+        "pattern": "^[A-Z_][A-Z0-9_]*$",
+        "type": "string"
+      },
+      "title": "Credentials",
+      "type": "array"
+    },
+    "driver": {
+      "$ref": "#/$defs/Driver"
+    },
+    "egress": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Egress"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "engine": {
+      "$ref": "#/$defs/Engine"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "image": {
+      "pattern": "^([^\\s@]+@)?sha256:[0-9a-f]{64}$",
+      "title": "Image",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "candidate",
+        "release"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "model": {
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "resources": {
+      "default": [],
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "schema": {
+      "const": 1,
+      "title": "Schema",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "mode",
+    "image",
+    "engine",
+    "driver",
+    "model",
+    "budgets",
+    "attempts"
+  ],
+  "title": "Profile",
+  "type": "object"
+}

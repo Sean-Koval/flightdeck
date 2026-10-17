@@ -1,0 +1,251 @@
+{
+  "$defs": {
+    "Answer": {
+      "additionalProperties": false,
+      "description": "A bounded reply; a question matching no answer becomes needs-input.",
+      "properties": {
+        "match": {
+          "minLength": 1,
+          "title": "Match",
+          "type": "string"
+        },
+        "reply": {
+          "minLength": 1,
+          "title": "Reply",
+          "type": "string"
+        }
+      },
+      "required": [
+        "match",
+        "reply"
+      ],
+      "title": "Answer",
+      "type": "object"
+    },
+    "Assertion": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before"
+        },
+        "dimension": {
+          "enum": [
+            "workflow",
+            "correctness",
+            "quality"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "expect": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expect"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mandatory": {
+          "default": true,
+          "title": "Mandatory",
+          "type": "boolean"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        }
+      },
+      "required": [
+        "id",
+        "dimension",
+        "kind"
+      ],
+      "title": "Assertion",
+      "type": "object"
+    },
+    "Fixture": {
+      "additionalProperties": false,
+      "description": "Paths resolve beside the suite file. `hidden` stays with the controller.",
+      "properties": {
+        "digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "hidden": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidden"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "digest"
+      ],
+      "title": "Fixture",
+      "type": "object"
+    },
+    "Limits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_spend_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Spend Usd"
+        },
+        "max_turns": {
+          "default": 20,
+          "minimum": 1,
+          "title": "Max Turns",
+          "type": "integer"
+        },
+        "timeout_minutes": {
+          "default": 30,
+          "minimum": 1,
+          "title": "Timeout Minutes",
+          "type": "integer"
+        }
+      },
+      "title": "Limits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "answers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Answer"
+      },
+      "title": "Answers",
+      "type": "array"
+    },
+    "arms": {
+      "items": {
+        "enum": [
+          "treatment",
+          "baseline"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Arms",
+      "type": "array"
+    },
+    "assertions": {
+      "items": {
+        "$ref": "#/$defs/Assertion"
+      },
+      "minItems": 1,
+      "title": "Assertions",
+      "type": "array"
+    },
+    "checkpoints": {
+      "default": [],
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9-]*$",
+        "type": "string"
+      },
+      "title": "Checkpoints",
+      "type": "array"
+    },
+    "fixture": {
+      "$ref": "#/$defs/Fixture"
+    },
+    "goal": {
+      "minLength": 1,
+      "title": "Goal",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/Limits",
+      "default": {
+        "max_spend_usd": null,
+        "max_turns": 20,
+        "timeout_minutes": 30
+      }
+    }
+  },
+  "required": [
+    "id",
+    "goal",
+    "fixture",
+    "assertions",
+    "arms"
+  ],
+  "title": "Scenario",
+  "type": "object"
+}

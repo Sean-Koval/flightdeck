@@ -1,0 +1,50 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "minLength": 1,
+      "title": "At",
+      "type": "string"
+    },
+    "evidence": {
+      "default": [],
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "kind": {
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "title": "Kind",
+      "type": "string"
+    },
+    "schema": {
+      "const": 1,
+      "title": "Schema",
+      "type": "integer"
+    },
+    "source": {
+      "enum": [
+        "driver",
+        "process",
+        "mcp",
+        "filesystem",
+        "git",
+        "provider",
+        "controller"
+      ],
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "source",
+    "at",
+    "kind"
+  ],
+  "title": "Event",
+  "type": "object"
+}

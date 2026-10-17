@@ -46,8 +46,8 @@ GITHUB_TOKEN=... uv run flightdeck report post demo/report.md --to owner/repo#12
 
 ## Status and code map
 
-v0, pre-release. The v0 analysis code stays under **2,800 lines** (`scripts/loc_budget.py`, enforced in CI,
-[ADR-0004](decisions/0004-local-runner-budget.md)) and has to change one real team decision before anything else, a UI
+v0, pre-release. The analysis code stays within a counted line budget (`scripts/loc_budget.py`, enforced in CI,
+[ADR-0005](decisions/0005-post-v0-budget.md)) and has to change one real team decision before anything else, a UI
 included, gets built.
 
 | Module | What |
@@ -57,9 +57,9 @@ included, gets built.
 | `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation; `flightdeck stats compare` with exclusions and saturated tasks. See [Statistics](statistics.md) |
 | `flightdeck.report` | `flightdeck report experiment`: the markdown report with a pre-registered verdict, posted as one PR or issue comment. See [Reports](reports.md) |
 | `flightdeck.specs` | `flightdeck.spec/v1` behavior specs: YAML predicates over `hangar.trace/v1`, a Python reference evaluator and a DuckDB compiler, the trusted-test rule; `flightdeck spec lint\|test`; the nightly runner over the data plane with ADR `checks:`, change-point alerts and `flightdeck check run\|diff`. See [Behavior specs](behavior-specs.md) |
-| `flightdeck.tasks` | Harbor-compatible task directories: load, check and digest them, map them onto a `hangar.experiment/v1` spec; `flightdeck task new\|check\|digest`; the semver smoke task in `tasks/smoke/`. See [Tasks](tasks.md) |
+| `flightdeck.tasks` | Harbor-compatible task directories: load, check and digest them, map them onto a `hangar.experiment/v1` spec; `flightdeck task new\|check\|digest`; `flightdeck task import-aidlc` for ai-dlc evaluation suites; the semver smoke task in `tasks/smoke/`. See [Tasks](tasks.md) |
 | `flightdeck.runners` | The experiment submission client: suite plans to `hangar.experiment/v1` specs, a cost gate, `flightdeck experiment run\|status\|collect`. See [Running experiments](runners.md) |
-| `flightdeck.ported` | Code kept in step with hangar (its model-concreteness rule), outside the line budget |
+| `flightdeck.ported` | Code moved in and kept close to its source, outside the line budget: hangar's model-concreteness rule and trace classifier; ai-dlc's local runner, evaluation contracts and suite checks |
 
 ## Development
 

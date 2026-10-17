@@ -70,7 +70,7 @@ and post with `--post owner/repo#n`. [Getting started](getting-started.md) has t
 | Behavior specs | YAML predicates over `hangar.trace/v1` that count only trusted test runs; ADR `checks:`; nightly runner with change-point alerts | [Behavior specs](behavior-specs.md) |
 | Reports | Markdown with a pre-registered verdict, pins, outcome, process, cost and spec pass rates, posted as one PR comment | [Reports](reports.md) |
 | Experiments | Suites of Harbor-compatible tasks submitted to hangar with concrete model pins and a cost gate | [Running experiments](runners.md), [Tasks](tasks.md) |
-| Small by design | v0 stays under 2,800 lines of analysis code, enforced in CI | [ADR-0004](decisions/0004-local-runner-budget.md) |
+| Small by design | A counted line budget for the analysis code, enforced in CI; every raise is a measured ADR | [ADR-0005](decisions/0005-post-v0-budget.md) |
 
 Vocabulary (run, turn, trial, check vs grader) is in [Concepts](concepts.md).
 

@@ -6,6 +6,7 @@ import re
 import shutil
 from importlib.resources import as_file, files
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
@@ -80,3 +81,19 @@ def digest(path: Path, write: bool = typer.Option(False, "--write", help="Update
             raise
     task = _load(path)
     typer.echo(f"task_digest  {task.digest}\nfiles_digest {task.files_digest}")
+
+
+@app.command("import-aidlc")
+def import_aidlc(suite: Path, out: Annotated[Path, typer.Option(help="An empty directory to write into.")]):
+    """Convert an ai-dlc evaluation suite (JSON) into task dirs, specs and a suite file; print the assertion mapping."""
+    from flightdeck.tasks.aidlc import import_suite
+
+    try:
+        rows = import_suite(suite, out)
+    except ValueError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from None
+    typer.echo("| scenario | assertion | kind | maps to |\n| --- | --- | --- | --- |")
+    for r in rows:
+        typer.echo("| " + " | ".join(r) + " |")
+    typer.echo(f"wrote {out}: fill suite.yaml's variants, then `flightdeck task check {out}/*/`")

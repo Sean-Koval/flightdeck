@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "Client": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "claude-code",
+          "title": "Kind",
+          "type": "string"
+        },
+        "sha256": {
+          "additionalProperties": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "linux-x64",
+              "linux-arm64"
+            ]
+          },
+          "title": "Sha256",
+          "type": "object"
+        },
+        "version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "version",
+        "sha256"
+      ],
+      "title": "Client",
+      "type": "object"
+    },
+    "Mise": {
+      "additionalProperties": false,
+      "description": "The shared check runner, verified from its published bytes per platform.",
+      "properties": {
+        "version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Version",
+          "type": "string"
+        },
+        "sha256": {
+          "additionalProperties": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "linux-x64",
+              "linux-arm64"
+            ]
+          },
+          "title": "Sha256",
+          "type": "object"
+        }
+      },
+      "required": [
+        "version",
+        "sha256"
+      ],
+      "title": "Mise",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The image both arms share: a pinned parent, distribution packages and one client.",
+  "properties": {
+    "client": {
+      "$ref": "#/$defs/Client"
+    },
+    "from": {
+      "pattern": "^([^\\s@]+@)?sha256:[0-9a-f]{64}$",
+      "title": "From",
+      "type": "string"
+    },
+    "mise": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Mise"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "packages": {
+      "default": [],
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9+.-]*$",
+        "type": "string"
+      },
+      "title": "Packages",
+      "type": "array"
+    },
+    "schema": {
+      "const": 1,
+      "title": "Schema",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema",
+    "from",
+    "client"
+  ],
+  "title": "BaseImage",
+  "type": "object"
+}

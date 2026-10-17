@@ -44,9 +44,11 @@ assert:
 turns and its own events (verify, test runs, delivered commits, PR, merge), `session` one session's turns. Job-level
 events sit on the job span, so a spec about `test.run`, `git.commit` events or `pr.merge` needs `scope: job`.
 
-**Applicability.** `harness` matches the run's `hangar.harness` (a glob); `applies_when` takes `source` (one or a
-list of `job`, `session`, `experiment`, `shadow`) and `repo` (a glob over the job's repo URL). Any other key (for
-example `untrusted`, which the data plane does not carry yet) makes every result `unknown`, never a guess.
+**Applicability.** `harness` matches the run's `hangar.harness` (a glob); `applies_when` takes globs (one or a list)
+over four `runs` columns: `source` (`job`, `session`, `experiment`, `shadow`, `local`), `repo` (the job's repo URL),
+`task_id` and `variant` (an experiment trial's task and variant, so a spec can judge one task's treatment arm, as
+imported ai-dlc workflow assertions do). Any other key (for example `untrusted`, which the data plane does not carry
+yet) makes every result `unknown`, never a guess.
 
 ### Matchers
 
@@ -81,6 +83,7 @@ Python `re` and RE2 (DuckDB): no lookaround or backreferences.
 | `order: [M1, M2, ...]` | pass if every Mi occurs and their first occurrences are in that order |
 | `each: B`, `requires_prior: A`, `within: {seq: N}` or `{turns: N}` | for every B an A earlier in order and at most N log positions (or turns) before it; `not_applicable` without a B |
 | `all: {paths: {from: [file.change, diff.files]}, match: <glob or list>}` | every path matches; a `file.change` outside the checkout has no repo path and fails; `not_applicable` with no paths |
+| `any: {paths: {from: [...]}, match: <glob or list>}` | at least one path matches (a delivered file, for ai-dlc's `path-committed`); `not_applicable` with no paths |
 
 **Order** is `hangar.seq` within a session, the event log's position, because many items share a timestamp. Items
 without a seq (job events, test runs, `steer`/`interrupt`) are compared by time, so mixed comparisons are by time

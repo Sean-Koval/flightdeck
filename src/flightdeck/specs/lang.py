@@ -24,7 +24,7 @@ SCHEMA = "flightdeck.spec/v1"
 KINDS = {"shell", "edit", "read", "search", "web", "mcp", "skill", "plan", "other"}
 OPS = {"test", "git.commit", "git.push", "pr.open", "delete"}
 SCOPES = {"turn": "run_id", "job": "job_id", "session": "session_id"}
-UNIT_KEYS = ("source", "repo")
+UNIT_KEYS = ("source", "repo", "task_id", "variant")  # applies_when keys: runs columns, globs
 CMP = {"gt": (operator.gt, ">"), "gte": (operator.ge, ">="), "lt": (operator.lt, "<"), "lte": (operator.le, "<=")}
 PASS, FAIL, NA, UNKNOWN = "pass", "fail", "not_applicable", "unknown"
 # Item columns, from each data-plane table's columns. Items also carry k (tool|approval|event), ids, turn and attrs.
@@ -184,12 +184,12 @@ def plan(s: Spec) -> tuple[str, dict[str, Any]]:
         if set(w) - {"seq", "turns"} or not all(isinstance(n, int) for n in w.values()):
             raise SpecError(f"within: {{seq: N}} or {{turns: N}}: {w!r}")
         return "each", {"b": m(a["each"]), "a": m(a["requires_prior"]), "w": w}
-    if "all" in a:
-        src = (a["all"].get("paths") or {}).get("from", ["file.change", "diff.files"])
-        g = a["all"].get("match")
+    if "all" in a or "any" in a:
+        q = a.get("all") or a.get("any") or {}
+        src, g = (q.get("paths") or {}).get("from", ["file.change", "diff.files"]), q.get("match")
         if not g or set(src) - {"file.change", "diff.files"}:
-            raise SpecError("all: {paths: {from: [file.change, diff.files]}, match: <glob or list>}")
-        return "paths", {"from": src, "match": [g] if isinstance(g, str) else g}
+            raise SpecError("all|any: {paths: {from: [file.change, diff.files]}, match: <glob or list>}")
+        return "paths", {"from": src, "match": [g] if isinstance(g, str) else g, "any": "all" not in a}
     raise SpecError(f"{s.get('id')}: unknown operator in {sorted(a)}")
 
 
@@ -263,20 +263,22 @@ def _eval(op: str, a: dict, its: list[Item], u: dict) -> str:
     if op == "paths":
         ps = [i["path"] for i in its if i["k"] == "event" and i["name"] == "file.change" and "file.change" in a["from"]]
         ps += u["diff"] if "diff.files" in a["from"] else []
-        ok = all(isinstance(p, str) and any(fnmatchcase(p, g) for g in a["match"]) for p in ps)
+        ok = (any if a["any"] else all)(isinstance(p, str) and any(fnmatchcase(p, g) for g in a["match"]) for p in ps)
         return NA if not ps else PASS if ok else FAIL
     return UNKNOWN
 
 
 def _applies(s: Spec, u: dict) -> bool | None:
-    """Whether a unit is in scope: applies_when {source, repo} and the harness name. None: unknowable from the plane."""
-    aw = s.get("applies_when") or {}
-    if set(aw) - set(UNIT_KEYS):
+    """Whether a unit is in scope: applies_when's UNIT_KEYS and the harness name. None: unknowable from the plane."""
+    if set(s.get("applies_when") or {}) - set(UNIT_KEYS):
         return None
-    src = aw.get("source")
-    return ((not src or u["source"] in ([src] if isinstance(src, str) else src))
-            and fnmatchcase(u["repo"] or "", aw.get("repo", "*"))
-            and fnmatchcase(u["harness"] or "", s.get("harness", "*")))
+    return all(any(fnmatchcase(u[k] or "", g) for g in gs) for k, gs in _scope(s).items())
+
+
+def _scope(s: Spec) -> dict[str, list[str]]:
+    """A spec's unit filters as globs per runs column (a string or a list of strings each)."""
+    f = {**{k: v for k, v in (s.get("applies_when") or {}).items() if v}, "harness": s.get("harness", "*")}
+    return {k: [v] if isinstance(v, str) else list(v) for k, v in f.items()}
 
 
 def _finish(applies: bool | None, truncated: bool, result: str) -> str:
@@ -351,20 +353,16 @@ def sql(s: Spec) -> str:
               if "file.change" in a["from"] else "[]::varchar[]")
         ps = f"list_concat({fc}, {'u.diff' if 'diff.files' in a['from'] else '[]::varchar[]'})"
         globs = " or ".join(f"x glob {_q(g)}" for g in a["match"])
-        res = (f"case when len({ps}) = 0 then '{NA}' when len(list_filter({ps}, lambda x: not "
-               f"coalesce({globs}, false))) = 0 then '{PASS}' else '{FAIL}' end")
+        hits = f"len(list_filter({ps}, lambda x: {'' if a['any'] else 'not '}coalesce({globs}, false)))"
+        res = f"case when len({ps}) = 0 then '{NA}' when {hits} {'>' if a['any'] else '='} 0 then '{PASS}' " \
+            f"else '{FAIL}' end"
     else:
         res = f"'{UNKNOWN}'"
-    aw = s.get("applies_when") or {}
-    src = aw.get("source")
-    srcs = ", ".join(map(_q, [src] if isinstance(src, str) else src or []))
-    applies = " and ".join([f"coalesce(u.repo, '') glob {_q(aw.get('repo', '*'))}",
-                            f"coalesce(u.harness, '') glob {_q(s.get('harness', '*'))}"]
-                           + ([f"u.source in ({srcs})"] if src else []))
-    if set(aw) - set(UNIT_KEYS):
-        applies = "null"
+    applies = " and ".join("(" + " or ".join(f"coalesce(u.{k}, '') glob {_q(g)}" for g in gs) + ")"
+                           for k, gs in _scope(s).items()) if not set(s.get("applies_when") or {}) - set(UNIT_KEYS) \
+        else "null"
     return f"""with u as (select {col} as unit, bool_or(coalesce(truncated, false)) as trunc,
-        any_value(source) as source, any_value(repo) as repo, any_value(harness) as harness,
+        {", ".join(f"any_value({k}) as {k}" for k in (*UNIT_KEYS, "harness"))},
         flatten(list(coalesce(diff_files, []))) as diff
         from _runs where {col} is not null group by 1),
       r as (select unit, trunc, {applies} as applies, {res} as res from u)
