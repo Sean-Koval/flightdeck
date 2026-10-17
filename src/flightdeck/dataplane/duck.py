@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import duckdb
 
-from flightdeck.dataplane.schema import TABLES
+from flightdeck.dataplane.schema import DERIVED, TABLES
 
 
 def connect(uri: str) -> duckdb.DuckDBPyConnection:
@@ -17,7 +17,7 @@ def connect(uri: str) -> duckdb.DuckDBPyConnection:
     base = uri.rstrip("/")
     if base.startswith(("gs://", "s3://")):
         con.execute("INSTALL httpfs; LOAD httpfs;")
-    for name in TABLES:
+    for name in {**TABLES, **DERIVED}:
         glob = f"{base}/{name}/dt=*/*.parquet"
         if con.execute("select count(*) from glob(?)", [glob]).fetchone() == (0,):
             continue

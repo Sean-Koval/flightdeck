@@ -5,7 +5,7 @@ Counts non-blank lines that are not `#` comments in every `*.py` file under `src
 (code moved in from ai-dlc and hangar, reported separately and outside the budget). Standard library only, so CI
 can run it without installing the package.
 
-    python scripts/loc_budget.py [--root src/flightdeck] [--limit 1500]
+    python scripts/loc_budget.py [--root src/flightdeck] [--limit 2500]
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
-LIMIT = 1500
+LIMIT = 2500  # docs/decisions/0003-line-budget.md
 EXCLUDED = ("ported",)
 
 
