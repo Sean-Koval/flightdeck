@@ -25,6 +25,10 @@ gcs = [
 ]
 
 [dependency-groups]
+assets = [
+    "markdown-it-py>=3",
+    "playwright==1.56.0",
+]
 dev = [
     "pytest>=8",
     "ruff>=0.6",

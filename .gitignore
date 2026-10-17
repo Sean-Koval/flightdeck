@@ -17,3 +17,6 @@ htmlcov/
 
 # Docs site build output (zensical build)
 /site/
+
+# The quickstart's working directory (README, docs/getting-started.md)
+/demo/
