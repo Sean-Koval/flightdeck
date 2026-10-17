@@ -16,10 +16,10 @@ access: tests use synthetic fixtures only.
 
 ## The line budget
 
-v0 is deliberately small: at most **1,500** non-blank, non-comment lines under `src/flightdeck/`.
+v0 is deliberately small: at most **2,500** non-blank, non-comment lines under `src/flightdeck/`.
 `scripts/loc_budget.py` prints the count per area and fails above the limit. Code ported from ai-dlc or hangar goes in
 `src/flightdeck/ported/`, which is reported but not counted. If a change needs more room, cut something or argue for a
-higher budget in an ADR; don't move code into `ported/` to dodge the count.
+higher budget in an ADR (the last one: [0003](docs/decisions/0003-line-budget.md)); don't move code into `ported/` to dodge the count.
 
 ## Never commit team data
 
@@ -38,14 +38,16 @@ Parquet data plane, never hangar's database or data directory.
 
 ## Adding a behavior spec
 
-Behavior specs are YAML predicates over `hangar.trace/v1` (the language lands with the spec-language issue). Public
+Behavior specs are YAML predicates over `hangar.trace/v1` ([docs/behavior-specs.md](docs/behavior-specs.md)). Public
 examples go in `specs/`; team specs live in the private data repository. Specs that need proof of testing match
 trusted `test.run` events, not the agent's own shell `test` op. Loosening or deleting a check needs a second reviewer.
 
 ## Adding a task
 
 Public smoke tasks go in `tasks/smoke/<id>/` in the Harbor-compatible layout (`task.toml`, `instruction.md`,
-`environment/`, `tests/`). Mined and sealed tasks never go here.
+`environment/`, `tests/`; [docs/tasks.md](docs/tasks.md)). Start from `flightdeck task new`, and after changing
+hidden tests run `flightdeck task digest --write <dir>` and `flightdeck task check <dir>`. Mined and sealed tasks never
+go here.
 
 ## Decisions (ADRs)
 

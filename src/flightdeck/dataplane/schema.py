@@ -64,10 +64,15 @@ TEST_CASES = _schema("test_cases", """
 TABLES: dict[str, pa.Schema] = {"runs": RUNS, "spans": SPANS, "events": EVENTS, "manifests": MANIFESTS,
                                 "grades": GRADES, "test_cases": TEST_CASES}
 
+# Written by flightdeck itself, not flattened from hangar: one spec or ADR check's result for one unit (a turn, job or
+# session; `run_id` is its id, `source` its run source). `spec_source` is `spec` or `adr:<repo>/<adr>`.
+SPEC_RESULTS = _schema("spec_results", "spec_id spec_source scope result repo harness_digest knowledge_snapshot")
+DERIVED: dict[str, pa.Schema] = {"spec_results": SPEC_RESULTS}
+
 
 def to_table(name: str, rows: list[dict]) -> pa.Table:
     """Rows as a table of the named schema: missing columns are null, unknown keys are an error."""
-    schema = TABLES[name]
+    schema = TABLES.get(name) or DERIVED[name]
     extra = {k for r in rows for k in r} - set(schema.names)
     if extra:
         raise ValueError(f"{name}: columns not in {VERSION}: {sorted(extra)}")

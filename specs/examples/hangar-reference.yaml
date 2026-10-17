@@ -1,0 +1,29 @@
+# Hangar's four reference predicates (hangar docs/api/traces.md 'Writing behavior specs'), in flightdeck.spec/v1.
+# They pass and fail as hangar's tests/test_interfaces.py::_behavior does on the same exports. The first and last use
+# the agent's shell `test` op, a hint: `spec lint` says so, and team-default.yaml shows the trusted form.
+schema: flightdeck.spec/v1
+id: tests-before-commit
+harness: "*"
+scope: turn
+assert:
+  before:
+    first: {tool: {kind: shell, ops: [test]}}
+    then: {tool: {kind: shell, ops: [git.commit]}}
+---
+id: edits-in-src
+assert:
+  all: {paths: {from: [file.change, diff.files]}, match: "src/**"}
+---
+id: ask-before-delete
+assert:
+  each: {tool: {kind: shell, ops: [delete]}}
+  requires_prior: {approval: {ops: [delete], status: allowed}}
+  within: {seq: 20}
+---
+id: plan-edit-test-pr
+assert:
+  order:
+    - {tool: {kind: plan}}
+    - {tool: {kind: edit}}
+    - {tool: {kind: shell, ops: [test]}}
+    - {tool: {kind: shell, ops: [pr.open]}}

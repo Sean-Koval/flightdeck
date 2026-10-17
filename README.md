@@ -30,7 +30,7 @@ explained once in [docs/statistics.md](docs/statistics.md).
 
 ## Status
 
-v0, pre-release. The v0 analysis code stays under **1,500 lines** (`scripts/loc_budget.py`, enforced in CI) and has to
+v0, pre-release. The v0 analysis code stays under **2,500 lines** (`scripts/loc_budget.py`, enforced in CI) and has to
 change one real team decision before anything else, a UI included, gets built.
 
 Built so far:
@@ -41,8 +41,9 @@ Built so far:
 | `flightdeck.dataplane.ingest` | `flightdeck ingest export\|experiment\|job\|session`: hangar REST or `hangar experiment export` into local Parquet, idempotent, validated against vendored hangar schemas. See [docs/data-plane.md](docs/data-plane.md#ingest) |
 | `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, the r1 power simulation; `flightdeck stats compare` with exclusions and saturated tasks. See [docs/statistics.md](docs/statistics.md) |
 | `flightdeck.report` | `flightdeck report experiment`: the markdown report with a pre-registered verdict, posted as one PR or issue comment. See [docs/reports.md](docs/reports.md) |
-
-Planned (see the issue tracker): the task format, the behavior spec language and the experiment submission client.
+| `flightdeck.specs` | `flightdeck.spec/v1` behavior specs: YAML predicates over `hangar.trace/v1`, a Python reference evaluator and a DuckDB compiler, the trusted-test rule; `flightdeck spec lint\|test`; the nightly runner over the data plane with ADR `checks:`, change-point alerts and `flightdeck check run\|diff`. See [docs/behavior-specs.md](docs/behavior-specs.md) |
+| `flightdeck.tasks` | Harbor-compatible task directories: load, check and digest them, map them onto a `hangar.experiment/v1` spec; `flightdeck task new\|check\|digest`; the semver smoke task in `tasks/smoke/`. See [docs/tasks.md](docs/tasks.md) |
+| `flightdeck.runners` | The experiment submission client: suite plans to `hangar.experiment/v1` specs, a cost gate, `flightdeck experiment run\|status\|collect`. See [docs/runners.md](docs/runners.md) |
 
 ## End to end
 
