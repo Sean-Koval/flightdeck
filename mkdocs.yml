@@ -1,0 +1,80 @@
+site_name: flightdeck
+site_description: Judge coding-agent runs with paired statistics, behavior specs and sealed holdouts.
+site_url: https://sean-koval.github.io/flightdeck/
+repo_url: https://github.com/Sean-Koval/flightdeck
+repo_name: Sean-Koval/flightdeck
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  font: false
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - content.code.copy
+    - toc.follow
+  palette:
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Light
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Dark
+
+extra_css:
+  - stylesheets/airframe.css
+  - stylesheets/airframe-docs.css
+  - stylesheets/product.css
+
+copyright: <a href="https://sean-koval.github.io/agent-factory/">Part of the agent factory</a>
+
+extra:
+  social:
+    - icon: material/factory
+      link: https://sean-koval.github.io/agent-factory/
+      name: Part of the agent factory
+    - icon: fontawesome/brands/github
+      link: https://github.com/Sean-Koval/flightdeck
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - pymdownx.snippets
+
+# The ADR template is a copy-me file, not a page.
+exclude_docs: |
+  decisions/0000-template.md
+
+# Guides (reports, tasks, behavior specs, runners) join the nav as their pages land on main.
+nav:
+  - Home: index.md
+  - Get started:
+      - Concepts: concepts.md
+  - Guides:
+      - Tasks: tasks.md
+      - Running experiments: runners.md
+      - Behavior specs: behavior-specs.md
+      - Reports: reports.md
+  - Reference:
+      - Data plane: data-plane.md
+      - Statistics: statistics.md
+  - Decisions:
+      - "0001: Boundary with hangar": decisions/0001-boundary-with-hangar.md
+      - "0002: Public code, private data": decisions/0002-public-code-private-data.md
+      - "0003: The v0 line budget": decisions/0003-line-budget.md

@@ -1,5 +1,7 @@
 # flightdeck
 
+Docs site: <https://sean-koval.github.io/flightdeck/>
+
 Flightdeck is the **Judge** in Run / Judge / Govern. [Hangar](https://github.com/Sean-Koval/hangar) runs coding agents
 in sandboxes and records what they ran with and what they did. Flightdeck reads those records, judges them with paired
 statistics and behavior predicates, owns the task sets and sealed holdouts, and decides how many trials an experiment
