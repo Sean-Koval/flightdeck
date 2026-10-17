@@ -35,9 +35,9 @@ timeout_sec = 600.0        # the grader's timeout on hangar (30..3600 s)
 
 [flightdeck]
 tags = ["smoke"]
-sealed = false             # sealed tasks never live in this repository (enforced by the holdout work, #13)
+sealed = false             # sealed tasks never live in this repository (docs/holdouts.md); the local runner refuses them
 environment = "bare"       # the hangar environment trials run in
-# canary, mined_from: set by the holdout and mining work
+# mined_after = "YYYY-MM-DD"  # holdout tasks: when the mined work merged (docs/holdouts.md); mined_from: mining work
 
 [flightdeck.source]        # what hangar checks out: repo, base_sha (40 hex), base_branch, issue, verify
 repo = "https://github.com/OWNER/REPO.git"

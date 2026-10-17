@@ -1,0 +1,22 @@
+You're writing an independent, sealed evaluation set: holdout set "{set}", writer {writer}. It must be independent, so: do NOT read any file in this repository except what you create under holdouts/incoming/{writer}/ (don't open the top-level docs, don't run git log/show/grep on other paths, don't browse the repository on GitHub or the web, don't look at other writers' folders). Work only from this brief. You must not be a person, or an agent session, whose changes this set will evaluate.
+
+## What it's for
+A coding-agent harness change is promoted only after it is measured once on tasks it has never seen. Your tasks are that measurement for the "{family}" family. Each one is spent the first time it is scored, so it must be new: written from work merged after {mined_after}, never from anything published before then.
+
+## The format: one Harbor-compatible task directory per task
+Create each with `flightdeck task new holdouts/incoming/{writer}/<task-id>` (lowercase letters, digits and dashes), then edit:
+- instruction.md: what the agent gets, verbatim. State the goal and the observable result, not the solution.
+- environment/: what the agent works in (a Dockerfile), or set `[flightdeck] environment` and `[flightdeck.source] repo` and `base_sha` (40 hex) for a repository at a commit.
+- tests/: the hidden tests and test.sh, following the safe pattern the template ships (copy only the code under test out of the agent's tree, run Python isolated, write the reward last). They decide pass or fail and must fail on the starting state.
+- solution/: a reference that passes the tests (solution/reference.patch for a repository).
+- task.toml: keep the template's keys and set, under [flightdeck]: `sealed = true`, `mined_after = "<YYYY-MM-DD the work you mined was merged, after {mined_after}>"`, `tags = ["{family}", "holdout"]`.
+Don't add any canary string: sealing adds one.
+
+## What to write
+- At least {count} tasks, each one a different behaviour; no two tasks that the same patch would solve.
+- Realistic for the team's repositories and languages; small enough that a good agent can finish in under 30 minutes.
+- Avoid tasks you can't grade unambiguously with tests.
+
+## Check, then deliver
+Run `flightdeck task digest --write <dir>` and `flightdeck task check <dir>` for every task, and check the reference passes and the starting state fails. Print the task ids and counts.
+Leave the tasks in holdouts/incoming/{writer}/. Do not commit them, push them or paste them anywhere: incoming/ and sealed/ are never committed. In your final message give only the counts and the task ids.

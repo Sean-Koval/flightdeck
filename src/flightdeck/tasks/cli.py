@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import shutil
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -10,26 +9,21 @@ from typing import Annotated
 
 import typer
 
-from flightdeck.tasks.format import NAME, TaskError, load_task
+from flightdeck.tasks.format import NAME, TaskError, load_task, write_digest
 
 app = typer.Typer(help="Harbor-compatible task directories: write, check, digest.", no_args_is_help=True)
-_DIGEST_LINE = re.compile(r'^(files_digest\s*=\s*)"[^"]*"', re.M)
 
 
-def _load(path: Path):
+def _try(fn, *args):
     try:
-        return load_task(path)
+        return fn(*args)
     except TaskError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from None
 
 
-def _write_digest(path: Path, digest: str) -> None:
-    toml = path / "task.toml"
-    text = toml.read_text(encoding="utf-8")
-    if not _DIGEST_LINE.search(text):
-        raise typer.BadParameter(f"{toml}: no files_digest line under [flightdeck.grader] to write")
-    toml.write_text(_DIGEST_LINE.sub(rf'\g<1>"{digest}"', text, count=1), encoding="utf-8")
+def _load(path: Path):
+    return _try(load_task, path)
 
 
 @app.command()
@@ -46,7 +40,7 @@ def new(path: Path, task_id: str = typer.Option(None, "--id", help="Task id (def
         p.rename(p.with_suffix(""))
     toml = path / "task.toml"
     toml.write_text(toml.read_text(encoding="utf-8").replace("{id}", task_id), encoding="utf-8")
-    _write_digest(path, _load(path).files_digest)
+    _try(write_digest, path)
     typer.echo(f"wrote {path}: edit instruction.md and tests/, then `flightdeck task digest --write {path}`")
 
 
@@ -71,14 +65,7 @@ def check(paths: list[Path]):
 def digest(path: Path, write: bool = typer.Option(False, "--write", help="Update files_digest in task.toml.")):
     """Print the task digest and the tests' digest (files_digest)."""
     if write:
-        toml = path / "task.toml"
-        saved = toml.read_text(encoding="utf-8")
-        _write_digest(path, "")  # recompute from the files, whatever the old value was
-        try:
-            _write_digest(path, _load(path).files_digest)
-        except typer.Exit:
-            toml.write_text(saved, encoding="utf-8")
-            raise
+        _try(write_digest, path)
     task = _load(path)
     typer.echo(f"task_digest  {task.digest}\nfiles_digest {task.files_digest}")
 

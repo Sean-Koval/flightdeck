@@ -72,6 +72,7 @@ nav:
   - Guides:
       - Tasks: tasks.md
       - Running experiments: runners.md
+      - Holdouts: holdouts.md
       - Behavior specs: behavior-specs.md
       - Reports: reports.md
   - Reference:
@@ -84,3 +85,4 @@ nav:
       - "0003: The v0 line budget": decisions/0003-line-budget.md
       - "0004: The local runner's budget": decisions/0004-local-runner-budget.md
       - "0005: The post-v0 budget": decisions/0005-post-v0-budget.md
+      - "0006: Holdout custody": decisions/0006-holdout-custody.md

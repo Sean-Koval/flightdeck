@@ -23,6 +23,7 @@ NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$")  # hangar experiments.NA
 SHA = re.compile(r"^[0-9a-f]{40}$")
 SKIP = {"__pycache__", ".DS_Store", ".pytest_cache"}
 DEFAULT_COMMAND = "bash tests/test.sh"
+DIGEST_LINE = re.compile(r'^(files_digest\s*=\s*)"[^"]*"', re.M)
 
 
 class TaskError(ValueError):
@@ -127,6 +128,21 @@ def load_task(path: str | Path) -> Task:
     parts += [(f"tests/{k}", v) for k, v in tests.items()] + [(f"environment/{k}", v) for k, v in env.items()]
     task_id = str(info["name"]).rsplit("/", 1)[-1] if info else root.resolve().name
     return Task(root, task_id, config, instruction, tests, env, _digest(parts), files_digest)
+
+
+def write_digest(path: str | Path) -> str:
+    """Recompute tests/' files_digest, whatever the old value was, and write it into task.toml; returns it."""
+    toml = Path(path) / "task.toml"
+    text = toml.read_text(encoding="utf-8")
+    if not DIGEST_LINE.search(text):
+        raise TaskError(f"{toml}: no files_digest line under [flightdeck.grader] to write")
+    toml.write_text(DIGEST_LINE.sub(r'\g<1>""', text, count=1), encoding="utf-8")
+    try:
+        digest = load_task(path).files_digest
+    finally:
+        toml.write_text(text, encoding="utf-8")
+    toml.write_text(DIGEST_LINE.sub(rf'\g<1>"{digest}"', text, count=1), encoding="utf-8")
+    return digest
 
 
 def hangar_id(task: Task) -> str:
