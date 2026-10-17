@@ -154,6 +154,17 @@ def test_scope_applies_when_and_unknown() -> None:
     assert one("id: a\nscope: job\nchecks_predicate: x", steps) == "unknown"  # no assert: never a pass
 
 
+def test_steer_seq_and_class_since_hangar_162() -> None:
+    """Steer events carry hangar.seq and hangar.steer.class (#37): steer-avoidance counts only corrections."""
+    steer = lambda cls: [("tool", "edit", "x", []), ("event", "steer", {"hangar.steer.class": cls, "hangar.seq": 2,  # noqa: E731
+                                                                          "hangar.steer.classified_by": "dev-a"})]
+    never = "id: a\nscope: job\nassert: {never: {event: steer, where: {hangar.steer.class: correction}}}"
+    assert one(never, steer("correction")) == "fail"
+    assert one(never, steer("new_info")) == "pass"
+    (ev,) = [e for e in flatten_trace(trace(steer("redirect")))["events"] if e["name"] == "steer"]
+    assert ev["seq"] == 2 and json.loads(ev["attrs"])["hangar.steer.class"] == "redirect"
+
+
 def test_truncated_never_passes() -> None:
     never = "id: a\nscope: job\nassert: {never: {tool: {ops: [git.push]}}}"
     assert one(never, [("tool", "edit", "x", [])], truncated=True) == "unknown"
