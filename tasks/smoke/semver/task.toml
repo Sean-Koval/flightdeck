@@ -1,0 +1,38 @@
+# A Harbor task (task.toml schema 1.4) with flightdeck's own keys under [flightdeck], which Harbor ignores.
+# Format: docs/tasks.md. Ported from hangar evals/semver (f66679a): every trial there scored 116/116, so this is a
+# smoke test of the plumbing, not a ranking.
+schema_version = "1.4"
+
+[task]
+name = "flightdeck/semver"
+version = "1.0.0"
+description = "Build a Python semver library with node-semver range matching; 116 hidden tests in 13 categories."
+keywords = ["smoke", "python"]
+
+[metadata]
+category = "programming"
+difficulty = "easy"
+
+[agent]
+timeout_sec = 1800.0
+
+[verifier]
+timeout_sec = 600.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 600.0
+workdir = "/workspace/semver"
+
+[flightdeck]
+tags = ["smoke"]
+sealed = false
+environment = "bare"  # the hangar environment trials run in; environment/Dockerfile is the local runner's
+
+[flightdeck.source]
+# No repo yet: an empty repository. Hangar applies and grades a trial's patch only on a repo, so a hangar run needs
+# `repo` and `base_sha` set to an empty repository's first commit (docs/tasks.md#the-semver-smoke-task).
+
+[flightdeck.grader]
+command = "bash tests/test.sh"
+files_digest = "sha256:b545758b9f724255265fb5a69b3e4c0e790b720af4b4f68f6972165188fc2310"
