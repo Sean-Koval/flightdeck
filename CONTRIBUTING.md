@@ -81,3 +81,12 @@ nightly.
 ## Commits
 
 Conventional commit prefixes (`feat:`, `fix:`, `docs:`, `build:`, `test:`, `refactor:`, `chore:`). Squash merge.
+
+## Design
+
+flightdeck's docs, reports and any future UI use **Airframe**, the suite's design system. Its source of truth is
+[Sean-Koval/agent-factory](https://github.com/Sean-Koval/agent-factory) (`airframe/`; docs and component gallery at
+<https://sean-koval.github.io/agent-factory/airframe/>). Read `airframe/README.md` and the component READMEs there before
+visual work. Use `var(--af-*)` tokens and `af-` classes only, never a color literal (`tests/test_airframe.py` checks
+`docs/stylesheets/`); flightdeck's hue is `--af-product-flightdeck`, for its mark, the docs header and the 2px nav marker.
+`docs/stylesheets/airframe*.css` are vendored: never edit them; refresh with `sh scripts/sync-airframe.sh theme-vN`.
