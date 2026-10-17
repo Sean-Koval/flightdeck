@@ -201,12 +201,12 @@ def comment_page(report: str) -> str:
 def diagram() -> str:
     """Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides (agent-factory's conventions:
     `scripts/diagrams.py` there; every color an Airframe token with its dark fallback)."""
-    v = {"canvas": "var(--af-canvas, #000)", "raised": "var(--af-raised, #141414)", "surface":
-         "var(--af-surface, #0A0A0A)", "line": "var(--af-line-strong, #6B6B6B)", "fg": "var(--af-fg, #fff)",
+    v = {"canvas": "var(--af-canvas, #000000)", "raised": "var(--af-raised, #141414)", "surface":
+         "var(--af-surface, #0A0A0A)", "line": "var(--af-line-strong, #6B6B6B)", "fg": "var(--af-fg, #FFFFFF)",
          "muted": "var(--af-fg-muted, #A6A6A6)", "subtle": "var(--af-fg-subtle, #8A8A8A)",
-         "brand": "var(--af-brand-line, #FFC400)", "rule": "var(--af-line, #262626)",
-         "fd": "var(--af-p-flightdeck, #D98CD2)", "hangar": "var(--af-p-hangar, #EE8F63)",
-         "ws": "var(--af-p-workspace, #C5A93B)"}
+         "brand": "var(--af-brand-line, #FFC400)", "rule": "var(--af-line, #2A2A2A)",
+         "fd": "var(--af-product-flightdeck, #D98CD2)", "hangar": "var(--af-product-hangar, #EE8F63)",
+         "ws": "var(--af-product-tower, #C5A93B)"}
     font = {"name": "700 17px Archivo,'Helvetica Neue',Arial,sans-serif", "body":
             "400 12.5px 'Red Hat Text','Helvetica Neue',Arial,sans-serif", "lbl": "500 10.5px 'DM Mono',ui-monospace,"
             "Menlo,monospace", "small": "700 13px Archivo,'Helvetica Neue',Arial,sans-serif"}
