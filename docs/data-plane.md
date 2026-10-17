@@ -19,7 +19,7 @@ Code: `src/flightdeck/dataplane/` (`schema.py` the tables, `flatten.py` the flat
 metadata carries `flightdeck.schema = flightdeck.parquet/v1` and its table name. Within v1, columns are only added;
 removing or renaming one is v2. Rows are wide and denormalized: resource attributes (job, session, environment,
 person) are copied onto every span row. Every row has `run_id`, `source` (`job`, `session`, `experiment`,
-`shadow`) and `dt`.
+`shadow`, or `local` for the [local backend](runners.md#local)) and `dt`.
 
 ## Tables
 

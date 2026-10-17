@@ -116,3 +116,22 @@ trial so far scored 116/116, so it tests the plumbing, not the agents.
 
 To run it on hangar, set `[flightdeck.source] repo` and `base_sha` to an empty repository's first commit: hangar applies
 and grades a trial's patch only on a repo.
+
+## The csv-validator fixture
+
+`tasks/fixtures/csv-validator/` is ai-dlc's evaluation fixture (`evaluations/suites/smoke.json`, scenario
+`csv-duplicate-rows`, at ai-dlc's handoff commit `f5be4f4`), the one its runner was qualified on: add duplicate-row
+detection to a small CSV validator. The scenario's fixture is `environment/workspace/`, copied into the image's
+working directory; its hidden acceptance tests (10) are `tests/test_acceptance.py`, run by `test.sh` on a copy of the
+agent's `csvcheck/` package only; its reference is `solution/validate.py`. `solution/deterministic.json` is the local
+runner's deterministic script (write the reference, run the fixture's own tests, commit), and `solve.sh` does the same
+for Harbor's oracle. It lives under `tasks/fixtures/`, not `tasks/smoke/`, so the hangar smoke suite doesn't grow; it
+needs `[flightdeck.source] repo` and `base_sha` before it can run on hangar. `tasks/fixtures/local.yaml` runs it and
+the semver task on the [local backend](runners.md#local).
+
+It was converted by hand. The scenario's assertions map as follows: `hidden-tests` is the task's grader;
+`artifact-present` (`.ai-dlc/work/*.toml`, an ai-dlc workflow artifact) is dropped, since it measured ai-dlc's own
+workflow, not the task; `human-review` stays a human's call, outside the task. Its `answers` (a reply to a question
+about quoted fields) has no equivalent yet: on hangar a question cancels the trial. A general `task import-aidlc`
+converter for ai-dlc scenarios is #17's.
+

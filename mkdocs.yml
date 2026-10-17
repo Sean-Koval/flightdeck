@@ -82,3 +82,4 @@ nav:
       - "0001: Boundary with hangar": decisions/0001-boundary-with-hangar.md
       - "0002: Public code, private data": decisions/0002-public-code-private-data.md
       - "0003: The v0 line budget": decisions/0003-line-budget.md
+      - "0004: The local runner's budget": decisions/0004-local-runner-budget.md

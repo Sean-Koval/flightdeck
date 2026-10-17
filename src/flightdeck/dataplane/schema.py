@@ -14,7 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 VERSION = "flightdeck.parquet/v1"
-SOURCES = ("job", "session", "experiment", "shadow")
+SOURCES = ("job", "session", "experiment", "shadow", "local")  # local: the local Docker backend (runners/local.py)
 
 TYPES = {"str": pa.string(), "int": pa.int64(), "float": pa.float64(), "bool": pa.bool_(),
          "ts": pa.timestamp("ms", tz="UTC"), "strs": pa.list_(pa.string())}

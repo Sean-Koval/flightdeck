@@ -16,10 +16,15 @@ from flightdeck.tasks.format import TaskError
 
 app = typer.Typer(help="Trials on hangar: submit a suite, follow it, collect it.", no_args_is_help=True)
 DATA = typer.Option(None, "--data", envvar="FLIGHTDECK_DATA_URI", help="Data plane: cost history, collect target.")
+LOCAL = "local-"  # local run sets' prefix
 
 
-def backend(data: str | None = None) -> h.Backend:
+def backend(data: str | None = None, kind: str = "hangar") -> h.Backend:
     """The backend the commands use (tests swap it). Hangar's URL from HANGAR_URL, its token from HANGAR_TOKEN."""
+    if kind == "local":
+        from flightdeck.runners.local import LocalDockerBackend
+
+        return LocalDockerBackend(data and os.path.expanduser(data))
     url = os.environ.get("HANGAR_URL")
     if not url:
         raise RunnerError("set HANGAR_URL (and HANGAR_TOKEN) to reach hangar")
@@ -41,8 +46,16 @@ def run(
     author: str = typer.Option(None, "--author", envvar="FLIGHTDECK_AUTHOR", help="Whose sub-cap the plan spends."),
     allow_model: Annotated[list[str] | None, typer.Option("--allow-model", help="Accept this id as concrete.")] = None,
     data: str = DATA,
+    kind: str = typer.Option("hangar", "--backend", help="hangar, or local: Docker on this machine (fixtures, CI)."),
 ) -> None:
     """Gate a suite's plan on model pins and projected cost, then submit it (or print it with --dry-run)."""
+    if kind == "local":  # runs now, spends no hangar budget; docs/runners.md#local
+        try:
+            run_set = backend(data, kind).submit(h.load_plan(suite))
+        except (RunnerError, TaskError) as e:
+            raise _fail(e) from None
+        typer.echo(f"ran {run_set} into {data}: flightdeck stats compare {run_set} --data {data}")
+        return
     try:
         plan = h.load_plan(suite)
         h.check_models(plan, frozenset(allow_model or ()))
@@ -74,10 +87,10 @@ def run(
 
 
 @app.command()
-def status(run_set: str, as_json: bool = typer.Option(False, "--json")) -> None:
+def status(run_set: str, as_json: bool = typer.Option(False, "--json"), data: str = DATA) -> None:
     """A run set's state, trial counts, and pins that break pairing (exit 1 when there are any)."""
     try:
-        st = backend().status(run_set)
+        st = (backend(data, "local") if run_set.startswith(LOCAL) else backend()).status(run_set)
     except RunnerError as e:
         raise _fail(e) from None
     if as_json:
@@ -93,7 +106,7 @@ def status(run_set: str, as_json: bool = typer.Option(False, "--json")) -> None:
 def collect(run_set: str, data: str = DATA) -> None:
     """Write a run set's trials and grades into the data plane."""
     try:
-        out = backend(data).collect(run_set)
+        out = (backend(data, "local") if run_set.startswith(LOCAL) else backend(data)).collect(run_set)
     except RunnerError as e:
         raise _fail(e) from None
     typer.echo(f"collected {run_set} into {out}")

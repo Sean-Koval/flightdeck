@@ -11,7 +11,7 @@ python scripts/loc_budget.py
 ```
 
 Style is `ruff check` (line length 120, as in hangar); there is no formatter gate, so keep code compact and readable.
-CI runs the same four jobs (`lint`, `types`, `test`, `loc-budget`) on every PR, plus `assets`. They need no secrets and no cloud
+CI runs the same four jobs (`lint`, `types`, `test`, `loc-budget`) on every PR, plus `assets` and `local-runner`. They need no secrets and no cloud
 access: tests use synthetic fixtures only.
 
 ## Front-page assets
@@ -24,10 +24,25 @@ and fails when a committed text asset differs, or when a PNG's source page chang
 
 ## The line budget
 
-v0 is deliberately small: at most **2,500** non-blank, non-comment lines under `src/flightdeck/`.
-`scripts/loc_budget.py` prints the count per area and fails above the limit. Code ported from ai-dlc or hangar goes in
-`src/flightdeck/ported/`, which is reported but not counted. If a change needs more room, cut something or argue for a
-higher budget in an ADR (the last one: [0003](docs/decisions/0003-line-budget.md)); don't move code into `ported/` to dodge the count.
+v0 is deliberately small: at most **2,800** non-blank, non-comment lines under `src/flightdeck/`.
+`scripts/loc_budget.py` prints the count per area and fails above the limit. Code ported from ai-dlc or hangar and kept
+close to its source goes in `src/flightdeck/ported/`, which is reported but not counted; code that adapts it to
+flightdeck counts. If a change needs more room, cut something or argue for a higher budget in an ADR (the last one:
+[0004](docs/decisions/0004-local-runner-budget.md)); don't move code into `ported/` to dodge the count.
+
+## Running the smoke tasks locally
+
+The local backend runs tasks in Docker on your machine, with no hangar and no model calls ([docs/runners.md](docs/runners.md#local)).
+With Docker running:
+
+```sh
+uv run flightdeck experiment run tasks/fixtures/local.yaml --backend local --data /tmp/plane
+```
+
+It builds each task's `environment/Dockerfile`, runs the task's solution as the deterministic driver in an isolated
+container, grades the collected tree with the task's `tests/` and writes `reward.json` under
+`/tmp/plane/raw/<run-set>/<task>/<variant>/<trial>/`, and the rows into the data plane. CI's `local-runner` job runs the
+same command; `tests/test_local_runner.py` runs it too and skips, saying why, when Docker is unavailable.
 
 ## Never commit team data
 
