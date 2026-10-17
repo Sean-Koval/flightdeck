@@ -6,7 +6,6 @@ Every comparison prints its exclusions with counts and the resolved definition i
 from __future__ import annotations
 
 import os
-import re
 from dataclasses import dataclass, field
 from functools import cache
 from typing import Any
@@ -17,8 +16,6 @@ import typer
 from flightdeck.stats.core import Interval, dollars_per_resolved, paired_bootstrap, simulate_power, wilson
 
 METRICS = ("resolved", "cost_usd", "tool_calls", "wall_s")
-# Until hangar emits outcome=infra_error (#6 owns the final list): failure reasons that are hangar's, not the agent's.
-INFRA = re.compile(r"could not start|sandbox|pool|provider|capacity|quota|infra", re.I)
 
 
 def load_trials(con: duckdb.DuckDBPyConnection, exp_id: str) -> list[dict[str, Any]]:
@@ -44,10 +41,10 @@ def exclusion(t: dict[str, Any], metric: str, include_drift: bool = False) -> st
     """Why a trial is left out of this metric, or None."""
     if t["outcome"] is None:
         return "not finished"
-    if t["outcome"] == "infra_error" or (t["outcome"] == "failed" and INFRA.search(t.get("reason") or "")):
+    if t.get("outcome_class") == "infra_error" or t.get("excluded"):  # hangar's class (#166): retried, not counted
         return "infra_error"
-    if t["outcome"] == "cancelled":
-        return "cancelled"
+    if t["outcome"] == "cancelled" or t.get("outcome_class") in ("cancelled", "human"):
+        return "human" if t.get("outcome_class") == "human" else "cancelled"
     if t.get("task_invalid"):
         return "task_invalid"
     if t.get("contaminated"):

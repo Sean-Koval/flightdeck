@@ -3,8 +3,9 @@
 
 Built from the synthetic trace and manifest in `tests/fixtures/hangar/` (ADR-0002: no team data). 12 tasks x 2 variants
 (control, treat) x 3 trials, seeded, with treat a little better and cheaper, plus one of each case a report must handle:
-an infrastructure failure, a cancelled trial, a drifted trial, a trial still running, a truncated trace and a task that
-failed hangar's base check. Also writes a `decision.yaml` dated before the first trial (pre-registered).
+an infrastructure failure hangar retried (hangar#166), a cancelled trial, a drifted trial, a trial still running, a
+truncated trace and a task that failed hangar's base check. Also writes a `decision.yaml`, committed (in a git repo in
+DIR) before the first trial finished: pre-registered.
 
     python scripts/fixture_export.py DIR
 """
@@ -15,6 +16,7 @@ import copy
 import json
 import os
 import random
+import subprocess
 import sys
 from pathlib import Path
 
@@ -83,30 +85,37 @@ def build(out: Path, seed: int = 7) -> dict:
                          state="done", outcome="succeeded", reason=None, started_at=CREATED + 100 * n,
                          finished_at=CREATED + 100 * n + rng.randint(60, 300), manifests=[DIGEST[variant]],
                          config_digest=CONFIG[variant], drift=[], task_invalid=task == "t08", contaminated=False,
-                         trust="isolated", stored=["trace.json", "manifest.json"])
+                         trust="isolated", stored=["trace.json", "manifest.json"], outcome_class="agent",
+                         infra_reason=None, excluded=False, attempt=1, retry_of=None)
                 t["verify"] = {**t["verify"], "exit_code": 0 if ok else 1, "passed": ok}
                 t["usage"] = {**t["usage"], "cost_usd": cost}
                 t["grade"] = {**t["grade"], "exit_code": 0 if ok else 1, "data": {"reward": int(ok)}}
-                if key == "t03/treat/3":
-                    t.update(outcome="failed", reason="could not start: sandbox pool unavailable", grade=None)
+                retries = []
+                if key == "t03/treat/3":  # infrastructure ended it: hangar excludes it and runs attempt 2
+                    retries.append(retry := copy.deepcopy(t))
+                    retry.update(attempt=2, retry_of=job, job=job + "-2", finished_at=t["finished_at"] + 400)
+                    t.update(outcome="failed", reason="sandbox could not be created", grade=None, stored=[],
+                             outcome_class="infra_error", infra_reason="sandbox_create", excluded=True)
                 if key == "t04/control/3":
-                    t.update(outcome="cancelled", reason="cancelled by dev-a", grade=None)
+                    t.update(outcome="cancelled", reason="cancelled by dev-a", grade=None, outcome_class="cancelled")
                 if key == "t05/treat/2":
                     t.update(drift=["harness drift: its harness configuration differs"],
                              config_digest=CONFIG["control"])
                 if key == "t06/treat/3":
                     t.update(state="running", outcome=None, finished_at=None, grade=None, usage=None, stored=[])
-                link = f"/api/experiments/{EXP}/trials/{key}"
-                t["links"] = {"job": f"/api/jobs/{job}", "manifest": f"{link}/manifest" if t["stored"] else None,
-                              "trace": f"{link}/trace" if t["stored"] else None}
-                if t["stored"]:
-                    d = out / "trials" / key.replace("/", "__")
-                    d.mkdir(parents=True, exist_ok=True)
-                    calls = 2 if variant == "treat" and trial != 3 else 3
-                    trace = _trace(job, run_id, cost, calls, truncated=key == "t07/control/1")
-                    (d / "trace.json").write_text(json.dumps(trace, indent=1))
-                    (d / "manifest.json").write_text(json.dumps(_manifest(variant, job, run_id), indent=1))
-                trials.append(t)
+                for x in [t, *retries]:
+                    q = f"?attempt={x['attempt']}" if x["attempt"] > 1 or x["excluded"] else ""
+                    link, ref = f"/api/experiments/{EXP}/trials/{key}", key + q.replace("?attempt=", "~")
+                    x["links"] = {"job": f"/api/jobs/{x['job']}", "manifest": f"{link}/manifest{q}" if x["stored"]
+                                  else None, "trace": f"{link}/trace{q}" if x["stored"] else None}
+                    if x["stored"]:
+                        d = out / "trials" / ref.replace("/", "__")
+                        d.mkdir(parents=True, exist_ok=True)
+                        calls = 2 if variant == "treat" and trial != 3 else 3
+                        trace = _trace(x["job"], run_id, cost, calls, truncated=key == "t07/control/1")
+                        (d / "trace.json").write_text(json.dumps(trace, indent=1))
+                        (d / "manifest.json").write_text(json.dumps(_manifest(variant, x["job"], run_id), indent=1))
+                    trials.append(x)
     index["trials"] = trials
     index["finished_at"] = max(t["finished_at"] or 0 for t in trials)
     index["counts"] = {s: sum(1 for t in trials if t["state"] == s) for s in {t["state"] for t in trials}}
@@ -117,6 +126,10 @@ def build(out: Path, seed: int = 7) -> dict:
     decision.write_text("# pre-registered before the first trial\nmetric: resolved\ndirection: higher\n"
                         "margin: -0.05\nmin_tasks: 10\n")
     os.utime(decision, (CREATED, CREATED))
+    when = {"GIT_AUTHOR_DATE": f"@{int(CREATED)} +0000", "GIT_COMMITTER_DATE": f"@{int(CREATED)} +0000"}
+    git = ["git", "-C", str(out), "-c", "user.name=fixture", "-c", "user.email=fixture@example.com"]
+    for args in (["init", "-q"], ["add", "decision.yaml"], ["commit", "-q", "-m", "pre-register the decision"]):
+        subprocess.run(git + args, check=True, env={**os.environ, **when})
     return index
 
 

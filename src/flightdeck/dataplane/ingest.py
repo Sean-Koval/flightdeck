@@ -24,6 +24,7 @@ from typing import Any
 import typer
 
 from flightdeck.dataplane import flatten, schema
+from flightdeck.runners.hangar import pin_problems
 
 DEFAULT_OUT = "~/.flightdeck/data"
 Tables = dict[str, list[flatten.Row]]
@@ -54,7 +55,7 @@ def _get(base: str, path: str, token: str | None, dest: Path | None = None) -> A
 
 def fetch_experiment(exp_id: str, base: str, token: str | None, dest: Path) -> Path:
     """Write an experiment's index and its trials' manifest/trace files to `dest`, in `hangar experiment export`'s
-    layout (`index.json`, `trials/<task>__<variant>__<n>/{manifest,trace}.json`)."""
+    layout (`index.json`, `trials/<task>__<variant>__<n>[~<attempt>]/{manifest,trace}.json`)."""
     q = urllib.parse.quote
     index = _get(base, f"/api/experiments/{q(exp_id, safe='')}", token)
     dest.mkdir(parents=True, exist_ok=True)
@@ -62,7 +63,7 @@ def fetch_experiment(exp_id: str, base: str, token: str | None, dest: Path) -> P
     for t in index.get("trials") or []:
         for name, link in (t.get("links") or {}).items():
             if name in ("manifest", "trace") and link:
-                _get(base, link, token, dest / "trials" / t["key"].replace("/", "__") / f"{name}.json")
+                _get(base, link, token, dest / "trials" / flatten.trial_ref(t).replace("/", "__") / f"{name}.json")
     return dest
 
 
@@ -91,12 +92,14 @@ def read_export(d: Path) -> Tables:
     the trial's `run_id`; its run row is the index's (one per trial key), marked truncated when its trace was."""
     index = json.loads((d / "index.json").read_text(encoding="utf-8"))
     validate(index, "experiment.schema.json", f"{d}/index.json")
+    for problem in pin_problems(index):  # hangar's model rule, as `experiment run` and `status` apply it
+        typer.secho(f"warning: {index.get('id')}: {problem}", fg="yellow", err=True)
     out: Tables = {name: [] for name in schema.TABLES}
     exp = flatten.flatten_experiment(index)
     out["grades"] = exp["grades"]
     seen: set[str] = set()
     for run in exp["runs"]:
-        tdir = d / "trials" / run["trial_key"].replace("/", "__")
+        tdir = d / "trials" / run["run_id"].removeprefix(f"{index['id']}/").replace("/", "__")
         if (tdir / "manifest.json").is_file():
             m = json.loads((tdir / "manifest.json").read_text(encoding="utf-8"))
             if m.get("digest") not in seen:

@@ -50,9 +50,10 @@ line (the smallest lift the r1 simulation detects at 80% power with this many ta
 resolved definition used, the exclusions with counts, and the saturated tasks. `tool_calls` counts the trial's
 `tool.call` spans; `wall_s` is the trial's finish minus start.
 
-Exclusions, first match wins: `not finished` (pending or running), `infra_error` (`outcome = infra_error`, or until
-hangar emits it, a failure whose reason names hangar's side: could not start, sandbox, pool, provider, capacity,
-quota), `cancelled`, `task_invalid` (the task failed hangar's base check), `contaminated` (the grader's canary was
+Exclusions, first match wins: `not finished` (pending or running), `infra_error` (hangar's `outcome_class =
+infra_error` or `excluded`: hangar retries it as the next attempt under the same key; flightdeck never infers it from a
+failure reason, and a null class is unknown, not infrastructure), `cancelled` (or `outcome_class = cancelled`), `human`
+(a person stepped in), `task_invalid` (the task failed hangar's base check), `contaminated` (the grader's canary was
 seen), `drift` (unless `--include-drift`), `truncated trace` (process metrics only), `no grade or verify`, and
 `unknown <metric>` (for cost: no usage recorded).
 
