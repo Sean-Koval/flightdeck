@@ -1,0 +1,9 @@
+# The local runner's suite (docs/runners.md#local): the semver smoke task and ai-dlc's csv-validator fixture, each once,
+# with the deterministic driver (the task's solution, no model calls). CI runs it on every PR:
+#   flightdeck experiment run tasks/fixtures/local.yaml --backend local --data ./plane
+suite: smoke-local
+tasks: ["../smoke/semver", "csv-validator"]
+environment: bare
+n: 1
+variants:
+  oracle: {harness: deterministic}

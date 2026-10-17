@@ -46,8 +46,8 @@ GITHUB_TOKEN=... uv run flightdeck report post demo/report.md --to owner/repo#12
 
 ## Status and code map
 
-v0, pre-release. The v0 analysis code stays under **2,500 lines** (`scripts/loc_budget.py`, enforced in CI,
-[ADR-0003](decisions/0003-line-budget.md)) and has to change one real team decision before anything else, a UI
+v0, pre-release. The v0 analysis code stays under **2,800 lines** (`scripts/loc_budget.py`, enforced in CI,
+[ADR-0004](decisions/0004-local-runner-budget.md)) and has to change one real team decision before anything else, a UI
 included, gets built.
 
 | Module | What |

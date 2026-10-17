@@ -27,7 +27,7 @@ schema: flightdeck.spec/v1
 id: tests-before-commit
 harness: "*"                    # harness NAME (glob), never a digest: contracts outlive digests
 scope: job                      # turn (default) | job | session
-applies_when: {source: [job, experiment], repo: "*"}
+applies_when: {source: [job, experiment, local], repo: "*"}
 assert:
   before:
     first: {event: test.run}    # trusted runs only (below)

@@ -1,0 +1,8 @@
+{
+  "steps": [
+    {"write": "csvcheck/validate.py", "from": "validate.py"},
+    ["python", "-m", "unittest", "discover", "-s", "tests"],
+    ["git", "add", "-A"],
+    ["git", "commit", "-qm", "csvcheck: report duplicate rows"]
+  ]
+}

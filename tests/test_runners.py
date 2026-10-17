@@ -263,7 +263,7 @@ class FakeBackend:
 def test_commands_use_only_the_backend_interface(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     fake = FakeBackend()
     typed: Backend = fake  # pyright checks the double against the Protocol
-    monkeypatch.setattr(runners_cli, "backend", lambda data=None: typed)
+    monkeypatch.setattr(runners_cli, "backend", lambda data=None, kind="hangar": typed)
     runner = CliRunner()
     assert runner.invoke(app, ["experiment", "run", str(_suite(tmp_path))]).exit_code == 0
     assert "running  done=1  running=3" in runner.invoke(app, ["experiment", "status", "rs-1"]).output

@@ -1,0 +1,39 @@
+# A Harbor task (task.toml schema 1.4) with flightdeck's own keys under [flightdeck]. Format: docs/tasks.md.
+# Ported from ai-dlc's evaluation suite at f5be4f4 (evaluations/suites/smoke.json, scenario csv-duplicate-rows): the
+# fixture is environment/workspace/, the hidden acceptance tests are tests/, the reference is solution/. It is the
+# fixture ai-dlc's runner was qualified on, so the local runner's CI run on it gates ai-dlc's removal (ai-dlc#195).
+# The fixture, tests and reference are ai-dlc's, under its MIT License (LICENSE.ai-dlc).
+schema_version = "1.4"
+
+[task]
+name = "flightdeck/csv-validator"
+version = "1.0.0"
+description = "Add duplicate-row detection to a small CSV validator; 10 hidden acceptance tests."
+keywords = ["smoke", "python"]
+
+[metadata]
+category = "programming"
+difficulty = "easy"
+
+[agent]
+timeout_sec = 1800.0
+
+[verifier]
+timeout_sec = 300.0
+network_mode = "no-network"
+
+[environment]
+build_timeout_sec = 600.0
+workdir = "/workspace/csv-validator"
+
+[flightdeck]
+tags = ["smoke"]
+sealed = false
+environment = "bare"  # the hangar environment trials run in; environment/Dockerfile is the local runner's
+
+[flightdeck.source]
+# No repo: on hangar, set `repo` and `base_sha` to a repository holding environment/workspace/ (docs/tasks.md).
+
+[flightdeck.grader]
+command = "bash tests/test.sh"
+files_digest = "sha256:468d62f9830088057ae4cc9d9e05c024ca27a28036603e00d0d8ede67c2ec84d"

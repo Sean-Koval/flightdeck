@@ -1,5 +1,5 @@
 # Every PR and every push to main. No secrets, no GCP: tests use synthetic fixtures only (docs/decisions/0002).
-# Job names are the branch's required checks: lint, types, test, loc-budget.
+# Job names are the branch's required checks: lint, types, test, loc-budget. local-runner needs Docker (on the runner).
 name: ci
 on:
   pull_request:
@@ -56,3 +56,34 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/loc_budget.py
+
+  # The local backend (docs/runners.md#local) on the semver smoke task and ai-dlc's csv-validator fixture with the
+  # deterministic driver: real Docker, no model calls, no secrets. The trials' evidence is kept as an artifact.
+  local-runner:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv run --locked flightdeck experiment run tasks/fixtures/local.yaml --backend local --data "$RUNNER_TEMP/plane"
+      - name: every trial wrote a passing reward.json
+        run: |
+          uv run --locked python - "$RUNNER_TEMP/plane" <<'EOF'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          rewards = sorted(root.glob("raw/*/*/*/*/reward.json"))
+          for r in rewards:
+              print(r.relative_to(root), r.read_text().strip())
+          assert len(rewards) == 2 and all(json.loads(r.read_text())["reward"] == 1 for r in rewards), rewards
+          EOF
+          uv run --locked flightdeck query --data "$RUNNER_TEMP/plane" \
+            "select r.task_id, r.variant, r.outcome, g.exit_code, g.data from runs r join grades g using (run_id)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: local-runner-evidence
+          path: ${{ runner.temp }}/plane/raw
+          if-no-files-found: warn
