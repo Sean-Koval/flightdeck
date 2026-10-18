@@ -12,7 +12,7 @@ class Backend(Protocol):
     def collect(self, run_set: str) -> Path           # ingests runs, grades, traces and manifests
 ```
 
-The CLI and suites call only this interface (a test double proves it), so pin-set trials (`POST /api/trials`, #25)
+The CLI and suites call only this interface (a test double proves it), so pin-set trials (`POST /api/trials`, [#25](https://github.com/Sean-Koval/flightdeck/issues/25))
 can replace today's backend without touching them.
 
 **`HangarBatchBackend`** uses hangar's batch experiments (hangar spec 0014 §4): `POST /api/experiments` with tasks ×
@@ -61,14 +61,16 @@ The tasks become the experiment's tasks and its one grader (docs/tasks.md#on-han
 - **Models.** Every variant names a concrete model id. Policies (`frontier`, `balanced`, `frontier@openai`),
   aliases (`*-latest`, OpenRouter's `~…`) and family names without a version (`opus`, `sonnet`, `gpt-5`,
   `claude-opus-5`) are refused before anything is sent, because the provider can move them between two trials. The rule
-  is hangar's `modelpolicy.is_concrete` (#167), ported to `src/flightdeck/ported/modelpolicy.py` and checked against
+  is hangar's `modelpolicy.is_concrete` ([hangar#167](https://github.com/Sean-Koval/hangar/issues/167)), ported to `src/flightdeck/ported/modelpolicy.py` and checked against
   hangar's own test table (`tests/fixtures/hangar/model_concreteness.json`): a concrete id names a version or a date
   (`claude-opus-5-5`, `claude-opus-4-5-20251101`, `gpt-6.1-sol`, `gpt-4o-2024-08-06`, `gemini-3.8-flash`,
   `openrouter/anthropic/claude-opus-5.5`). `run`, `status` and `ingest` share it. Without the provider's model list
   flightdeck decides by shape only, so an id hangar accepts because its provider lists it (`claude-opus-5`) needs
   `--allow-model ID`; `hangar env list` shows what a policy resolves to today.
 - **Harness versions.** `harness@version` must be the version hangar's lock pins (`harnesses.lock.yaml`); hangar
-  refuses the experiment otherwise, and `run` prints hangar's message.
+  refuses the experiment otherwise, and `run` prints hangar's message. Variants that name a harness lock
+  (`harness_lock: name@sha256:...`, which hangar accepts since [hangar#135](https://github.com/Sean-Koval/hangar/issues/135))
+  are refused here for now (`harness_lock isn't a hangar variant field`); see [Contracts](contracts.md#the-vendored-schemas).
 - **After the start**, `status` checks the index's pins: every task has a `base_sha`, no variant's model was pinned to
   an alias, and variants that asked for the same model got the same id. Any of these is a pin problem and `status`
   exits 1.
@@ -100,6 +102,10 @@ grades, spans, events, manifests, test cases) as one part per experiment and day
 tables and replace each other's rows rather than duplicating them.
 
 ## Cache
+
+!!! note "Status"
+    Code merged ([#55](https://github.com/Sean-Koval/flightdeck/pull/55)); issue [#24](https://github.com/Sean-Koval/flightdeck/issues/24) stays open until the drift sentinel is scheduled nightly in the
+    private data repository.
 
 Tokens cost far more than compute (about $2-3 a trial against well under a cent), so a trial whose inputs haven't
 changed is reused rather than re-run. `experiment run <suite> --cache --data <dir>` looks each planned
