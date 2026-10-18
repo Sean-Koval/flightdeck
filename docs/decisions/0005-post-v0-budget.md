@@ -1,6 +1,6 @@
 # 0005: The post-v0 batch is counted, and the budget rises by each piece's measured size
 
-Status: Accepted · Oct 17, 2026 · amended by each PR of the batch below (last: #27, which closes the batch) (agent-proposed; owner review requested)
+Status: Accepted (owner-ratified 2026-10-18, capped at 3,785; see [Ratification](#ratification-2026-10-18)) · Oct 17, 2026 · amended by each PR of the batch below (last: #27, which closes the batch)
 
 ## Context
 
@@ -76,3 +76,13 @@ B.
 - `ported/` keeps growing uncounted (#17 adds ai-dlc's contracts and suite checks); `loc_budget` prints it beside the
   total.
 - #23 should re-check the real-client path and the importer once ai-dlc#195 removes ai-dlc's copy.
+
+## Ratification (2026-10-18)
+
+Ratified with a cap. The batch is closed at **3,785** counted lines, and rule 3's 3,800 is withdrawn: `LIMIT` stays
+3,785.
+
+- Until #20's report is posted and its ADR is merged, no ADR that raises the limit is accepted.
+- A counted line added before then is paid for by a counted line cut, starting with #23's cleanup.
+- New feature work (#25, #26, #28-#32) waits for #20.
+- The batch's pieces run on real data before anything is added to them.
