@@ -8,8 +8,8 @@ At about 500 trials a month, an outcome A/B is only worth running **paired by ta
 arms, and the comparison resamples tasks. Tasks differ far more from each other than trials of one task do, so
 unpaired comparisons (or trial-level resampling) mostly measure which tasks each arm happened to get.
 
-The panel's r1 simulation (`stats.core.simulate_power`; task base rates from Beta(1.2, 1.2), one-sided z test at
-α = 0.05), 50 tasks × 3 trials per arm:
+A simulation (`stats.core.simulate_power`; task base rates from Beta(1.2, 1.2), one-sided z test at α = 0.05),
+50 tasks × 3 trials per arm:
 
 | Lift | Paired power | Unpaired power |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ flightdeck stats compare <experiment> [--a control] [--b treat] [--metric resolv
 Code: `src/flightdeck/stats/compare.py`. Per variant: trials and the resolve rate with its Wilson interval (or the
 metric's mean), and dollars per resolved task with its task-bootstrap interval. Then the paired difference B − A with
 its 95% task-bootstrap interval, the numbers of tasks and trials, concordant and discordant tasks (resolved), a power
-line (the smallest lift the r1 simulation detects at 80% power with this many tasks and trials, cached per n), the
+line (the smallest lift `simulate_power` detects at 80% power with this many tasks and trials, cached per n), the
 resolved definition used, the exclusions with counts, and the saturated tasks. `tool_calls` counts the trial's
 `tool.call` spans; `wall_s` is the trial's finish minus start.
 

@@ -28,7 +28,7 @@ Base SHAs: 12 across 12 tasks (per task below).
 | treat | 31 | 16/31 = 51.6% [34.8%, 68.0%] | 0.639 [0.448, 1.071] |
 
 Paired difference treat - control: **+21.2 pp**, 95% CI +1.5 pp to +43.9 pp (task bootstrap; 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).
-At 11 paired tasks x 3 trials the minimum detectable lift at 80% power is about 35% (r1 simulation).
+At 11 paired tasks x 3 trials the minimum detectable lift at 80% power is about 35% (simulated).
 Resolved: grader for 63 trials (grader = exit 0 and applied; verify = hangar's after-turn verify when no grader ran).
 Excluded: cancelled 1, drift 1, infra_error 1, not finished 1, task_invalid 6.
 Saturated (same outcome in every trial of both arms, no information): t01, t02.
