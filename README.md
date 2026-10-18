@@ -12,6 +12,14 @@ and a verdict posted on the pull request where the change is reviewed.
 Docs site: <https://sean-koval.github.io/flightdeck/> · Part of the [agent factory](https://sean-koval.github.io/agent-factory/)
 (Run / **Judge** / Govern).
 
+**Is:** the Judge. It reads hangar's outbox (GCS → Parquet → DuckDB), or an experiment, job or session over
+REST, plans the trials, owns the sampling (which tasks, how many trials, when to stop) and posts a verdict where the change is
+reviewed. **Isn't:** a runner (beyond a local Docker runner for fixtures and CI), a dashboard, a leaderboard or a
+credential holder. **What it can see:** at about 500 trials a month, outcome changes of about 15 points or more (the
+share of tasks resolved going from 40% to 55%). Smaller changes are judged by process metrics (tool calls, cost, wall
+time), behavior specs and, later, trace-mined micro-evals ([#33](https://github.com/Sean-Koval/flightdeck/issues/33)). See
+[what flightdeck can tell you](docs/statistics.md#what-flightdeck-can-tell-you).
+
 ## See it work
 
 `ingest → check run → stats compare → report` on the synthetic fixture experiment (12 tasks × 2 variants × 3 trials):
@@ -41,43 +49,71 @@ reads hangar's versioned interfaces and asks hangar to run the trials it plans.
 ## Use cases
 
 - **Bump the CLI lock with evidence.** A harness maintainer opens the canary PR that moves claude-code to a new
-  version, runs the regression suite on both locks with `flightdeck experiment run`, and gets a comment on the PR such as
-  *non-inferior on resolved, −0.8 pp, CI −4.1…+2.5* or *No decision: underpowered*, with the cost per resolved task
-  beside it.
+  version, runs the regression suite on the old lock and the new one with `flightdeck experiment run`, and gets one
+  comment on the PR with the pre-registered verdict and the cost per resolved task of each. At 50 tasks × 3 trials, a
+  bump that changes nothing typically reads *No decision: the interval on resolved spans the margin (−0.7 pp, CI
+  −10.0…+8.7, margin −5.0)*: 300 trials can't prove a 5-point margin. A regression of 20 points comes out *worse*
+  about 4 times in 5. Today: both arms run the CLI version hangar's lock pins (`harness@version`), so variants can
+  differ in model, skills, instructions and approvals but not in CLI version; lock against lock once the regression
+  suite ([#12](https://github.com/Sean-Koval/flightdeck/issues/12)) and `harness_lock` variants ([hangar#135](https://github.com/Sean-Koval/hangar/issues/135)) land in flightdeck.
 - **Decide whether a workflow plugin pays for itself.** A team lead A/Bs the ai-dlc plugin on and off across 30 tasks.
-  Trials are paired by task, so the answer needs a fraction of the runs an unpaired comparison would, and the verdict
-  follows a `decision.yaml` committed before the first trial, so nobody moves the goalposts afterwards.
+  Trials are paired by task, so the answer needs a fraction of the runs an unpaired comparison would (at 30 tasks it
+  can see a change of about 20 points), and the verdict follows a `decision.yaml` committed before the first trial, so
+  nobody moves the goalposts afterwards.
 - **Catch a behavior regression nobody tested for.** A platform engineer writes "never push to main" and "run trusted
-  tests before committing" as behavior specs. The nightly `flightdeck check run` scores every turn and opens an issue
-  when a violation rate jumps, naming the harness digest that changed that day.
+  tests before committing" as behavior specs. Scheduled nightly, `flightdeck check run` scores every turn and opens an
+  issue when a violation rate jumps, naming the harness digest that changed that day (the schedule lives in the
+  team's private data repository; [#15](https://github.com/Sean-Koval/flightdeck/issues/15)).
 
 ## Quickstart
 
-Needs [uv](https://docs.astral.sh/uv/) and git. Five commands, on the fixture experiment (no hangar, no team data):
+Needs [uv](https://docs.astral.sh/uv/) and git. Six commands, on the fixture experiment (no hangar, no team data):
 
 ```sh
 git clone https://github.com/Sean-Koval/flightdeck && cd flightdeck
 uv run python scripts/fixture_export.py demo/export        # what `hangar experiment export <id> -o DIR` writes
 uv run flightdeck ingest export demo/export --out demo/plane
+uv run flightdeck check run --data demo/plane --date 2025-10-16 --specs specs/examples/team-default.yaml
 uv run flightdeck stats compare job-expdemo --data demo/plane
 uv run flightdeck report experiment job-expdemo --data demo/plane --decision demo/export/decision.yaml
 ```
+
+It takes a few seconds after `uv sync`. Expect, among the output:
+
+```text
+experiment-job-expdemo: 73 runs, 331 spans, 710 events, 2 manifests, 70 grades, 213 test_cases -> demo/plane
+spec	never-push-main	pass=72 fail=0 not_applicable=0 unknown=1
+Paired difference treat - control: **+21.2 pp**, 95% CI +1.5 pp to +43.9 pp (task bootstrap; 11 tasks, 63 trials; ...)
+**Verdict**: treat is better than control on resolved (+21.2 pp, CI +1.5…+43.9, margin -5.0).
+```
+
+The fixture is built with a large effect so that 11 tasks can show it; the report also gets a Behavior specs section
+from `check run`.
 
 Against a real hangar, ingest with `HANGAR_TOKEN=... flightdeck ingest experiment <id> --hangar https://<your hangar>`
 and post with `--post owner/repo#n`. [Getting started](docs/getting-started.md) has the rest.
 
 ## Features
 
-| Feature | What you get | Docs |
-| --- | --- | --- |
-| Ingest | Hangar REST or `hangar experiment export` into `flightdeck.parquet/v1` (runs, spans, events, manifests, grades, test cases), idempotent; `flightdeck query` over DuckDB | [Data plane](docs/data-plane.md) |
-| Paired statistics | Task bootstrap, Wilson, pass@k and pass^k, $ per resolved task, a power estimate; exclusions (`infra_error` from hangar, cancelled, drift) always printed | [Statistics](docs/statistics.md) |
-| Behavior specs | YAML predicates over `hangar.trace/v1` that count only trusted test runs; ADR `checks:`; nightly runner with change-point alerts | [Behavior specs](docs/behavior-specs.md) |
-| Reports | Markdown with a pre-registered verdict, pins, outcome, process, cost and spec pass rates, posted as one PR comment | [Reports](docs/reports.md) |
-| Experiments | Suites of Harbor-compatible tasks submitted to hangar with concrete model pins and a cost gate | [Running experiments](docs/runners.md), [Tasks](docs/tasks.md) |
-| Small by design | A counted line budget for the analysis code, enforced in CI; every raise is a measured ADR | [ADR-0005](docs/decisions/0005-post-v0-budget.md) |
+| Feature | What you get | Status | Docs |
+| --- | --- | --- | --- |
+| Ingest | Hangar REST or `hangar experiment export` into `flightdeck.parquet/v1` (runs, spans, events, manifests, grades, test cases), idempotent; `flightdeck query` over DuckDB | Shipped ([#7](https://github.com/Sean-Koval/flightdeck/issues/7)) | [Data plane](docs/data-plane.md) |
+| Compactor | Hangar's GCS outbox into the Parquet data plane, nightly on Cloud Run, while the sandbox pools are off | Shipped ([#5](https://github.com/Sean-Koval/flightdeck/issues/5)); needs hangar's outbox turned on (`HANGAR_OUTBOX_URL`, off by default) | [Data plane](docs/data-plane.md#compactor) |
+| Paired statistics | Task bootstrap, Wilson, pass@k and pass^k, $ per resolved task, a power estimate; exclusions (`infra_error` from hangar, cancelled, drift) always printed | Shipped ([#8](https://github.com/Sean-Koval/flightdeck/issues/8)) | [Statistics](docs/statistics.md) |
+| Behavior specs | YAML predicates over `hangar.trace/v1` that count only trusted test runs | Shipped ([#14](https://github.com/Sean-Koval/flightdeck/issues/14)) | [Behavior specs](docs/behavior-specs.md) |
+| Nightly checks | `check run` over a day of the data plane, ADR `checks:`, change-point alerts | Code merged; [#15](https://github.com/Sean-Koval/flightdeck/issues/15) open until it is scheduled with a real team ADR | [Behavior specs](docs/behavior-specs.md#adr-checks-and-the-nightly-runner) |
+| Reports | Markdown with a pre-registered verdict, pins, outcome, process, cost and spec pass rates, posted as one PR comment | Shipped ([#9](https://github.com/Sean-Koval/flightdeck/issues/9)) | [Reports](docs/reports.md) |
+| Experiments | Suites of Harbor-compatible tasks submitted to hangar with concrete model pins and a cost gate; a local Docker backend for fixtures and CI | Shipped ([#11](https://github.com/Sean-Koval/flightdeck/issues/11), [#18](https://github.com/Sean-Koval/flightdeck/issues/18)); `harness_lock` variants not yet | [Running experiments](docs/runners.md), [Tasks](docs/tasks.md) |
+| Weekly metrics | The team's weekly scorecard, one SQL definition over Parquet, as JSON for hangar's digest | Shipped ([#6](https://github.com/Sean-Koval/flightdeck/issues/6)) | [Weekly metrics](docs/metrics.md) |
+| Judges | Rubric judges used only once calibrated against people (κ ≥ 0.6), estimates by prediction-powered inference | Shipped ([#27](https://github.com/Sean-Koval/flightdeck/issues/27)) | [Judges](docs/judges.md) |
+| Sealed holdouts | Hash-manifested, canaried task sets written blind and scored once | Code merged; [#13](https://github.com/Sean-Koval/flightdeck/issues/13) open until the first set is sealed | [Holdouts](docs/holdouts.md) |
+| Knowledge evals | A 40-question gold set scored on correctness and citation validity | Code merged; [#21](https://github.com/Sean-Koval/flightdeck/issues/21) open until the gold set is written and scored | [Knowledge evals](docs/knowledge-evals.md) |
+| Trial cache | Reuse trials whose inputs haven't changed; a nightly drift sentinel | Code merged; [#24](https://github.com/Sean-Koval/flightdeck/issues/24) open until the sentinel runs nightly | [Running experiments](docs/runners.md#cache) |
+| Mutation scoring | Remove one harness component at a time and check that a grader or spec notices | Code merged; [#16](https://github.com/Sean-Koval/flightdeck/issues/16) open until the first live run | [Behavior specs](docs/behavior-specs.md#mutation-scoring) |
+| Small by design | 3,785 counted lines of analysis code, enforced in CI; raised from 1,500 by ADRs 0003–0005 | The budget is full: any increase needs a new ADR | [ADR-0005](docs/decisions/0005-post-v0-budget.md) |
 
-Vocabulary (run, turn, trial, check vs grader) is in [Concepts](docs/concepts.md).
+Vocabulary (run, turn, trial, check vs grader) is in [Concepts](docs/concepts.md); every command and flag in the
+[CLI reference](docs/cli.md); what flightdeck reads, writes and pins in [Contracts](docs/contracts.md).
 
 ## Development
 
@@ -86,6 +122,7 @@ uv sync
 uv run ruff check src tests scripts docs/assets && uv run pyright && uv run pytest -q
 python scripts/loc_budget.py
 uv run --group assets python docs/assets/build.py   # re-render the front-page assets (CI checks they are current)
+uv run python scripts/docs_reference.py              # regenerate docs/cli.md and the Parquet columns (tests check)
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Team data never goes in this repository
