@@ -12,6 +12,12 @@ flightdeck report post report.md --to owner/repo#n [--full-url URL | --gist]
 
 The report reads only the data plane (`--data`, default `~/.flightdeck/data`), so it renders with hangar powered off.
 
+<figure class="af-figure" markdown>
+![The report as a pull-request comment: the verdict line, the pins table per variant and the outcome table with Wilson intervals and dollars per resolved task](assets/report-comment-dark.png#only-dark)
+![The report as a pull-request comment: the verdict line, the pins table per variant and the outcome table with Wilson intervals and dollars per resolved task](assets/report-comment-light.png#only-light)
+<figcaption>The top of a report on a pull request: verdict, pins, outcome (fixture experiment)</figcaption>
+</figure>
+
 ## Anatomy
 
 1. **Verdict**, in plain words, from the pre-registered rule (below): *treat is non-inferior to control on resolved

@@ -1,21 +1,20 @@
-<!doctype html><html><head><meta charset="utf-8"><style>
-body{margin:0;background:#fff;color:#1f2328;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",
-Helvetica,Arial,sans-serif}.page{width:880px;padding:24px 28px}.pr{font-size:24px;font-weight:400;margin:0 0 4px}
-.pr span{color:#59636e;font-weight:300}.meta{color:#59636e;font-size:13px;margin-bottom:20px;padding-bottom:14px;
-border-bottom:1px solid #d1d9e0}.state{display:inline-block;background:#1f883d;color:#fff;border-radius:2em;
-padding:3px 12px;margin-right:8px;font-weight:500}.row{display:flex;gap:14px}.avatar{width:40px;height:40px;
-border-radius:50%;background:#D98CD2;flex:none;color:#fff;font:700 16px/40px sans-serif;text-align:center}
-.comment{flex:1;border:1px solid #d1d9e0;border-radius:6px;overflow:hidden}.head{background:#f6f8fa;
-border-bottom:1px solid #d1d9e0;padding:8px 16px;color:#59636e;font-size:14px}.head b{color:#1f2328}
-.badge{float:right;border:1px solid #d1d9e0;border-radius:2em;padding:0 7px;font-size:12px}
-.md{padding:16px}.md h2{font-size:1.5em;border-bottom:1px solid #d1d9e0;padding-bottom:.3em;margin:0 0 16px;
+<!doctype html><html><head><meta charset="utf-8"><style>:root{--bg:#ffffff;--fg:#1f2328;--muted:#59636e;--line:#d1d9e0;--well:#f6f8fa;--code:#818b981f;--fade:rgba(255,255,255,0)}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",
+"Noto Sans",Helvetica,Arial,sans-serif}.page{width:880px;padding:24px 28px}.row{display:flex;gap:14px}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--well);border:1px solid var(--line);
+box-sizing:border-box;flex:none;color:var(--muted);text-align:center;
+font:600 14px/38px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.comment{flex:1;border:1px solid var(--line);border-radius:6px;overflow:hidden}.head{background:var(--well);
+border-bottom:1px solid var(--line);padding:8px 16px;color:var(--muted);font-size:14px}.head b{color:var(--fg)}
+.md{padding:16px}.md h2{font-size:1.5em;border-bottom:1px solid var(--line);padding-bottom:.3em;margin:0 0 16px;
 font-weight:600}.md h3{font-size:1.25em;margin:24px 0 12px;font-weight:600}.md p{margin:0 0 12px}
-.md code{font:85% ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(129,139,152,.12);
-padding:.2em .4em;border-radius:6px}.md table{border-collapse:collapse;margin:0 0 14px;display:block;width:max-content;
-max-width:100%;overflow:auto}.md th,.md td{border:1px solid #d1d9e0;padding:6px 13px}.md th{font-weight:600}
-.md tr:nth-child(2n){background:#f6f8fa}.fade{position:relative}.fade:after{content:"";position:absolute;left:0;right:0;
-bottom:0;height:90px;background:linear-gradient(rgba(255,255,255,0),#fff)}
-</style></head><body><div class="page"><h1 class="pr">Add the review skill to the team harness <span>#48</span></h1><div class="meta"><span class="state">Open</span> example/app · harness change under review</div><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head"><b>dev-a</b> commented<span class="badge">flightdeck report</span></div><div class="md fade"><!-- flightdeck:report:job-expdemo -->
+.md code{font:85% ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);
+padding:.2em .4em;border-radius:6px}.md table{border-collapse:collapse;margin:0 0 14px;display:block;
+width:max-content;max-width:100%;overflow:auto}.md th,.md td{border:1px solid var(--line);padding:6px 13px}
+.md th{font-weight:600}.md tr:nth-child(2n){background:var(--well)}.fade{position:relative}
+.fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;
+background:linear-gradient(var(--fade),var(--bg))}
+</style></head><body><div class="page"><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head"><b>dev-a</b> commented</div><div class="md fade"><!-- flightdeck:report:job-expdemo -->
 <h2>flightdeck report: <code>job-expdemo</code> (treat vs control)</h2>
 <p><strong>Verdict</strong>: treat is better than control on resolved (+21.2 pp, CI +1.5…+43.9, margin -5.0).</p>
 <h3>Pins</h3>
