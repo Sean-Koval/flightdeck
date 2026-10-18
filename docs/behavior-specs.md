@@ -1,5 +1,9 @@
 # Behavior specs: `flightdeck.spec/v1`
 
+!!! note "Status"
+    The spec language, `spec lint` and `spec test` are done ([#14](https://github.com/Sean-Koval/flightdeck/issues/14)). The nightly runner and mutation scoring are
+    merged but their issues are open; each section below says what is left.
+
 A behavior spec is a predicate over what an agent did, read from hangar's trace export (`hangar.trace/v1`,
 hangar `docs/api/traces.md`) as flattened into the data plane ([data-plane.md](data-plane.md)). Specs answer "how did
 it work?" questions: tests before the commit, no push to `main`, asked before deleting. They do not answer "did it
@@ -7,7 +11,7 @@ work?". **Outcome graders come first**: a task's hidden tests decide whether a t
 overrides a grader. Specs are predicates, and predicates can be gamed, so the language counts only trusted test runs
 and `spec lint` flags the weak shapes below.
 
-Code: `src/flightdeck/specs/lang.py`. Examples: [`specs/examples/`](../specs/examples/). Team specs live in the private
+Code: `src/flightdeck/specs/lang.py`. Examples: [`specs/examples/`](https://github.com/Sean-Koval/flightdeck/tree/main/specs/examples). Team specs live in the private
 data repository ([ADR-0002](decisions/0002-public-code-private-data.md)).
 
 ```sh
@@ -86,16 +90,16 @@ Python `re` and RE2 (DuckDB): no lookaround or backreferences.
 | `any: {paths: {from: [...]}, match: <glob or list>}` | at least one path matches (a delivered file, for ai-dlc's `path-committed`); `not_applicable` with no paths |
 
 **Order** is `hangar.seq` within a session, the event log's position, because many items share a timestamp. Items
-without a seq (job events, test runs, steers recorded before hangar#162) are compared by time, so mixed comparisons
+without a seq (job events, test runs, steers recorded before [hangar#162](https://github.com/Sean-Koval/hangar/issues/162)) are compared by time, so mixed comparisons
 are by time (traces.md 'Order'). A `within: {seq: N}` window on an item without a seq is `unknown`. Across sessions
 (best-of-N attempts) order is by time only.
 
-**Steers.** Since hangar#162, `steer` and `interrupt` events carry `hangar.seq` (the event-log position where the
+**Steers.** Since [hangar#162](https://github.com/Sean-Koval/hangar/issues/162), `steer` and `interrupt` events carry `hangar.seq` (the event-log position where the
 steer was delivered) and `hangar.steer.class` (`correction`, `redirect`, `new_info` or `unclassified`, with
 `hangar.steer.classified_by`); a later classification is also a `steer.classified` event. A steer that arrives after
 its turn ended is `queued` and starts the next turn, so its seq is that turn's start. Steer-avoidance counts only
-corrections: `never: {event: steer, where: {hangar.steer.class: correction}}`. For steers recorded before #162 (no
-seq, class `unclassified`), analyses that need a fork point (#29) take the nearest preceding seq and a judge's class
+corrections: `never: {event: steer, where: {hangar.steer.class: correction}}`. For steers recorded before hangar#162 (no
+seq, class `unclassified`), analyses that need a fork point ([#29](https://github.com/Sean-Koval/flightdeck/issues/29)) take the nearest preceding seq and a judge's class
 (a [calibrated rubric](judges.md)), and say the result is approximate.
 
 ### Results
@@ -114,7 +118,7 @@ for one day). Each matcher is written once and yields both a Python predicate an
 
 ### Hangar's reference predicates
 
-[`specs/examples/hangar-reference.yaml`](../specs/examples/hangar-reference.yaml) writes hangar's four
+[`specs/examples/hangar-reference.yaml`](https://github.com/Sean-Koval/flightdeck/blob/main/specs/examples/hangar-reference.yaml) writes hangar's four
 (tests before the commit, no edits outside `src/`, asked before deleting, plan → edit → test → PR) in this language.
 They pass and fail exactly as hangar `tests/test_interfaces.py::_behavior` does on the same exports
 (`tests/fixtures/hangar/trace_session_{good,bad}.json`). Two differences when the trigger is absent: `before` and
@@ -124,7 +128,7 @@ They pass and fail exactly as hangar `tests/test_interfaces.py::_behavior` does 
 
 `event: test.run` matches only a run hangar ran itself and trusts: `hangar.test.run.trusted = true`,
 `hangar.test.total > 0` and a complete report (hangar `src/hangar/testresults.py`, the `TRUSTED` kinds such as
-`verify`; hangar #164 adds `grader` runs and the `hangar.test.run.counted` attribute with the same meaning). The
+`verify`; [hangar#164](https://github.com/Sean-Koval/hangar/issues/164) adds `grader` runs and the `hangar.test.run.counted` attribute with the same meaning). The
 agent's own in-turn runs are untrusted, and `pytest --collect-only` reports 0 tests. A spec may say
 `allow_untrusted: true`, and `spec lint` flags it.
 
@@ -150,8 +154,12 @@ tool input or output text alone, the shell `test` op, `applies_when` keys the da
 
 ## ADR checks and the nightly runner
 
+!!! note "Status"
+    Code merged ([#41](https://github.com/Sean-Koval/flightdeck/pull/41)); issue [#15](https://github.com/Sean-Koval/flightdeck/issues/15) stays open until one real team ADR carries a `checks:` block and
+    the nightly run is scheduled in the private data repository.
+
 An accepted decision can carry trace predicates that flightdeck runs every night: executable decisions. The `checks:`
-convention for ADRs is ai-dlc's (Sean-Koval/ai-dlc#207: `docs/decisions/NNNN-slug.md` with knowledge-note
+convention for ADRs is ai-dlc's ([ai-dlc#207](https://github.com/Sean-Koval/ai-dlc/issues/207): `docs/decisions/NNNN-slug.md` with knowledge-note
 frontmatter); the grammar is this page's. Each check is a spec without the header: `id`, optional `scope`,
 `applies_when`, `harness` (default `"*"`) and `assert`.
 
@@ -169,7 +177,7 @@ checks:
 
 The expected actor is written in the check, not in flightdeck's code: it depends on hangar's landing identity. Checks
 can also sit in a fenced `yaml` block holding `checks:` under a plain `Status: Accepted` line (flightdeck's own
-[template](decisions/0000-template.md)). A check written in another grammar (ai-dlc's example `predicate:` string) has
+[template](https://github.com/Sean-Koval/flightdeck/blob/main/docs/decisions/0000-template.md)). A check written in another grammar (ai-dlc's example `predicate:` string) has
 no `assert` and yields `unknown` for every unit, never a pass.
 
 ```sh
@@ -218,6 +226,10 @@ second reviewer looks. A GitHub Action in the team repo runs it on PRs that touc
 
 ## Mutation scoring
 
+!!! note "Status"
+    Code merged ([#53](https://github.com/Sean-Koval/flightdeck/pull/53)); issue [#16](https://github.com/Sean-Koval/flightdeck/issues/16) stays open until the first live mutation run on hangar (at most
+    $40). The acceptance case so far is shown on stored results in tests.
+
 A suite with a low mutation score is decoration: if deleting part of the harness changes nothing the suite can see,
 the suite isn't testing that part. `flightdeck mutate` removes one component of a harness at a time and checks that
 some grader or spec notices (code: `src/flightdeck/specs/mutate.py`).
@@ -238,7 +250,7 @@ instructions_append, approvals}`):
 | `drop-instruction-line` | one per block of `instructions` and `instructions_append`: blocks start at markdown headings, else each non-empty line is one |
 | `approvals` | `approvals: auto` when the base is `deny-risky` |
 | `noop` | the variant unchanged: a control that must come out equivalent |
-| `drop-hook`, `widen-egress` | not generated, and said so: hooks need harness locks (hangar#133); hangar fixes egress per experiment, so widening it is a separate experiment |
+| `drop-hook`, `widen-egress` | not generated, and said so: hooks need harness locks ([hangar#133](https://github.com/Sean-Koval/hangar/issues/133)); hangar fixes egress per experiment, so widening it is a separate experiment |
 
 `plan` writes a suite file: the base and its mutants as variants named `mutant-<op>-<component>`, `n` trials each
 (default 2; keep tasks cheap, since a changed instruction changes the prompt prefix and every trial runs in full),
