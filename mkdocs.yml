@@ -8,6 +8,8 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   font: false
+  logo: assets/brand/mark.svg
+  favicon: assets/brand/favicon.svg
   features:
     - navigation.tabs
     - navigation.sections

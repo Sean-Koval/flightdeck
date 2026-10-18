@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/banner-dark.svg">
+  <img alt="flightdeck: did that harness change help? Paired statistics and behavior specs over the runs hangar records, and a verdict on the PR. Part of the agent factory (judge plane)." src="docs/assets/brand/banner-light.svg" width="960" height="320">
+</picture>
+
 # flightdeck
 
 **Did that harness change actually help our coding agents, or did we just get lucky on a few runs?** Flightdeck answers
