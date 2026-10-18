@@ -261,7 +261,7 @@ def diagram() -> str:
     edge("M300 200 H426", "manifests, traces,|experiment index", 365, 170)
     edge("M430 330 H304", "trials:|tasks × variants × n", 365, 356)
     edge("M790 381 H886", "report", 838, 371)
-    box(430, 490, 730, 80, "GOVERN · PLANNED", "governed workspace: policy decisions, approvals, receipts", (),
+    box(430, 490, 730, 80, "GOVERN · PLANNED", "Tower: policy decisions, approvals, receipts", (),
         "ws", "plan")
     edge("M1025 390 V486", "promotion approval", 1035, 446, "plan", "start")
     defs = (f'<defs><marker id="fd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '

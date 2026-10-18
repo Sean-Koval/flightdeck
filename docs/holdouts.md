@@ -3,7 +3,7 @@
 A sealed holdout is a set of tasks that nobody tuning a harness has seen, scored **once**, when a search winner or a
 promotion needs one honest number. Custody is what keeps it unseen: hashes that refuse an edited file, canaries that
 detect a leak, writers who never read the code they're testing, and an approver who isn't the candidate's author. The
-rules are [ADR 0006](decisions/0006-holdout-custody.md); the discipline is the governed workspace's, ported. Code:
+rules are [ADR 0006](decisions/0006-holdout-custody.md); the discipline is Tower's (formerly the governed workspace), ported. Code:
 `src/flightdeck/tasks/custody.py`, `flightdeck holdout ...`.
 
 ## Where things live
@@ -34,7 +34,7 @@ holdouts/
 ## The cycle
 
 1. **Briefs.** `flightdeck holdout brief reg-2 --writers 2 --count 20 --family regression --mined-after 2026-10-01`
-   writes `briefs/reg-2_writer_{a,b}.txt` in the governed workspace's blind-writer shape: what the set is for, the
+   writes `briefs/reg-2_writer_{a,b}.txt` in Tower's blind-writer shape: what the set is for, the
    format, "do NOT read any file in this repository except what you create under `holdouts/incoming/<writer>/`",
    and a check before delivering. Give each brief to a writer (a person or an agent session in its own sandbox) who is
    not the author of any change the set will judge. Writers leave their tasks in `incoming/<writer>/`, uncommitted.
