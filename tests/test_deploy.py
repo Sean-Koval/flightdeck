@@ -27,6 +27,12 @@ def test_dry_run_prints_least_privilege_commands_and_the_schedule() -> None:
     assert any("gs://runs-b" in c and "roles/storage.objectViewer" in c for c in cmds)
     assert any("gs://data-b" in c and "roles/storage.objectAdmin" in c for c in cmds)
     assert not any("projects add-iam-policy-binding" in c for c in cmds) and "secretAccessor" not in out
+    # the data plane's bucket is made private; the outbox bucket is hangar's, never created here
+    made = [c for c in cmds if "storage buckets create" in c]
+    assert len(made) == 1 and "gs://data-b " in made[0] and "--public-access-prevention" in made[0]
+    assert "--uniform-bucket-level-access" in made[0]
+    assert 'run_bucket_readers = ["serviceAccount:flightdeck-compactor@p1.iam.gserviceaccount.com"]' in out
+    assert "FLIGHTDECK_DATA_URI=gs://data-b/parquet/v1 flightdeck query" in out
     sched = next(c for c in cmds if "scheduler jobs create" in c)
     assert "30 2 * * *" in sched and "America/New_York" in sched and "jobs/flightdeck-compactor:run" in sched
     spec = job(out)["spec"]["template"]["spec"]["template"]["spec"]

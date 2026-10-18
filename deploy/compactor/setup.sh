@@ -1,5 +1,5 @@
 #!/bin/sh
-# Deploy the nightly compactor: service account, bucket IAM, image, Cloud Run job and the 02:30 ET schedule.
+# Deploy the nightly compactor: service account, data bucket, bucket IAM, image, Cloud Run job, 02:30 ET schedule.
 #   sh deploy/compactor/setup.sh --project P --runs-bucket B --data-bucket D [--region R] [--github-repos o/r,o/r2]
 #                                [--dry-run]
 # --dry-run prints the gcloud commands and the rendered job instead of running them. Re-running is safe: resources
@@ -33,6 +33,9 @@ exists_ok() { run "$@" || echo "  (already exists; kept)"; }
 run gcloud services enable run.googleapis.com cloudscheduler.googleapis.com artifactregistry.googleapis.com \
   cloudbuild.googleapis.com secretmanager.googleapis.com $G
 exists_ok gcloud iam service-accounts create $NAME --display-name "flightdeck compactor" $G
+# The data plane's bucket: private, like the outbox (ADR-0002). The outbox bucket is hangar's (its terraform makes it).
+exists_ok gcloud storage buckets create "gs://$DATA" --location "$REGION" --uniform-bucket-level-access \
+  --public-access-prevention $G
 # Read the outbox, write the data plane; nothing else (no hangar token, no project-wide roles).
 run gcloud storage buckets add-iam-policy-binding "gs://$RUNS" --member "serviceAccount:$SA" \
   --role roles/storage.objectViewer $G
@@ -66,3 +69,6 @@ else
     --time-zone America/New_York --uri "$URI" --http-method POST --oauth-service-account-email "$SA" $G
 fi
 echo "done: run it now with  gcloud run jobs execute $NAME --region $REGION $G"
+echo "hangar's terraform (deploy/terraform/gke) keeps the outbox grant too with:"
+echo "  run_bucket_readers = [\"serviceAccount:$SA\"]"
+echo "check a night with:  FLIGHTDECK_DATA_URI=gs://$DATA/parquet/v1 flightdeck query 'select dt, count(*) from runs group by dt'"
