@@ -32,7 +32,7 @@ The report, posted as one pull-request comment that is updated in place (rendere
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/suite-light.png">
-  <img alt="Hangar runs agents and records manifests, traces and the experiment index; flightdeck ingests them into a Parquet data plane, compares variants and runs behavior specs, and posts a report to the pull request, where a reviewer decides; the governed workspace (planned) approves promotions" src="docs/assets/suite-dark.png">
+  <img alt="Hangar runs agents and records manifests, traces and the experiment index; flightdeck ingests them into a Parquet data plane, compares variants and runs behavior specs, and posts a report to the pull request, where a reviewer decides; Tower (planned) approves promotions" src="docs/assets/suite-dark.png">
 </picture>
 
 Flightdeck holds no sandbox code and no credentials ([ADR-0001](docs/decisions/0001-boundary-with-hangar.md)): it

@@ -1,6 +1,6 @@
 """`flightdeck holdout`: sealed holdout custody (docs/holdouts.md, ADR 0006).
 
-The governed workspace's practice, ported: a manifest lists every sealed file with its sha256 and scoring refuses a
+Tower's practice, ported: a manifest lists every sealed file with its sha256 and scoring refuses a
 file whose hash changed (its `aw.rules_report.check_manifest`); independent writers work from a brief without reading
 the repository (`server/evals/briefs/blind_v*_writer_*.txt`); a sealed set is scored once, on an approver's go-ahead.
 Everything lives under one holdouts directory of the private data repository: `manifest.json`, `briefs/` and
