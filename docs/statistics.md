@@ -2,6 +2,33 @@
 
 How flightdeck turns trials into numbers a team can decide on. Code: `src/flightdeck/stats/core.py`.
 
+## What flightdeck can tell you
+
+At the team's scale, about 500 trials a month, an A/B of a harness change can show:
+
+- **An outcome change of about 15 points or more.** For example, a change that moves the share of tasks resolved
+  from 40% to 55%. With 50 tasks run 3 times in each arm (300 trials), a 15-point change is detected about 4 times in
+  5, a 10-point change about half the time and a 5-point change about 1 time in 5. With 30 tasks the smallest change
+  seen 4 times in 5 is about 20 points; with 20 tasks, about 25.
+- **"Not worse" only with many tasks.** The 95% interval on resolved is about 19 points wide at 50 tasks × 3 trials,
+  24 at 30 tasks and 29 at 20. For a non-inferiority verdict at a 5-point margin, the whole interval has to sit
+  above −5 points. When nothing really changed, that happens about 1 time in 5 at 50 tasks; the other 4 times the
+  report says *No decision*, which is the honest answer at that size, not a failure. Seeing 5-point changes, or a
+  5-point margin, takes about 400 tasks × 3 trials per arm (2,400 trials, about five months at this scale; an
+  interval about 7 points wide).
+- **Smaller changes in process metrics.** Tool calls, cost and wall time are numbers on every trial rather than a
+  pass or a fail, and each comes with its own paired interval, which is often far narrower than the outcome's.
+- **Behavior.** Whether each behavior spec holds, as a pass rate per variant, and a jump in a spec's nightly
+  violation rate ([behavior specs](behavior-specs.md)).
+
+What it can't show at this budget is an outcome change of a few points. Those are judged by process metrics,
+behavior specs and, later, trace-mined skill micro-evals ([#33](https://github.com/Sean-Koval/flightdeck/issues/33)).
+
+The numbers come from flightdeck's own code on one model of tasks (each task's base rate drawn from Beta(1.2, 1.2),
+3 trials per task and arm, no real change for the interval widths): `simulate_power` for detection (one-sided z test at
+α = 0.05, 80% power), `paired_bootstrap` and the report's verdict rule for the intervals. Every `stats compare`
+prints the smallest change its own experiment can detect.
+
 ## Pair by task
 
 At about 500 trials a month, an outcome A/B is only worth running **paired by task**: every task runs in both
@@ -31,7 +58,7 @@ budget can't see them. `tests/test_stats.py::test_power_reproduces_the_r1_table`
 | `trial_bootstrap(per_task)` | The naive trial-level interval | Contrast only: it is too narrow when tasks differ |
 | `dollars_per_resolved(per_task)` | Total cost / resolved count (ratio of sums), task bootstrap | Cost efficiency. Trials with unknown cost are excluded and counted |
 | `mcnemar_discordant(pairs)` | Concordant and discordant task counts, exact McNemar p | Reported with every outcome comparison; feeds adaptive allocation later |
-| `cohen_kappa(pairs)` | Cohen's κ for two raters' binary labels | Rater agreement on the knowledge gold set; judges' calibration (#27) |
+| `cohen_kappa(pairs)` | Cohen's κ for two raters' binary labels | Rater agreement on the knowledge gold set; judges' calibration ([#27](https://github.com/Sean-Koval/flightdeck/issues/27)) |
 
 Every result is an `Interval` carrying its estimate, bounds, level, number of tasks and trials, the seed, and a
 note. Fewer than 10 paired tasks is labelled *underpowered: do not decide on this*. No p-value is reported without
