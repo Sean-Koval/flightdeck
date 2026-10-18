@@ -61,9 +61,9 @@ runs from +1.5 to +43.9 points. A real harness change usually moves less: see
 ([ADR-0002](decisions/0002-public-code-private-data.md)). To plan and submit trials, see
 [Running experiments](runners.md); every command and flag is in the [CLI reference](cli.md).
 
-A worked setup to start from: agent-factory's
-[`examples/team-harness/flightdeck`](https://github.com/Sean-Koval/agent-factory/tree/main/examples/team-harness/flightdeck) has a suite (stable against candidate, the
-ai-dlc workflow plugin off and on), a pre-registered `decision.yaml` and behavior specs. It ships no tasks, so
+A worked setup to start from: the [`flightdeck/`](https://github.com/Sean-Koval/team-harness/tree/main/flightdeck) folder of the team-harness repo has a suite
+(`flightdeck/suite.yaml`: stable against candidate, the ai-dlc workflow plugin off and on), a pre-registered
+`decision.yaml` and behavior specs. It ships no tasks, so
 `flightdeck experiment run flightdeck/suite.yaml --dry-run` stops at `no task under tasks` until you add one
 (`flightdeck task new flightdeck/tasks/<id>`, then set `[flightdeck] environment` in its `task.toml`, or `environment`
 in the suite).

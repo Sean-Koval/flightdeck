@@ -12,10 +12,10 @@ At the team's scale, about 500 trials a month, an A/B of a harness change can sh
   seen 4 times in 5 is about 20 points; with 20 tasks, about 25.
 - **"Not worse" only with many tasks.** The 95% interval on resolved is about 19 points wide at 50 tasks × 3 trials,
   24 at 30 tasks and 29 at 20. For a non-inferiority verdict at a 5-point margin, the whole interval has to sit
-  above −5 points. When nothing really changed, that happens about 1 time in 5 at 50 tasks; the other 4 times the
-  report says *No decision*, which is the honest answer at that size, not a failure. Seeing 5-point changes, or a
-  5-point margin, takes about 400 tasks × 3 trials per arm (2,400 trials, about five months at this scale; an
-  interval about 7 points wide).
+  above −5 points. When nothing really changed, that happens about 1 time in 5 at 50 tasks (19% of 20,000 simulated
+  experiments: 16% *non-inferior*, 3% *better*); the other 4 times the report says *No decision*, which is the honest
+  answer at that size, not a failure. Seeing 5-point changes, or a 5-point margin, takes about 400 tasks × 3 trials
+  per arm (2,400 trials, about five months at this scale; an interval about 7 points wide).
 - **Smaller changes in process metrics.** Tool calls, cost and wall time are numbers on every trial rather than a
   pass or a fail, and each comes with its own paired interval, which is often far narrower than the outcome's.
 - **Behavior.** Whether each behavior spec holds, as a pass rate per variant, and a jump in a spec's nightly
@@ -25,9 +25,10 @@ What it can't show at this budget is an outcome change of a few points. Those ar
 behavior specs and, later, trace-mined skill micro-evals ([#33](https://github.com/Sean-Koval/flightdeck/issues/33)).
 
 The numbers come from flightdeck's own code on one model of tasks (each task's base rate drawn from Beta(1.2, 1.2),
-3 trials per task and arm, no real change for the interval widths): `simulate_power` for detection (one-sided z test at
-α = 0.05, 80% power), `paired_bootstrap` and the report's verdict rule for the intervals. Every `stats compare`
-prints the smallest change its own experiment can detect.
+3 trials per task and arm, no real change for the interval widths): `simulate_power` for detection (a one-sided z test
+at α = 0.025, the same bar as a 95% interval whose lower bound is above zero; 80% power), and `paired_bootstrap` with
+the report's verdict rule for the intervals. Every `stats compare` prints the smallest change its own experiment can
+detect.
 
 ## Pair by task
 
@@ -35,7 +36,7 @@ At about 500 trials a month, an outcome A/B is only worth running **paired by ta
 arms, and the comparison resamples tasks. Tasks differ far more from each other than trials of one task do, so
 unpaired comparisons (or trial-level resampling) mostly measure which tasks each arm happened to get.
 
-A simulation (`stats.core.simulate_power`; task base rates from Beta(1.2, 1.2), one-sided z test at α = 0.05),
+A simulation (`stats.core.simulate_power`; task base rates from Beta(1.2, 1.2), one-sided z test at α = 0.025),
 50 tasks × 3 trials per arm:
 
 | Lift | Paired power | Unpaired power |

@@ -171,7 +171,7 @@ def cohen_kappa(pairs: Sequence[tuple[bool, bool]]) -> float:
 
 def simulate_power(tasks: int, trials: int, delta: float, sims: int = 2000, seed: int = 0, paired: bool = True,
                    alpha: float = 0.05) -> float:
-    """Power of a one-sided z test at `alpha` for a `delta` lift, with task base rates from Beta(1.2, 1.2).
+    """Power of a one-sided z test at `alpha` / 2 for a `delta` lift, task base rates from Beta(1.2, 1.2).
 
     The power table in docs/statistics.md: paired uses every task in both arms; unpaired splits tasks between arms.
     """

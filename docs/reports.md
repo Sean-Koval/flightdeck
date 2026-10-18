@@ -39,9 +39,8 @@ margin: -0.05         # non-inferiority margin, in the metric's units (a proport
 min_tasks: 10         # fewer paired tasks: no decision
 ```
 
-A worked example is agent-factory's
-[`examples/team-harness/flightdeck/decision.yaml`](https://github.com/Sean-Koval/agent-factory/tree/main/examples/team-harness/flightdeck) (resolved, higher, margin −0.05, at least
-10 tasks), next to its suite and specs; add a task before its `--dry-run` works (`flightdeck task new
+A worked example is `flightdeck/decision.yaml` in the [team-harness repo](https://github.com/Sean-Koval/team-harness/tree/main/flightdeck) (resolved, higher, margin
+−0.05, at least 10 tasks), next to `flightdeck/suite.yaml` and its specs; add a task before its `--dry-run` works (`flightdeck task new
 flightdeck/tasks/<id>`). Choose the margin with the [power table](statistics.md#what-flightdeck-can-tell-you) in
 mind: with 50 tasks × 3 trials and no real change, a −0.05 margin gives a verdict only about one time in five.
 
