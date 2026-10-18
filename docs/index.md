@@ -73,7 +73,8 @@ uv run flightdeck stats compare job-expdemo --data demo/plane
 uv run flightdeck report experiment job-expdemo --data demo/plane --decision demo/export/decision.yaml
 ```
 
-It takes a few seconds after `uv sync`. Expect, among the output:
+Once uv has installed the dependencies (the first `uv run` does that), it takes a few seconds. Expect, among the
+output:
 
 ```text
 experiment-job-expdemo: 73 runs, 331 spans, 710 events, 2 manifests, 70 grades, 213 test_cases -> demo/plane
