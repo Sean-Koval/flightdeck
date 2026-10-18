@@ -39,6 +39,12 @@ margin: -0.05         # non-inferiority margin, in the metric's units (a proport
 min_tasks: 10         # fewer paired tasks: no decision
 ```
 
+A worked example is agent-factory's
+[`examples/team-harness/flightdeck/decision.yaml`](https://github.com/Sean-Koval/agent-factory/tree/main/examples/team-harness/flightdeck) (resolved, higher, margin −0.05, at least
+10 tasks), next to its suite and specs; add a task before its `--dry-run` works (`flightdeck task new
+flightdeck/tasks/<id>`). Choose the margin with the [power table](statistics.md#what-flightdeck-can-tell-you) in
+mind: with 50 tasks × 3 trials and no real change, a −0.05 margin gives a verdict only about one time in five.
+
 The report prints a verdict only when the file is committed as it is and the last commit that changed it is older
 than the first finished trial: the git commit time, not the file's modification time, which any copy or checkout
 resets. An uncommitted or locally edited `decision.yaml` gives **No verdict**. The rule:

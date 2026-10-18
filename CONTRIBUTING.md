@@ -22,6 +22,21 @@ runs the real CLI on the fixture experiment and rewrites everything in `docs/ass
 and fails when a committed text asset differs, or when a PNG's source page changed without a re-render
 (`docs/assets/sources.sha256`). Change the CLI's output, the report or the fixture, and re-run it in the same PR.
 
+## Docs
+
+The site is built with [zensical](https://zensical.org) from `mkdocs.yml` and `docs/`, as the `docs` workflow does:
+
+```sh
+pip install zensical==0.0.71
+zensical serve        # http://localhost:8000/flightdeck/, rebuilt on save
+zensical build        # into site/ (ignored by git)
+```
+
+Two parts of the reference are generated from the code: `docs/cli.md` (every command and option of the Typer app) and
+the `flightdeck.parquet/v1` column tables in `docs/contracts.md` (from `src/flightdeck/dataplane/schema.py`). After
+changing a command, an option, a help text or a column, run `uv run python scripts/docs_reference.py` and commit the
+result; `tests/test_docs_reference.py` fails when they are stale.
+
 ## The line budget
 
 v0 is deliberately small: a fixed number of non-blank, non-comment lines under `src/flightdeck/` (`LIMIT` in the script).
@@ -90,3 +105,8 @@ flightdeck's docs, reports and any future UI use **Airframe**, the suite's desig
 visual work. Use `var(--af-*)` tokens and `af-` classes only, never a color literal (`tests/test_airframe.py` checks
 `docs/stylesheets/`); flightdeck's hue is `--af-product-flightdeck`, for its mark, the docs header and the 2px nav marker.
 `docs/stylesheets/airframe*.css` are vendored: never edit them; refresh with `sh scripts/sync-airframe.sh theme-vN`.
+The generated front-page assets (`docs/assets/*.svg`, `report-comment.html`, the PNGs) are exempt from the
+no-literal rule: GitHub renders the README's images outside any stylesheet, so `docs/assets/build.py` writes each
+color of the diagram as an Airframe token with its hex fallback (`var(--af-fg, #FFFFFF)`), the terminal recordings
+with Airframe's dark values as literals, and the PR-comment page with GitHub's own colors, since it shows how GitHub
+renders the report. Change colors in `build.py`, never in its output.
