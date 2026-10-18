@@ -7,7 +7,7 @@ work?". **Outcome graders come first**: a task's hidden tests decide whether a t
 overrides a grader. Specs are predicates, and predicates can be gamed, so the language counts only trusted test runs
 and `spec lint` flags the weak shapes below.
 
-Code: `src/flightdeck/specs/lang.py`. Examples: [`specs/examples/`](../specs/examples/). Team specs live in the private
+Code: `src/flightdeck/specs/lang.py`. Examples: [`specs/examples/`](https://github.com/Sean-Koval/flightdeck/tree/main/specs/examples). Team specs live in the private
 data repository ([ADR-0002](decisions/0002-public-code-private-data.md)).
 
 ```sh
@@ -114,7 +114,7 @@ for one day). Each matcher is written once and yields both a Python predicate an
 
 ### Hangar's reference predicates
 
-[`specs/examples/hangar-reference.yaml`](../specs/examples/hangar-reference.yaml) writes hangar's four
+[`specs/examples/hangar-reference.yaml`](https://github.com/Sean-Koval/flightdeck/blob/main/specs/examples/hangar-reference.yaml) writes hangar's four
 (tests before the commit, no edits outside `src/`, asked before deleting, plan → edit → test → PR) in this language.
 They pass and fail exactly as hangar `tests/test_interfaces.py::_behavior` does on the same exports
 (`tests/fixtures/hangar/trace_session_{good,bad}.json`). Two differences when the trigger is absent: `before` and
@@ -169,7 +169,7 @@ checks:
 
 The expected actor is written in the check, not in flightdeck's code: it depends on hangar's landing identity. Checks
 can also sit in a fenced `yaml` block holding `checks:` under a plain `Status: Accepted` line (flightdeck's own
-[template](decisions/0000-template.md)). A check written in another grammar (ai-dlc's example `predicate:` string) has
+[template](https://github.com/Sean-Koval/flightdeck/blob/main/docs/decisions/0000-template.md)). A check written in another grammar (ai-dlc's example `predicate:` string) has
 no `assert` and yields `unknown` for every unit, never a pass.
 
 ```sh
