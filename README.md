@@ -14,13 +14,17 @@ Docs site: <https://sean-koval.github.io/flightdeck/> · Part of the [agent fact
 
 ## See it work
 
-`ingest → check run → stats compare → report` on the synthetic fixture experiment (12 tasks × 2 variants × 3 trials):
+The verdict, posted as one pull-request comment that is updated in place. This one comes from the synthetic fixture
+experiment (12 tasks × 2 variants × 3 trials):
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/report-comment-light.png">
+  <img alt="The flightdeck report as a pull-request comment: a pre-registered verdict, treat is better than control on resolved (+21.2 pp, CI +1.5 to +43.9), the pins of each variant and the outcome table with Wilson intervals and dollars per resolved task" src="docs/assets/report-comment-dark.png">
+</picture>
+
+The run that produced it, `ingest → check run → stats compare → report`:
 
 ![A terminal session: flightdeck ingests the fixture experiment, runs the behavior specs, compares the variants paired by task and writes a report whose verdict is that treat is better than control](docs/assets/demo.svg)
-
-The report, posted as one pull-request comment that is updated in place (rendered from the same run):
-
-![The flightdeck report as a pull-request comment: a pre-registered verdict, the pins of each variant and the outcome table with Wilson intervals and dollars per resolved task](docs/assets/report-comment.png)
 
 <details><summary><code>stats compare</code> on its own</summary>
 

@@ -7,10 +7,14 @@ temporary directory and writes, next to this script:
 - `demo.cast`: the session as an asciicast v2 recording (typed commands, real output), and `demo.svg`: the same
   session as an animated terminal (CSS keyframes, loops; no player needed on GitHub or the docs site);
 - `stats-compare.svg`: the `stats compare` output as a still terminal;
-- `report.md` and `report-comment.html`: the report, and the report rendered as a GitHub pull-request comment, then
-  `report-comment.png` (a screenshot of it);
+- `report.md` and `report-comment-{dark,light}.html`: the report, and the report rendered as a GitHub pull-request
+  comment in GitHub's dark and light palettes, then `report-comment-{dark,light}.png` (screenshots of them);
 - `suite.svg`: where flightdeck sits in the suite, drawn with agent-factory's diagram conventions (Airframe tokens,
   theme-aware when inlined), then `suite-dark.png` and `suite-light.png`.
+
+The terminals follow Airframe's Terminal component and the diagram's fallbacks are Airframe's Night values, both read
+from the vendored `docs/stylesheets/airframe-tokens.json` (`scripts/sync-airframe.sh`), since an SVG shown as an image
+cannot load the site's stylesheet. The comment pages use GitHub's own palettes: that is where the report is read.
 
 Everything but the PNGs is byte-reproducible, so CI re-runs this and fails on a diff (`.github/workflows/assets.yml`).
 PNGs differ between font stacks, so `sources.sha256` records the hash of the page each PNG was shot from: an input
@@ -27,6 +31,7 @@ import html
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -35,6 +40,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
+TOKENS = ROOT / "docs/stylesheets/airframe-tokens.json"  # vendored by scripts/sync-airframe.sh
+NIGHT: dict[str, str] = json.loads(TOKENS.read_text(encoding="utf-8"))["themes"]["dark"]
 EXP, DAY = "job-expdemo", "2025-10-16"
 COMMANDS = [
     "flightdeck ingest export export --out plane",
@@ -121,26 +128,37 @@ def cast(steps: list[tuple[str, str]]) -> str:
 
 # ---------------------------------------------------------------------------------------------------- terminal SVG
 CW, LH, PAD, BAR = 7.8, 17.0, 18, 34  # char width (0.6em at 13px), line height, padding, title bar
+MONO = "'DM Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
+LIT = re.compile(r"\bis worse than\b|\bfail=[1-9]")  # the lines a terminal may color: the failed role, never green
+TERM_ICON = ('<g fill="none" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" '
+             'transform="translate({x},{y}) scale(.7)"><rect x="2.5" y="3.5" width="15" height="13"/>'
+             '<path d="M6 8l2.5 2L6 12M10.5 12.5H14"/></g>')  # Airframe's `terminal` icon, 20px grid drawn at 14px
 
 
 def terminal(lines: list[tuple[float, str, str]], total: float | None, title: str) -> str:
-    """A terminal window in the Airframe dark flavor. With `total`, lines appear at their times and commands type
-    out, looping every `total` seconds; without it, a still of every line."""
-    rows = len(lines)
-    w, h = round(COLS * CW + 2 * PAD), round(BAR + PAD + rows * LH + PAD / 2)
-    css = [".t{font:13px 'DM Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#D9D9D9;white-space:pre}",
-           ".p{fill:#FFC400}.c{fill:#FFFFFF}.h{fill:#D98CD2}.d{fill:#8A8A8A}"]
-    body = [f'<rect width="{w}" height="{h}" rx="8" fill="#0A0A0A" stroke="#262626"/>',
-            f'<rect width="{w}" height="{BAR}" rx="8" fill="#141414"/><rect y="{BAR - 8}" width="{w}" height="8" '
-            f'fill="#141414"/>'] + [f'<circle cx="{20 + 18 * i}" cy="{BAR / 2}" r="5.5" fill="{c}"/>'
-                                     for i, c in enumerate(("#3A3A3A", "#3A3A3A", "#3A3A3A"))]
-    body.append(f'<text class="t d" x="{w / 2}" y="{BAR / 2 + 4.5}" text-anchor="middle">{esc(title)}</text>')
+    """A terminal window on Airframe's Terminal contract: always dark, DM Mono on `terminal-bg`, a bar with the product
+    and scope in mono capitals, output in `terminal-fg`, the prompt and cursor in `brand`, and color on one kind of line
+    only (`terminal-err` for the failed role). The bar reads `title` as `product|scope|scope`. With `total`, lines
+    appear at their times and commands type out, looping every `total` seconds; without it, a still of every line."""
+    t = NIGHT
+    w, h = round(COLS * CW + 2 * PAD), round(BAR + PAD + len(lines) * LH + PAD / 2)
+    css = [f".t{{font:13px {MONO};fill:{t['terminal-fg']};white-space:pre}}.p{{fill:{t['brand']}}}"
+           f".c{{fill:{t['code-keyword']}}}.x{{fill:{t['terminal-err']}}}"
+           f".b{{font:500 10.5px {MONO};letter-spacing:.08em;fill:{t['terminal-dim']}}}.b1{{fill:{t['terminal-fg']}}}"]
+    body = [f'<rect width="{w}" height="{h}" rx="4" fill="{t["terminal-bg"]}"/>',
+            f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="4" fill="none" stroke="{t["terminal-fg"]}" '
+            f'stroke-opacity=".08"/><path d="M0 {BAR + .5}H{w}" stroke="{t["terminal-fg"]}" stroke-opacity=".09"/>',
+            TERM_ICON.format(x=14, y=BAR / 2 - 7).replace('<g ', f'<g stroke="{t["terminal-dim"]}" ', 1)]
+    x = 14 + 14 + 14  # icon, gap
+    for i, part in enumerate(title.split("|")):
+        body.append(f'<text class="b{" b1" if i == 0 else ""}" x="{x}" y="{BAR / 2 + 3.75}">{esc(part.upper())}</text>')
+        x += round(len(part) * (10.5 * 0.6 + 0.84)) + 14
     for i, (at, kind, text) in enumerate(lines):
         y = BAR + PAD + (i + 0.75) * LH
         if kind == "cmd":
             n = len(text)
             inner = (f'<tspan class="p">$ </tspan><tspan class="c">{esc(text)}</tspan>' if text
-                     else '<tspan class="p">$ </tspan><tspan class="c">▌</tspan>')
+                     else '<tspan class="p">$ ▌</tspan>')
             attrs = f' textLength="{(n + 2) * CW:.1f}" lengthAdjust="spacingAndGlyphs"' if text else ""
             el = f'<text class="t" x="{PAD}" y="{y:.1f}"{attrs}>{inner}</text>'
             if total and text:  # a cover over the command that steps right one character at a time
@@ -149,9 +167,9 @@ def terminal(lines: list[tuple[float, str, str]], total: float | None, title: st
                             f'{100 * (at + d) / total:.3f}%,100%{{transform:translateX({n * CW:.1f}px)}}}}'
                             f'.y{i}{{animation:y{i} {total:.2f}s steps({n},end) infinite}}</style>')
                 el += (f'<rect class="y{i}" x="{x0:.1f}" y="{y - LH * 0.8:.1f}" width="{n * CW + 4:.1f}" '
-                       f'height="{LH:.1f}" fill="#0A0A0A"/>')
-        else:
-            cls = "t h" if text.startswith(("**", "Verdict", "**Verdict")) else "t"
+                       f'height="{LH:.1f}" fill="{t["terminal-bg"]}"/>')
+        else:  # the verdict is the brightest line; a regression is the only red
+            cls = "t x" if LIT.search(text) else "t c" if text.startswith("**Verdict**") else "t"
             el = f'<text class="{cls}" x="{PAD}" y="{y:.1f}">{esc(text)}</text>'
         if total:
             css.append(f"@keyframes s{i}{{0%,{100 * at / total:.3f}%{{opacity:0}}"
@@ -159,54 +177,55 @@ def terminal(lines: list[tuple[float, str, str]], total: float | None, title: st
                        "step-end infinite}")
             el = f'<g class="s{i}">{el}</g>'
         body.append(el)
+    label = title.replace("|", ", ")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" role="img" '
-            f'aria-label="{esc(title)}"><style>{"".join(css)}</style>{"".join(body)}</svg>\n')
+            f'aria-label="{esc(label)}"><style>{"".join(css)}</style>{"".join(body)}</svg>\n')
 
 
 # ---------------------------------------------------------------------------------------------------- the PR comment
+# GitHub's own palettes (primer, 2025): the report is read as a comment on github.com, so the picture shows that frame.
+GH = {"light": {"bg": "#ffffff", "fg": "#1f2328", "muted": "#59636e", "line": "#d1d9e0", "well": "#f6f8fa",
+                "code": "#818b981f", "fade": "rgba(255,255,255,0)"},
+      "dark": {"bg": "#0d1117", "fg": "#f0f6fc", "muted": "#9198a1", "line": "#3d444d", "well": "#151b23",
+               "code": "#656c7633", "fade": "rgba(13,17,23,0)"}}
 GH_CSS = """
-body{margin:0;background:#fff;color:#1f2328;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",
-Helvetica,Arial,sans-serif}.page{width:880px;padding:24px 28px}.pr{font-size:24px;font-weight:400;margin:0 0 4px}
-.pr span{color:#59636e;font-weight:300}.meta{color:#59636e;font-size:13px;margin-bottom:20px;padding-bottom:14px;
-border-bottom:1px solid #d1d9e0}.state{display:inline-block;background:#1f883d;color:#fff;border-radius:2em;
-padding:3px 12px;margin-right:8px;font-weight:500}.row{display:flex;gap:14px}.avatar{width:40px;height:40px;
-border-radius:50%;background:#D98CD2;flex:none;color:#fff;font:700 16px/40px sans-serif;text-align:center}
-.comment{flex:1;border:1px solid #d1d9e0;border-radius:6px;overflow:hidden}.head{background:#f6f8fa;
-border-bottom:1px solid #d1d9e0;padding:8px 16px;color:#59636e;font-size:14px}.head b{color:#1f2328}
-.badge{float:right;border:1px solid #d1d9e0;border-radius:2em;padding:0 7px;font-size:12px}
-.md{padding:16px}.md h2{font-size:1.5em;border-bottom:1px solid #d1d9e0;padding-bottom:.3em;margin:0 0 16px;
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",
+"Noto Sans",Helvetica,Arial,sans-serif}.page{width:880px;padding:24px 28px}.row{display:flex;gap:14px}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--well);border:1px solid var(--line);
+box-sizing:border-box;flex:none;color:var(--muted);text-align:center;
+font:600 14px/38px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.comment{flex:1;border:1px solid var(--line);border-radius:6px;overflow:hidden}.head{background:var(--well);
+border-bottom:1px solid var(--line);padding:8px 16px;color:var(--muted);font-size:14px}.head b{color:var(--fg)}
+.md{padding:16px}.md h2{font-size:1.5em;border-bottom:1px solid var(--line);padding-bottom:.3em;margin:0 0 16px;
 font-weight:600}.md h3{font-size:1.25em;margin:24px 0 12px;font-weight:600}.md p{margin:0 0 12px}
-.md code{font:85% ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(129,139,152,.12);
-padding:.2em .4em;border-radius:6px}.md table{border-collapse:collapse;margin:0 0 14px;display:block;width:max-content;
-max-width:100%;overflow:auto}.md th,.md td{border:1px solid #d1d9e0;padding:6px 13px}.md th{font-weight:600}
-.md tr:nth-child(2n){background:#f6f8fa}.fade{position:relative}.fade:after{content:"";position:absolute;left:0;right:0;
-bottom:0;height:90px;background:linear-gradient(rgba(255,255,255,0),#fff)}
+.md code{font:85% ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);
+padding:.2em .4em;border-radius:6px}.md table{border-collapse:collapse;margin:0 0 14px;display:block;
+width:max-content;max-width:100%;overflow:auto}.md th,.md td{border:1px solid var(--line);padding:6px 13px}
+.md th{font-weight:600}.md tr:nth-child(2n){background:var(--well)}.fade{position:relative}
+.fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;
+background:linear-gradient(var(--fade),var(--bg))}
 """
 
 
-def comment_page(report: str) -> str:
-    """The report as GitHub renders a PR comment (GFM tables, the hidden marker stays hidden), in a PR page frame."""
+def comment_page(report: str, theme: str) -> str:
+    """The report as GitHub renders a PR comment (GFM tables, the hidden marker stays hidden) in that GitHub theme."""
     from markdown_it import MarkdownIt
 
     body = MarkdownIt("commonmark", {"html": True}).enable("table").render(report)
-    return (f'<!doctype html><html><head><meta charset="utf-8"><style>{GH_CSS}</style></head><body><div class="page">'
-            '<h1 class="pr">Add the review skill to the team harness <span>#48</span></h1>'
-            '<div class="meta"><span class="state">Open</span> example/app · harness change under review</div>'
-            '<div class="row"><div class="avatar">fd</div><div class="comment"><div class="head"><b>dev-a</b> '
-            'commented<span class="badge">flightdeck report</span></div>'
-            f'<div class="md fade">{body}</div></div></div></div></body></html>\n')
+    root = ";".join(f"--{k}:{v}" for k, v in GH[theme].items())
+    return (f'<!doctype html><html><head><meta charset="utf-8"><style>:root{{{root}}}{GH_CSS}</style></head><body>'
+            '<div class="page"><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head">'
+            f'<b>dev-a</b> commented</div><div class="md fade">{body}</div></div></div></div></body></html>\n')
 
 
 # ---------------------------------------------------------------------------------------------------- the diagram
 def diagram() -> str:
     """Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides (agent-factory's conventions:
     `scripts/diagrams.py` there; every color an Airframe token with its dark fallback)."""
-    v = {"canvas": "var(--af-canvas, #000000)", "raised": "var(--af-raised, #141414)", "surface":
-         "var(--af-surface, #0A0A0A)", "line": "var(--af-line-strong, #6B6B6B)", "fg": "var(--af-fg, #FFFFFF)",
-         "muted": "var(--af-fg-muted, #A6A6A6)", "subtle": "var(--af-fg-subtle, #8A8A8A)",
-         "brand": "var(--af-brand-line, #FFC400)", "rule": "var(--af-line, #2A2A2A)",
-         "fd": "var(--af-product-flightdeck, #D98CD2)", "hangar": "var(--af-product-hangar, #EE8F63)",
-         "ws": "var(--af-product-tower, #C5A93B)"}
+    v = {k: f"var(--af-{t}, {NIGHT[t]})" for k, t in {
+        "canvas": "canvas", "raised": "raised", "surface": "surface", "line": "line-strong", "fg": "fg",
+        "muted": "fg-muted", "subtle": "fg-subtle", "brand": "brand-line", "rule": "line", "fd": "product-flightdeck",
+        "hangar": "product-hangar", "ws": "product-tower"}.items()}
     font = {"name": "700 17px Archivo,'Helvetica Neue',Arial,sans-serif", "body":
             "400 12.5px 'Red Hat Text','Helvetica Neue',Arial,sans-serif", "lbl": "500 10.5px 'DM Mono',ui-monospace,"
             "Menlo,monospace", "small": "700 13px Archivo,'Helvetica Neue',Arial,sans-serif"}
@@ -290,7 +309,7 @@ def shoot(pages: dict[str, tuple[str, str]]) -> None:
             tab.set_content(page, wait_until="networkidle")
             tab.evaluate("document.fonts.ready")
             el = tab.locator(selector).first
-            if name == "report-comment.png":  # the top of the report: verdict, pins, outcome; then a fade
+            if name.startswith("report-comment"):  # the top of the report: verdict, pins, outcome; then a fade
                 tab.evaluate("""() => { const h = [...document.querySelectorAll('.md h3')]
                     .find(e => e.textContent === 'Process'); while (h.nextSibling) h.nextSibling.remove();
                     h.remove(); }""")
@@ -309,14 +328,14 @@ def main() -> None:
     lines, total = timeline(steps)
     files = {
         "demo.cast": cast(steps),
-        "demo.svg": terminal(lines, total, "flightdeck · fixture experiment"),
+        "demo.svg": terminal(lines, total, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
         "stats-compare.svg": terminal([(0, "cmd", steps[2][0])] + [(0, "out", x) for x in wrap(steps[2][1])], None,
-                                      "flightdeck stats compare"),
+                                      "flightdeck|stats compare"),
         "report.md": report,
-        "report-comment.html": comment_page(report),
+        **{f"report-comment-{t}.html": comment_page(report, t) for t in ("dark", "light")},
         "suite.svg": diagram(),
     }
-    pages = {"report-comment.png": (files["report-comment.html"], "div.page"),
+    pages = {**{f"report-comment-{t}.png": (files[f"report-comment-{t}.html"], "div.page") for t in ("dark", "light")},
              **{f"suite-{t}.png": (diagram_page(files["suite.svg"], t), "svg") for t in ("dark", "light")}}
     files["sources.sha256"] = "".join(f"{hashlib.sha256(p.encode()).hexdigest()}  {n}\n"
                                       for n, (p, _) in sorted(pages.items()))
