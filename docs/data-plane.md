@@ -144,7 +144,11 @@ fsspec URL; `gs://` needs the `gcs` extra.
   where objects can't be deleted yet, list it in `gs://<runs-bucket>/v1/_deletions/<request>.json` as
   `{"runs": ["<session_id>.<run_id>" or "<run_id>", ...]}`. Then rebuild its date. Within the lookback window the next
   night does this on its own, so a deletion is out of Parquet within 24 hours.
-- **Check a night:** the job's log prints rows per table per date, or `unchanged`.
+- **Deploy:** `sh deploy/compactor/setup.sh --project <p> --runs-bucket <hangar's run_bucket> --data-bucket <team>-flightdeck`
+  ([its README](https://github.com/Sean-Koval/flightdeck/tree/main/deploy/compactor#deploy); `--dry-run` first). Hangar's
+  GKE terraform makes the outbox bucket (output `run_bucket`) and its `deploy/gke/up.sh` turns the outbox on.
+- **Check a night:** the job's log prints rows per table per date, or `unchanged`; `flightdeck query --data
+  gs://<team>-flightdeck/parquet/v1 "select dt, count(*) from runs group by dt"` reads what it wrote.
 
 ## `flightdeck.weekly/v1`
 

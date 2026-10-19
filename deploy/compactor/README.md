@@ -15,15 +15,21 @@ and deletions: [docs/data-plane.md#compactor](../../docs/data-plane.md#compactor
 
 ## Deploy
 
+The outbox bucket is hangar's: its GKE terraform makes it (`<project>-hangar-runs`, output `run_bucket`) and its
+`deploy/gke/up.sh` points `HANGAR_OUTBOX_URL` at it (hangar `docs/gke.md`, "Run capture bucket"). Pass it as
+`--runs-bucket`:
+
 ```sh
-sh deploy/compactor/setup.sh --project <team-project> --runs-bucket <hangar-outbox-bucket> \
+RUNS=$(terraform -chdir=<hangar checkout>/deploy/terraform/gke output -raw run_bucket)    # gs://<project>-hangar-runs
+sh deploy/compactor/setup.sh --project <team-project> --runs-bucket "$RUNS" \
   --data-bucket <team>-flightdeck [--region us-east1] [--github-repos owner/repo,owner/repo2] --dry-run
 ```
 
 Read the dry run, then run it without `--dry-run`. It:
 
 1. enables Cloud Run, Cloud Scheduler, Artifact Registry, Cloud Build and Secret Manager;
-2. creates the service account `flightdeck-compactor` with `roles/storage.objectViewer` on the outbox bucket and
+2. creates the service account `flightdeck-compactor` and the flightdeck bucket (uniform access, public access
+   prevented) in `--region`, and grants the account `roles/storage.objectViewer` on the outbox bucket and
    `roles/storage.objectAdmin` on the flightdeck bucket only (no hangar token, no project-wide role);
 3. with `--github-repos`, grants it `secretAccessor` on the secret `flightdeck-github-token`, a read-only GitHub token
    you create first: `printf %s "$TOKEN" | gcloud secrets create flightdeck-github-token --data-file=-`;
@@ -33,7 +39,26 @@ Read the dry run, then run it without `--dry-run`. It:
 6. schedules `flightdeck-compactor-nightly` (`30 2 * * *`, America/New_York), which runs the job as the same service
    account (`roles/run.invoker` on this job only).
 
-Re-running it is safe. No bucket or project names are committed here (ADR-0002): they are arguments.
+Re-running it is safe. No bucket or project names are committed here (ADR-0002): they are arguments. It ends by
+printing the `run_bucket_readers` line for hangar's `terraform.tfvars`, which keeps the outbox grant in hangar's
+terraform as well, and the query that checks a night.
+
+## Check it
+
+After a hangar job has finished, its record set is in the outbox, `run.json` last (dates are UTC):
+
+```sh
+gcloud storage ls "gs://<runs-bucket>/v1/runs/$(date -u +%F)/*/run.json"
+```
+
+After the next run of the job (02:30 ET, or `gcloud run jobs execute flightdeck-compactor --region <r> --wait`), the
+tables are under `gs://<data-bucket>/parquet/v1`, where `flightdeck query` reads them with your application-default
+credentials (`gcloud auth application-default login`; the `gcs` extra):
+
+```sh
+export FLIGHTDECK_DATA_URI=gs://<data-bucket>/parquet/v1
+uv run --extra gcs flightdeck query "select dt, source, count(*) as runs from runs group by all order by dt"
+```
 
 ## Operate
 
