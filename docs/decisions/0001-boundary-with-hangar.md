@@ -1,4 +1,4 @@
-# 0001: Hangar runs, flightdeck judges, the governed workspace governs
+# 0001: Hangar runs, flightdeck judges, the governed workspace (now Tower) governs
 
 Status: Accepted · Oct 15, 2026
 
@@ -27,7 +27,7 @@ live hangar to judge runs breaks overnight.
 
 Choose C.
 
-1. Hangar runs. Flightdeck judges. The governed workspace governs.
+1. Hangar runs. Flightdeck judges. The governed workspace (now Tower) governs.
 2. Flightdeck never holds sandbox, provider or team credentials.
 3. Flightdeck reads only hangar's versioned interfaces and the Parquet data plane, never hangar's SQLite or data
    directory. This holds wherever the GCS → Parquet compactor ends up living.

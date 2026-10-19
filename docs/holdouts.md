@@ -1,5 +1,10 @@
 # Holdouts
 
+!!! note "Status"
+    Code merged ([#52](https://github.com/Sean-Koval/flightdeck/pull/52)); issue [#13](https://github.com/Sean-Koval/flightdeck/issues/13) stays open until two blind writers produce the first sealed set
+    (at least 20 regression tasks), the age key pair and its offline backup exist, and the manifest's
+    `min_hangar_version` names the first hangar release with grader isolation.
+
 A sealed holdout is a set of tasks that nobody tuning a harness has seen, scored **once**, when a search winner or a
 promotion needs one honest number. Custody is what keeps it unseen: hashes that refuse an edited file, canaries that
 detect a leak, writers who never read the code they're testing, and an approver who isn't the candidate's author. The

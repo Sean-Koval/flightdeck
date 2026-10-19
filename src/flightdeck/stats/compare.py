@@ -76,7 +76,7 @@ def value(t: dict[str, Any], metric: str) -> float | None:
 
 @cache
 def mde(tasks: int, trials: int, power: float = 0.8) -> float | None:
-    """The smallest lift (5 pp steps) the r1 simulation detects at `power` with this many paired tasks and trials."""
+    """The smallest lift (5 pp steps) simulate_power detects at `power` with this many paired tasks and trials."""
     for pp in range(5, 55, 5):
         if simulate_power(tasks, trials, pp / 100, sims=400) >= power:
             return pp / 100
@@ -141,7 +141,7 @@ def compare(trials: list[dict[str, Any]], metric: str, a: str, b: str, seed: int
             n_trials = max(1, round(c.diff.n_trials / (2 * len(paired))))
             m = mde(len(paired), n_trials)
             c.power = (f"At {len(paired)} paired tasks x {n_trials} trials the minimum detectable lift at 80% power "
-                       f"is about {m:.0%} (r1 simulation)." if m else
+                       f"is about {m:.0%} (simulated)." if m else
                        f"At {len(paired)} paired tasks x {n_trials} trials no lift up to 50 pp reaches 80% power.")
     return c
 

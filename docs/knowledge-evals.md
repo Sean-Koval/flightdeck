@@ -1,5 +1,9 @@
 # Knowledge evals
 
+!!! note "Status"
+    Code merged ([#54](https://github.com/Sean-Koval/flightdeck/pull/54)); issue [#21](https://github.com/Sean-Koval/flightdeck/issues/21) stays open until the 40 questions are written, sealed and both
+    baselines scored once in the private data repository.
+
 The knowledge plan builds no team retrieval service unless a gold set shows the baselines, repo search and Claude
 Projects, **losing by at least 15 points** on correctness or citation validity. People write the gold set (40
 questions); flightdeck seals it, scores each arm once, and keeps it as the regression gate for any retrieval tool a
@@ -46,7 +50,7 @@ flightdeck knowledge score suites/knowledge-gold-v1 --arm baseline-repo-search -
   [--baseline baseline-repo-search --candidate retrieval]
 ```
 
-- **Correctness**: every required fact is present. Until a rubric judge is calibrated (#27, κ ≥ 0.6), two people
+- **Correctness**: every required fact is present. Until a rubric judge is calibrated ([#27](https://github.com/Sean-Koval/flightdeck/issues/27), κ ≥ 0.6), two people
   rate each answer (`labels/<arm>.jsonl`, `correct` true or false); the majority decides and a tie counts as
   incorrect. The report prints Cohen's κ between the first two raters.
 - **Citation validity**: an answer is valid when it cites at least one source and every citation is valid. Each
@@ -61,4 +65,4 @@ flightdeck knowledge score suites/knowledge-gold-v1 --arm baseline-repo-search -
   plain words: "*baseline* is shown to lose by at least 15 points on ..." when an interval's lower bound reaches +15
   points, else "*baseline* is not shown to lose by 15 points".
 
-Link the report from #21 and from the knowledge ADR once both baselines are scored.
+Link the report from [#21](https://github.com/Sean-Koval/flightdeck/issues/21) and from the knowledge ADR once both baselines are scored.

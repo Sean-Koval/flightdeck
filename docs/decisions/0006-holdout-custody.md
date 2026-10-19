@@ -6,7 +6,7 @@ Status: Accepted · Oct 17, 2026 (agent-proposed; owner review requested)
 
 Every search winner and every promotion gets measured once on held-out tasks (#13). A held-out set that anyone tuning
 the harness can read, or that is scored repeatedly, stops measuring generalization: it becomes one more thing to fit.
-The governed workspace already practices custody for its labelled sets, and flightdeck may reuse it:
+The governed workspace (now Tower) already practices custody for its labelled sets, and flightdeck may reuse it:
 
 - `server/evals/manifest.json` lists every labelled set with its sha256, and `aw.rules_report.check_manifest`
   (`server/aw/rules_report.py:32-46`) refuses to score a listed file whose hash differs.

@@ -65,7 +65,6 @@ exclude_docs: |
   assets/report.md
   assets/build.py
 
-# Guides (reports, tasks, behavior specs, runners) join the nav as their pages land on main.
 nav:
   - Home: index.md
   - Get started:
@@ -80,6 +79,8 @@ nav:
       - Behavior specs: behavior-specs.md
       - Reports: reports.md
   - Reference:
+      - CLI: cli.md
+      - Contracts: contracts.md
       - Data plane: data-plane.md
       - Weekly metrics: metrics.md
       - Statistics: statistics.md
