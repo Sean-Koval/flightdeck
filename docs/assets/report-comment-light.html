@@ -15,8 +15,8 @@ width:max-content;max-width:100%;overflow:auto}.md th,.md td{border:1px solid va
 .fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;
 background:linear-gradient(var(--fade),var(--bg))}
 </style></head><body><div class="page"><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head"><b>dev-a</b> commented</div><div class="md fade"><!-- flightdeck:report:job-expdemo -->
-<h2>treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)</h2>
-<p><code>job-expdemo</code>: treat against control, 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).</p>
+<h2>candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)</h2>
+<p><code>job-expdemo</code>: candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).</p>
 <p>Rule, pre-registered in <code>decision.yaml</code>: resolved, higher is better, margin −5.0 pp, at least 10 paired tasks.</p>
 <h3>Outcome</h3>
 <table>
@@ -38,7 +38,7 @@ background:linear-gradient(var(--fade),var(--bg))}
 <td>$1.33 ($0.80 to $2.79)</td>
 </tr>
 <tr>
-<td>treat</td>
+<td>candidate</td>
 <td>31</td>
 <td>16 of 31 (52%)</td>
 <td>35% to 68%</td>
@@ -46,7 +46,7 @@ background:linear-gradient(var(--fade),var(--bg))}
 </tr>
 </tbody>
 </table>
-<p>Paired difference treat − control: <strong>+21.2 pp</strong> (95% CI +1.5 pp to +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).</p>
+<p>Paired difference candidate − control: <strong>+21.2 pp</strong> (95% CI +1.5 pp to +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).</p>
 <p>At 11 paired tasks × 3 trials the minimum detectable lift at 80% power is about 35 pp (simulated).</p>
 <p>Resolved: grader for 63 trials (grader = exit 0 and applied; verify = hangar's after-turn verify when no grader ran).</p>
 <p>Saturated (same outcome in every trial of both arms, no information): t01, t02.</p>

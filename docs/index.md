@@ -15,16 +15,16 @@ hide:
 [Get started](getting-started.md){ .md-button .md-button--primary } [Suite overview](https://sean-koval.github.io/agent-factory/){ .md-button }
 </div>
 <figure class="af-hero__visual">
-<img src="assets/demo.svg" alt="A terminal session on the fixture experiment: flightdeck ingests the export, compares the variants paired by task and writes a report, printing its verdict, treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0). It opens on the finished session and then replays the typing." width="660" height="537">
+<img src="assets/demo.svg" alt="A terminal session on the fixture experiment: flightdeck ingests the export, compares the variants paired by task and writes a report, printing its verdict, candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0). It opens on the finished session and then replays the typing." width="660" height="537">
 <figcaption>ingest, stats compare, report on the fixture experiment, recorded by docs/assets/build.py</figcaption>
 </figure>
 </div>
 
 <div id="the-verdict" markdown>
 !!! verdict "The verdict"
-    One of five words: *better*, *non-inferior*, *worse*, *No decision* or *No verdict*. It says how the treatment
+    One of five words: *better*, *non-inferior*, *worse*, *No decision* or *No verdict*. It says how the candidate
     arm did against the control arm on one metric, with the paired difference and its 95% interval beside it:
-    *treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)*. The rule that picks the word
+    *candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)*. The rule that picks the word
     (`decision.yaml`: metric, direction, margin, minimum tasks) is committed before the first trial, so nobody moves
     the goalposts. [Concepts](concepts.md) has the words; [Reports](reports.md#pre-registration) has the rule.
 </div>
@@ -43,8 +43,8 @@ The verdict, posted as one pull-request comment that is updated in place. This o
 experiment (12 tasks × 2 variants × 3 trials):
 
 <figure class="af-figure" markdown>
-![The top of the flightdeck report as a pull-request comment: the headline is the verdict, treat is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task](assets/report-comment-dark.png#only-dark){ width=816 height=656 }
-![The top of the flightdeck report as a pull-request comment: the headline is the verdict, treat is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task](assets/report-comment-light.png#only-light){ width=816 height=656 }
+![The top of the flightdeck report as a pull-request comment: the headline is the verdict, candidate is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task](assets/report-comment-dark.png#only-dark){ width=816 height=656 }
+![The top of the flightdeck report as a pull-request comment: the headline is the verdict, candidate is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task](assets/report-comment-light.png#only-light){ width=816 height=656 }
 <figcaption>The top of the report on the pull request, from the fixture experiment</figcaption>
 </figure>
 
@@ -109,9 +109,9 @@ experiment-job-expdemo: 73 runs, 331 spans, 710 events, 2 manifests, 70 grades,
 SPEC                       APPLIED  PASSED  FAILED  UNKNOWN
 never-push-main                 72      72       0        1
 5 specs over 73 units: 0 failed, 5 unknown
-Paired difference treat − control: +21.2 pp (95% CI +1.5 pp to +43.9 pp;
+Paired difference candidate − control: +21.2 pp (95% CI +1.5 pp to +43.9 pp;
   task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).
-treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9,
+candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9,
   margin −5.0)
 ```
 

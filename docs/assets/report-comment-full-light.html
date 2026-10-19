@@ -15,8 +15,8 @@ width:max-content;max-width:100%;overflow:auto}.md th,.md td{border:1px solid va
 .fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;
 background:linear-gradient(var(--fade),var(--bg))}
 </style></head><body><div class="page"><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head"><b>dev-a</b> commented</div><div class="md"><!-- flightdeck:report:job-expdemo -->
-<h2>treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)</h2>
-<p><code>job-expdemo</code>: treat against control, 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).</p>
+<h2>candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)</h2>
+<p><code>job-expdemo</code>: candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).</p>
 <p>Rule, pre-registered in <code>decision.yaml</code>: resolved, higher is better, margin −5.0 pp, at least 10 paired tasks.</p>
 <h3>Outcome</h3>
 <table>
@@ -38,7 +38,7 @@ background:linear-gradient(var(--fade),var(--bg))}
 <td>$1.33 ($0.80 to $2.79)</td>
 </tr>
 <tr>
-<td>treat</td>
+<td>candidate</td>
 <td>31</td>
 <td>16 of 31 (52%)</td>
 <td>35% to 68%</td>
@@ -46,7 +46,7 @@ background:linear-gradient(var(--fade),var(--bg))}
 </tr>
 </tbody>
 </table>
-<p>Paired difference treat − control: <strong>+21.2 pp</strong> (95% CI +1.5 pp to +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).</p>
+<p>Paired difference candidate − control: <strong>+21.2 pp</strong> (95% CI +1.5 pp to +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).</p>
 <p>At 11 paired tasks × 3 trials the minimum detectable lift at 80% power is about 35 pp (simulated).</p>
 <p>Resolved: grader for 63 trials (grader = exit 0 and applied; verify = hangar's after-turn verify when no grader ran).</p>
 <p>Saturated (same outcome in every trial of both arms, no information): t01, t02.</p>
@@ -67,13 +67,13 @@ background:linear-gradient(var(--fade),var(--bg))}
 <td>3.0 calls</td>
 </tr>
 <tr>
-<td>treat</td>
+<td>candidate</td>
 <td>31</td>
 <td>2.3 calls</td>
 </tr>
 </tbody>
 </table>
-<p>Paired difference treat − control: <strong>−0.7 calls</strong> (95% CI −0.8 calls to −0.6 calls; task bootstrap, 11 tasks, 62 trials).</p>
+<p>Paired difference candidate − control: <strong>−0.7 calls</strong> (95% CI −0.8 calls to −0.6 calls; task bootstrap, 11 tasks, 62 trials).</p>
 <p>Wall time</p>
 <table>
 <thead>
@@ -90,13 +90,13 @@ background:linear-gradient(var(--fade),var(--bg))}
 <td>174.9 s</td>
 </tr>
 <tr>
-<td>treat</td>
+<td>candidate</td>
 <td>31</td>
 <td>182.6 s</td>
 </tr>
 </tbody>
 </table>
-<p>Paired difference treat − control: <strong>+2.9 s</strong> (95% CI −40.8 s to +44.7 s; task bootstrap, 11 tasks, 62 trials).</p>
+<p>Paired difference candidate − control: <strong>+2.9 s</strong> (95% CI −40.8 s to +44.7 s; task bootstrap, 11 tasks, 62 trials).</p>
 <h3>Cost</h3>
 <table>
 <thead>
@@ -115,21 +115,21 @@ background:linear-gradient(var(--fade),var(--bg))}
 <td>$1.30 ($0.78 to $2.77)</td>
 </tr>
 <tr>
-<td>treat</td>
+<td>candidate</td>
 <td>31</td>
 <td>$0.33</td>
 <td>$0.64 ($0.45 to $1.07)</td>
 </tr>
 </tbody>
 </table>
-<p>Paired difference treat − control: <strong>−$0.09</strong> (95% CI −$0.11 to −$0.07; task bootstrap, 11 tasks, 62 trials).</p>
+<p>Paired difference candidate − control: <strong>−$0.09</strong> (95% CI −$0.11 to −$0.07; task bootstrap, 11 tasks, 62 trials).</p>
 <h3>Behavior specs</h3>
 <table>
 <thead>
 <tr>
 <th>spec</th>
 <th>control pass</th>
-<th>treat pass</th>
+<th>candidate pass</th>
 </tr>
 </thead>
 <tbody>
@@ -154,7 +154,7 @@ background:linear-gradient(var(--fade),var(--bg))}
 <tr>
 <th></th>
 <th>control</th>
-<th>treat</th>
+<th>candidate</th>
 </tr>
 </thead>
 <tbody>

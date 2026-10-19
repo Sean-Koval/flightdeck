@@ -11,8 +11,8 @@ and a [verdict](#the-verdict) posted on the pull request where the change is rev
 
 <a id="the-verdict"></a>
 > **The verdict** is one of five words: *better*, *non-inferior*, *worse*, *No decision* or *No verdict*. It says how
-> the treatment arm did against the control arm on one metric, with the paired difference and its 95% interval beside
-> it: *treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)*. The rule that picks the word
+> the candidate arm did against the control arm on one metric, with the paired difference and its 95% interval beside
+> it: *candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)*. The rule that picks the word
 > (`decision.yaml`: metric, direction, margin, minimum tasks) is committed before the first trial, so nobody moves the
 > goalposts. [Concepts](docs/concepts.md) has the words; [Reports](docs/reports.md#pre-registration) has the rule.
 
@@ -34,13 +34,13 @@ experiment (12 tasks × 2 variants × 3 trials):
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/report-comment-light.png">
-  <img alt="The top of the flightdeck report as a pull-request comment: the headline is the verdict, treat is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task" src="docs/assets/report-comment-dark.png" width="816" height="656">
+  <img alt="The top of the flightdeck report as a pull-request comment: the headline is the verdict, candidate is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task" src="docs/assets/report-comment-dark.png" width="816" height="656">
 </picture>
 
 The run that produced it, `ingest → stats compare → report` (`check run`, which feeds the Behavior specs section,
 is in the quickstart below):
 
-<img alt="A terminal session on the fixture experiment: flightdeck ingests the export, compares the variants paired by task and writes a report, printing its verdict, treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0). It opens on the finished session and then replays the typing." src="docs/assets/demo.svg" width="660" height="537">
+<img alt="A terminal session on the fixture experiment: flightdeck ingests the export, compares the variants paired by task and writes a report, printing its verdict, candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0). It opens on the finished session and then replays the typing." src="docs/assets/demo.svg" width="660" height="537">
 
 <details><summary><code>stats compare</code> on its own</summary>
 
@@ -101,9 +101,9 @@ experiment-job-expdemo: 73 runs, 331 spans, 710 events, 2 manifests, 70 grades,
 SPEC                       APPLIED  PASSED  FAILED  UNKNOWN
 never-push-main                 72      72       0        1
 5 specs over 73 units: 0 failed, 5 unknown
-Paired difference treat − control: +21.2 pp (95% CI +1.5 pp to +43.9 pp;
+Paired difference candidate − control: +21.2 pp (95% CI +1.5 pp to +43.9 pp;
   task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).
-treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9,
+candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9,
   margin −5.0)
 ```
 

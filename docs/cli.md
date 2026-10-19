@@ -138,7 +138,7 @@ Paired statistics over the data plane. Guide: [Statistics](statistics.md#flightd
 
 ### `flightdeck stats compare`
 
-Compare variant B against A on one metric, paired by task, with exclusions printed.
+Compare the candidate arm against the baseline on one metric, paired by task, with exclusions printed.
 
 ```
 flightdeck stats compare [OPTIONS] EXPERIMENT
@@ -147,8 +147,8 @@ flightdeck stats compare [OPTIONS] EXPERIMENT
 | Argument or option | Type | Default | Environment | Description |
 | --- | --- | --- | --- | --- |
 | `EXPERIMENT` | text | required |  |  |
-| `--a` | text | `control` |  |  |
-| `--b` | text | `treat` |  |  |
+| `--baseline`, `--a` | text | `control` |  | The arm that runs today; the verdict is against it. |
+| `--candidate`, `--b` | text | `candidate` |  | The arm with the change under judgement. |
 | `--metric` | text | `resolved` |  | resolved&#124;cost_usd&#124;tool_calls&#124;wall_s |
 | `--seed` | integer | `0` |  |  |
 | `--include-drift` | flag | off |  |  |
@@ -170,8 +170,8 @@ flightdeck report experiment [OPTIONS] EXPERIMENT
 | Argument or option | Type | Default | Environment | Description |
 | --- | --- | --- | --- | --- |
 | `EXPERIMENT` | text | required |  |  |
-| `--a`, `--baseline` | text | `control` |  |  |
-| `--b` | text | `treat` |  |  |
+| `--baseline`, `--a` | text | `control` |  | The arm that runs today; the verdict is against it. |
+| `--candidate`, `--b` | text | `candidate` |  | The arm with the change under judgement. |
 | `--decision` | path |  |  | Pre-registered decision.yaml; the verdict needs it. |
 | `--details` / `--no-details` | flag | off |  | Per-task rows and trial links (keep off for public repos). |
 | `--hangar` | text |  | `HANGAR_URL` | Hangar base URL for trial links. |

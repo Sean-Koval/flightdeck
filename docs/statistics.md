@@ -68,7 +68,7 @@ its interval and n.
 ## `flightdeck stats compare`
 
 ```sh
-flightdeck stats compare <experiment> [--a control] [--b treat] [--metric resolved|cost_usd|tool_calls|wall_s]
+flightdeck stats compare <experiment> [--baseline control] [--candidate candidate] [--metric resolved|cost_usd|tool_calls|wall_s]
                          [--include-drift] [--seed 0] [--data DIR]
 ```
 

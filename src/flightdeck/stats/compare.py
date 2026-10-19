@@ -46,26 +46,17 @@ def resolved(t: dict[str, Any]) -> tuple[bool | None, str]:
 
 
 def exclusion(t: dict[str, Any], metric: str, include_drift: bool = False) -> str | None:
-    """Why a trial is left out of this metric, or None."""
-    if t["outcome"] is None:
-        return "not finished"
-    if t.get("outcome_class") == "infra_error" or t.get("excluded"):  # hangar's class (#166): retried, not counted
-        return "infra_error"
-    if t["outcome"] == "cancelled" or t.get("outcome_class") in ("cancelled", "human"):
-        return "human" if t.get("outcome_class") == "human" else "cancelled"
-    if t.get("task_invalid"):
-        return "task_invalid"
-    if t.get("contaminated"):
-        return "contaminated"
-    if t.get("drift") and not include_drift:
-        return "drift"
-    if metric != "resolved" and t.get("truncated"):
-        return "truncated trace"
-    if metric == "resolved" and resolved(t)[0] is None:
-        return "no grade or verify"
-    if metric != "resolved" and value(t, metric) is None:
-        return f"unknown {metric}"
-    return None
+    """Why a trial is left out of this metric (the first reason that applies), or None."""
+    cls, outcome = t.get("outcome_class"), t["outcome"]
+    reasons = (("not finished", outcome is None),
+               ("infra_error", cls == "infra_error" or t.get("excluded")),  # hangar's class (#166): retried, uncounted
+               ("human", cls == "human"), ("cancelled", outcome == "cancelled" or cls == "cancelled"),
+               ("task_invalid", t.get("task_invalid")), ("contaminated", t.get("contaminated")),
+               ("drift", t.get("drift") and not include_drift),
+               ("truncated trace", metric != "resolved" and t.get("truncated")),
+               ("no grade or verify", metric == "resolved" and resolved(t)[0] is None),
+               (f"unknown {metric}", metric != "resolved" and value(t, metric) is None))
+    return next((why for why, hit in reasons if hit), None)
 
 
 def value(t: dict[str, Any], metric: str) -> float | None:
@@ -221,13 +212,15 @@ def plain(md: str) -> str:
 app = typer.Typer(help="Paired statistics over the data plane.", no_args_is_help=True)
 DATA = typer.Option("~/.flightdeck/data", "--data", envvar="FLIGHTDECK_DATA_URI", help="Data plane: directory or gs://")
 MD = typer.Option(False, "--md", help="Print markdown (for an issue or a file) instead of the terminal readout.")
+BASELINE = typer.Option("control", "--baseline", "--a", help="The arm that runs today; the verdict is against it.")
+CANDIDATE = typer.Option("candidate", "--candidate", "--b", help="The arm with the change under judgement.")
 
 
 @app.command("compare")
-def compare_cmd(experiment: str, a: str = typer.Option("control", "--a"), b: str = typer.Option("treat", "--b"),
+def compare_cmd(experiment: str, a: str = BASELINE, b: str = CANDIDATE,
                 metric: str = typer.Option("resolved", help="|".join(METRICS)), seed: int = 0,
                 include_drift: bool = typer.Option(False, "--include-drift"), data: str = DATA, md: bool = MD) -> None:
-    """Compare variant B against A on one metric, paired by task, with exclusions printed."""
+    """Compare the candidate arm against the baseline on one metric, paired by task, with exclusions printed."""
     from flightdeck.dataplane.duck import connect
 
     trials = load_trials(connect(os.path.expanduser(data)), experiment)

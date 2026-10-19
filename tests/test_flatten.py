@@ -117,8 +117,8 @@ def test_experiment_rows() -> None:
     jsonschema.Draft202012Validator(SCHEMAS("experiment.schema.json")).validate(index)
     rows = flatten.flatten_experiment(index)
     assert len(rows["runs"]) == 7 and len(rows["grades"]) == 6
-    r = next(x for x in rows["runs"] if x["trial_key"] == "retry/treat/1")
-    assert r["run_id"] == "job-exp01/retry/treat/1" and r["variant"] == "treat" and r["drift"]
+    r = next(x for x in rows["runs"] if x["trial_key"] == "retry/candidate/1")
+    assert r["run_id"] == "job-exp01/retry/candidate/1" and r["variant"] == "candidate" and r["drift"]
     assert r["base_sha"] == "a" * 40 and r["cost_usd"] == pytest.approx(0.4)
     g = next(x for x in rows["grades"] if x["trial_key"] == "semver/control/2")
     assert g["exit_code"] == 1 and g["applied"] is True and json.loads(g["data"]) == {"reward": 0}
@@ -160,4 +160,4 @@ def test_query_over_a_local_data_plane(tmp_path: Path) -> None:
     assert result.output.splitlines() == ["n\tdays", "7\t1"]
     joined = "select r.variant, count(*) from runs r join grades g using (run_id) group by 1 order by 1"
     out = CliRunner().invoke(app, ["query", joined, "--data", str(tmp_path)]).output.splitlines()
-    assert out[1:] == ["control\t3", "treat\t3"]
+    assert out[1:] == ["candidate\t3", "control\t3"]

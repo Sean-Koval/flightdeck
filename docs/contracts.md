@@ -41,6 +41,10 @@ Flightdeck also reads GitHub REST for closed pull requests (`ingest github` → 
 - `hangar.run/v1`: the `pr.ready` job event, and `counted` and `agent_run_id` on test runs;
 - `hangar.manifest/v1`: nothing.
 
+flightdeck also reads one optional field hangar does not write yet: a `description` on each of `pins.variants`
+(one line saying what the arm is, such as *the review skill*). The report names the arms with it; without it the
+arms are their names. The fixture carries it, and an experiment index may add it by hand.
+
 So the index of an experiment whose variants run from harness locks fails the vendored check
 (`model_concrete_basis: harness_lock` isn't in its enum); ingest warns and goes on, and the new fields stay in the raw
 JSON. `python scripts/sync_hangar_schemas.py --hangar ../hangar` refreshes the copies. That refresh goes with
@@ -70,7 +74,7 @@ Every table also has `run_id`, `source` and `dt` (`flightdeck.parquet/v1`; `dt` 
 
 | Flattened from hangar | Columns |
 | --- | --- |
-| `runs` | `job_id`, `session_id`, `turn` int, `experiment_id`, `trial_key`, `task_id`, `variant`, `trial` int, `person`, `repo`, `environment`, `harness`, `harness_version`, `model_id`, `outcome`, `reason`, `outcome_class`, `infra_reason`, `excluded` bool, `attempt` int, `config_digest`, `harness_digest`, `environment_digest`, `manifest_digest`, `base_sha`, `cost_usd` float, `cost_source`, `input_tokens` int, `output_tokens` int, `cache_read_tokens` int, `started_at` timestamp, `finished_at` timestamp, `verify_passed` bool, `pr_url`, `pr_number` int, `merged` bool, `merged_by`, `diff_files` list of strings, `drift` list of strings, `truncated` bool, `task_invalid` bool, `contaminated` bool, `grade_trust`, `job_source`, `job_turn` int, `job_state`, `steers` int, `questions` int, `untrusted` bool, `tainted` bool, `task_digest`, `variant_digest` |
+| `runs` | `job_id`, `session_id`, `turn` int, `experiment_id`, `trial_key`, `task_id`, `variant`, `trial` int, `person`, `repo`, `environment`, `harness`, `harness_version`, `model_id`, `outcome`, `reason`, `outcome_class`, `infra_reason`, `excluded` bool, `attempt` int, `config_digest`, `harness_digest`, `environment_digest`, `manifest_digest`, `base_sha`, `cost_usd` float, `cost_source`, `input_tokens` int, `output_tokens` int, `cache_read_tokens` int, `started_at` timestamp, `finished_at` timestamp, `verify_passed` bool, `pr_url`, `pr_number` int, `merged` bool, `merged_by`, `diff_files` list of strings, `drift` list of strings, `truncated` bool, `task_invalid` bool, `contaminated` bool, `grade_trust`, `job_source`, `job_turn` int, `job_state`, `steers` int, `questions` int, `untrusted` bool, `tainted` bool, `task_digest`, `variant_digest`, `variant_description` |
 | `spans` | `trace_id`, `span_id`, `parent_span_id`, `job_id`, `session_id`, `environment`, `person`, `kind`, `name`, `start_ns` int, `end_ns` int, `seq` int, `seq_end` int, `status_code` int, `tool_kind`, `tool_name`, `tool_input`, `tool_output`, `tool_ok` bool, `shell_ops` list of strings, `file_repo_path`, `mcp_server`, `mcp_tool`, `skill_name`, `approval_status`, `approval_by`, `attrs` |
 | `events` | `trace_id`, `span_id`, `span_kind`, `name`, `time_ns` int, `seq` int, `file_repo_path`, `file_op`, `text`, `attrs` |
 | `manifests` | `digest`, `config_digest`, `captured_at` timestamp, `subject_kind`, `session_id`, `turn` int, `job_id`, `person`, `harness_name`, `harness_version`, `harness_locked`, `harness_mode`, `harness_digest`, `model_id`, `model_policy`, `model_provider`, `skills_effective` list of strings, `mcp_servers` list of strings, `hooks` list of strings, `approvals`, `egress_mode`, `environment_name`, `environment_spec_digest`, `environment_digest`, `knowledge_snapshot`, `repo_url`, `base_sha`, `json` |
