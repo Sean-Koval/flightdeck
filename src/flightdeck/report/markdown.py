@@ -16,7 +16,7 @@ import typer
 
 from flightdeck import judges
 from flightdeck.dataplane.flatten import SECRET
-from flightdeck.stats.compare import Comparison, compare, exclusion, load_trials, render
+from flightdeck.stats.compare import Comparison, compare, exclusion, load_trials, plain, render
 
 LIMIT = 65_536  # GitHub's comment size limit
 PROCESS = ("tool_calls", "wall_s")
@@ -216,11 +216,7 @@ def _post(text: str, target: str, full: str | None, gist: bool) -> None:
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         raise typer.BadParameter("set GITHUB_TOKEN (issues:write / pull_requests:write on the target repo)")
-    try:
-        typer.echo(post(text, target, token, full, gist))
-    except ValueError as e:
-        typer.secho(f"error: {e}", fg="red", err=True)
-        raise typer.Exit(1) from None
+    typer.echo(post(text, target, token, full, gist))  # a ValueError is one line from the entry point (cli.run)
 
 
 @app.command("experiment")
@@ -228,16 +224,17 @@ def report_experiment(experiment: str, a: str = typer.Option("control", "--a", "
                       b: str = typer.Option("treat", "--b"), decision: Path = DECISION, details: bool = DETAILS,
                       hangar: str = HANGAR, out: Path = OUT, post_to: str = POST, seed: int = 0,
                       data: str = DATA, full_url: str = FULL, gist: bool = GIST) -> None:
-    """Render an experiment's report from the data plane; print it, write it, post it."""
+    """Render an experiment's report from the data plane: print it as a readout, write it (markdown), post it."""
     from flightdeck.dataplane.duck import connect
 
     text = render_report(connect(os.path.expanduser(data)), experiment, a, b, decision, details, hangar, seed)
     if out:
         out.write_text(text, encoding="utf-8")
+        typer.echo(plain(text.splitlines()[3]) + f"\nwrote {out} ({len(text.splitlines())} lines)")
     if post_to:
         _post(text, post_to, full_url, gist)
     elif not out:
-        typer.echo(text)
+        typer.echo(plain(text))
 
 
 @app.command("post")

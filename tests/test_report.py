@@ -176,5 +176,9 @@ def test_report_cli_writes_and_posts(plane: str, tmp_path: Path, monkeypatch: py
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 0, result.output
     assert out.read_text().startswith(markdown.marker(EXP)) and posted == [("o/r#9", None)]  # never a local path
+    lines = result.output.splitlines()  # the verdict and what was written, not the markdown
+    assert lines[0].startswith("No verdict: no pre-registered decision.yaml") and lines[1].startswith(f"wrote {out} (")
+    shown = CliRunner().invoke(app, ["report", "experiment", EXP, "--data", plane]).output
+    assert shown.startswith("flightdeck report: ") and "**" not in shown and "<!--" not in shown
     result = CliRunner().invoke(app, ["report", "post", str(out), "--to", "o/r#10", "--full-url", "https://x/r.md"])
     assert result.exit_code == 0 and posted[-1] == ("o/r#10", "https://x/r.md")

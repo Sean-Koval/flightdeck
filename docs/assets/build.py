@@ -48,7 +48,6 @@ COMMANDS = [
     f"flightdeck check run --data plane --date {DAY} --specs specs",
     f"flightdeck stats compare {EXP} --data plane",
     f"flightdeck report experiment {EXP} --data plane --decision export/decision.yaml --out report.md",
-    "grep Verdict report.md",
 ]
 COLS, ROWS = 104, 36  # terminal size; output lines wrap at COLS
 FONTS = ("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900"
@@ -129,7 +128,7 @@ def cast(steps: list[tuple[str, str]]) -> str:
 # ---------------------------------------------------------------------------------------------------- terminal SVG
 CW, LH, PAD, BAR = 7.8, 17.0, 18, 34  # char width (0.6em at 13px), line height, padding, title bar
 MONO = "'DM Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
-LIT = re.compile(r"\bis worse than\b|\bfail=[1-9]")  # the lines a terminal may color: the failed role, never green
+LIT = re.compile(r"\bis worse than\b|\b[1-9]\d* failed\b")  # lines a terminal may color: the failed role, never green
 TERM_ICON = ('<g fill="none" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" '
              'transform="translate({x},{y}) scale(.7)"><rect x="2.5" y="3.5" width="15" height="13"/>'
              '<path d="M6 8l2.5 2L6 12M10.5 12.5H14"/></g>')  # Airframe's `terminal` icon, 20px grid drawn at 14px
@@ -169,7 +168,7 @@ def terminal(lines: list[tuple[float, str, str]], total: float | None, title: st
                 el += (f'<rect class="y{i}" x="{x0:.1f}" y="{y - LH * 0.8:.1f}" width="{n * CW + 4:.1f}" '
                        f'height="{LH:.1f}" fill="{t["terminal-bg"]}"/>')
         else:  # the verdict is the brightest line; a regression is the only red
-            cls = "t x" if LIT.search(text) else "t c" if text.startswith("**Verdict**") else "t"
+            cls = "t x" if LIT.search(text) else "t c" if text.startswith("Verdict:") else "t"
             el = f'<text class="{cls}" x="{PAD}" y="{y:.1f}">{esc(text)}</text>'
         if total:
             css.append(f"@keyframes s{i}{{0%,{100 * at / total:.3f}%{{opacity:0}}"

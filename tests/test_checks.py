@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -70,7 +71,10 @@ def test_check_run_writes_spec_results(tmp_path: Path) -> None:
     assert got[("adr:adrs/0008-push-policy", "never-push-main", "run-1")] == "fail"
     assert got[("spec", "tests-before-commit", "job-job_fail")] == "fail"
     assert {r["source"] for r in rows} == {"job"} and all(r["repo"] for r in rows)
-    assert "landing-stays-in-hangar\tpass=2 fail=1 not_applicable=0 unknown=0\te.g. job-merge" in out.output
+    assert re.search(r"^SPEC +APPLIED +PASSED +FAILED +UNKNOWN$", out.output, re.M)
+    assert re.search(r"^landing-stays-in-hangar \(adr:.*\) +3 +2 +1 +0 +e\.g\. job-merge$", out.output, re.M)
+    assert re.search(r"^never-push-main \(adr:.*\) +[—] +— +— +0 +not applied$", out.output, re.M) is None  # it applied
+    assert re.search(r"^\d+ specs over \d+ units: \d+ failed, \d+ unknown$", out.output, re.M)
     assert "not-yet" not in out.output  # proposed ADR
     again = CliRunner().invoke(app, ["check", "run", "--data", str(plane), "--date", day, "--adrs", str(ADRS)])
     assert again.exit_code == 0 and "ALERT" not in again.output  # rerun replaces the day's partition
