@@ -1,4 +1,11 @@
-<div class="af-hero" markdown>
+---
+hide:
+  - navigation
+  - toc
+---
+
+<div class="af-hero af-hero--visual" markdown>
+<div markdown>
 <span class="af-eyebrow">Agent factory · Judge plane</span>
 
 # Did that harness change actually help?
@@ -6,6 +13,11 @@
 <p class="af-lede">Flightdeck answers that from the runs hangar already records: paired statistics, behavior specs and a verdict posted on the pull request where the change is reviewed.</p>
 
 [Get started](getting-started.md){ .md-button .md-button--primary } [Suite overview](https://sean-koval.github.io/agent-factory/){ .md-button }
+</div>
+<figure class="af-hero__visual">
+<img src="assets/demo.svg" alt="A terminal session: flightdeck ingests the fixture experiment, runs the behavior specs, compares the variants paired by task and writes a report whose verdict is that treat is better than control" width="847" height="537">
+<figcaption>ingest, check run, stats compare, report: the fixture experiment, recorded by docs/assets/build.py</figcaption>
+</figure>
 </div>
 
 **Is:** the Judge. It reads hangar's outbox (GCS → Parquet → DuckDB), or an experiment, job or session over
@@ -27,9 +39,7 @@ experiment (12 tasks × 2 variants × 3 trials):
 <figcaption>The report on the pull request, from the fixture experiment</figcaption>
 </figure>
 
-The run that produced it, `ingest → check run → stats compare → report`:
-
-![A terminal session: flightdeck ingests the fixture experiment, runs the behavior specs, compares the variants paired by task and writes a report whose verdict is that treat is better than control](assets/demo.svg)
+The run that produced it is the recording above, `ingest → check run → stats compare → report`.
 
 <details><summary><code>stats compare</code> on its own</summary>
 
