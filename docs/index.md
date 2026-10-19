@@ -18,13 +18,18 @@ time), behavior specs and, later, trace-mined micro-evals ([#33](https://github.
 
 ## See it work
 
-`ingest → check run → stats compare → report` on the synthetic fixture experiment (12 tasks × 2 variants × 3 trials):
+The verdict, posted as one pull-request comment that is updated in place. This one comes from the synthetic fixture
+experiment (12 tasks × 2 variants × 3 trials):
+
+<figure class="af-figure" markdown>
+![The flightdeck report as a pull-request comment: a pre-registered verdict, treat is better than control on resolved (+21.2 pp, CI +1.5 to +43.9), the pins of each variant and the outcome table with Wilson intervals and dollars per resolved task](assets/report-comment-dark.png#only-dark)
+![The flightdeck report as a pull-request comment: a pre-registered verdict, treat is better than control on resolved (+21.2 pp, CI +1.5 to +43.9), the pins of each variant and the outcome table with Wilson intervals and dollars per resolved task](assets/report-comment-light.png#only-light)
+<figcaption>The report on the pull request, from the fixture experiment</figcaption>
+</figure>
+
+The run that produced it, `ingest → check run → stats compare → report`:
 
 ![A terminal session: flightdeck ingests the fixture experiment, runs the behavior specs, compares the variants paired by task and writes a report whose verdict is that treat is better than control](assets/demo.svg)
-
-The report, posted as one pull-request comment that is updated in place (rendered from the same run):
-
-![The flightdeck report as a pull-request comment: a pre-registered verdict, the pins of each variant and the outcome table with Wilson intervals and dollars per resolved task](assets/report-comment.png)
 
 <details><summary><code>stats compare</code> on its own</summary>
 

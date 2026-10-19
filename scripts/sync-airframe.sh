@@ -14,6 +14,7 @@ set -eu
 FILES="
 airframe.css            docs/stylesheets/airframe.css
 airframe-docs.css       docs/stylesheets/airframe-docs.css
+airframe-tokens.json    docs/stylesheets/airframe-tokens.json
 "
 
 ref="${1:-main}"
