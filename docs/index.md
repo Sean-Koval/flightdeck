@@ -90,21 +90,26 @@ Needs [uv](https://docs.astral.sh/uv/) and git. Six commands, on the fixture exp
 
 ```sh
 git clone https://github.com/Sean-Koval/flightdeck && cd flightdeck
-uv run python scripts/fixture_export.py demo/export        # what `hangar experiment export <id> -o DIR` writes
+uv run python scripts/fixture_export.py demo/export
 uv run flightdeck ingest export demo/export --out demo/plane
-uv run flightdeck check run --data demo/plane --date 2025-10-16 --specs specs/examples/team-default.yaml
+uv run flightdeck check run --data demo/plane --date 2025-10-16 \
+    --specs specs/examples/team-default.yaml
 uv run flightdeck stats compare job-expdemo --data demo/plane
-uv run flightdeck report experiment job-expdemo --data demo/plane --decision demo/export/decision.yaml
+uv run flightdeck report experiment job-expdemo --data demo/plane \
+    --decision demo/export/decision.yaml
 ```
 
-Once uv has installed the dependencies (the first `uv run` does that), it takes a few seconds. Expect, among the
-output:
+The first `uv run` installs the dependencies; after that the six take a few seconds. `scripts/fixture_export.py`
+writes what `hangar experiment export <id> -o DIR` writes. Expect, among the output:
 
 ```text
-experiment-job-expdemo: 73 runs, 331 spans, 710 events, 2 manifests, 70 grades, 213 test_cases -> demo/plane
+experiment-job-expdemo: 73 runs, 331 spans, 710 events, 2 manifests, 70 grades,
+  213 test_cases -> demo/plane
 spec	never-push-main	pass=72 fail=0 not_applicable=0 unknown=1
-Paired difference treat - control: **+21.2 pp**, 95% CI +1.5 pp to +43.9 pp (task bootstrap; 11 tasks, 63 trials; ...)
-**Verdict**: treat is better than control on resolved (+21.2 pp, CI +1.5…+43.9, margin -5.0).
+Paired difference treat - control: **+21.2 pp**, 95% CI +1.5 pp to +43.9 pp
+  (task bootstrap; 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).
+**Verdict**: treat is better than control on resolved
+  (+21.2 pp, CI +1.5…+43.9, margin -5.0).
 ```
 
 The fixture is built with a large effect so that 11 tasks can show it; the report also gets a Behavior specs section
@@ -138,7 +143,7 @@ Vocabulary (verdict, variant, trial, check vs grader) is in [Concepts](concepts.
 
 ## Where to go next
 
-- [Getting started](getting-started.md): the boundary, the fixture end to end, a real hangar, the code map.
+- [Getting started](getting-started.md): six commands on the fixture, what they showed, a real hangar.
 - [Concepts](concepts.md): the vocabulary (verdict, variant, trial, check vs grader).
 - [CLI](cli.md) and [Contracts](contracts.md): every command and flag; what flightdeck reads, writes and pins.
 - [Decisions](decisions/0001-boundary-with-hangar.md): the boundary with hangar, the public-code, private-data split

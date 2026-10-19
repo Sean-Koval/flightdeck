@@ -45,6 +45,22 @@ close to its source goes in `src/flightdeck/ported/`, which is reported but not 
 flightdeck counts. If a change needs more room, cut something or argue for a higher budget in an ADR (the last one:
 [0005](docs/decisions/0005-post-v0-budget.md), which the post-v0 batch amends); don't move code into `ported/` to dodge the count.
 
+## Code map
+
+| Module | What |
+| --- | --- |
+| `flightdeck.dataplane` | `flightdeck.parquet/v1` tables (runs, spans, events, manifests, grades, test_cases), flatteners from hangar's manifest, OTLP trace and experiment index, DuckDB views; `flightdeck query`. See [Data plane](docs/data-plane.md) |
+| `flightdeck.dataplane.ingest` | `flightdeck ingest export\|experiment\|job\|session`: hangar REST or `hangar experiment export` into local Parquet, idempotent, validated against vendored hangar schemas. See [Data plane](docs/data-plane.md#ingest) |
+| `flightdeck.stats` | Wilson, pass@k, pass^k, clean-run bound, paired task bootstrap, $ per resolved task, McNemar counts, a power simulation (`simulate_power`); `flightdeck stats compare` with exclusions and saturated tasks. See [Statistics](docs/statistics.md) |
+| `flightdeck.report` | `flightdeck report experiment`: the markdown report with a pre-registered verdict, posted as one PR or issue comment. See [Reports](docs/reports.md) |
+| `flightdeck.specs` | `flightdeck.spec/v1` behavior specs: YAML predicates over `hangar.trace/v1`, a Python reference evaluator and a DuckDB compiler, the trusted-test rule; `flightdeck spec lint\|test`; the nightly runner over the data plane with ADR `checks:`, change-point alerts and `flightdeck check run\|diff`. Mutation scoring of suites: `flightdeck mutate plan\|run\|score`. See [Behavior specs](docs/behavior-specs.md) |
+| `flightdeck.tasks` | Harbor-compatible task directories: load, check and digest them, map them onto a `hangar.experiment/v1` spec; `flightdeck task new\|check\|digest`; `flightdeck task import-aidlc` for ai-dlc evaluation suites; sealed holdout custody, `flightdeck holdout brief\|seal\|score\|canary-scan` ([Holdouts](docs/holdouts.md)); the knowledge gold set, `flightdeck knowledge seal\|score` ([Knowledge evals](docs/knowledge-evals.md)); rubric judges, `flightdeck judge label\|calibrate\|score\|estimate` ([Judges](docs/judges.md)); the semver smoke task in `tasks/smoke/`. See [Tasks](docs/tasks.md) |
+| `flightdeck.runners` | The experiment submission client: suite plans to `hangar.experiment/v1` specs, a cost gate, `flightdeck experiment run\|status\|collect`. See [Running experiments](docs/runners.md) |
+| `flightdeck.ported` | Code moved in and kept close to its source, outside the line budget: hangar's model-concreteness rule and trace classifier; ai-dlc's local runner, evaluation contracts and suite checks |
+
+v0 is pre-release. Flightdeck has to change one real team decision ([#20](https://github.com/Sean-Koval/flightdeck/issues/20))
+before anything else, a UI included, gets built.
+
 ## Running the smoke tasks locally
 
 The local backend runs tasks in Docker on your machine, with no hangar and no model calls ([docs/runners.md](docs/runners.md#local)).
