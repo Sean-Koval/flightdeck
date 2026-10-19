@@ -36,6 +36,11 @@ At about 500 trials a month, an outcome A/B is only worth running **paired by ta
 arms, and the comparison resamples tasks. Tasks differ far more from each other than trials of one task do, so
 unpaired comparisons (or trial-level resampling) mostly measure which tasks each arm happened to get.
 
+<div class="af-figure" markdown>
+--8<-- "docs/assets/paired-by-task.svg"
+<figcaption>Every task runs in both arms; the discordant tasks carry the signal</figcaption>
+</div>
+
 A simulation (`stats.core.simulate_power`; task base rates from Beta(1.2, 1.2), one-sided z test at α = 0.025),
 50 tasks × 3 trials per arm:
 

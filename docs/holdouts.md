@@ -38,6 +38,11 @@ holdouts/
 
 ## The cycle
 
+<div class="af-figure" markdown>
+--8<-- "docs/assets/flow-holdout.svg"
+<figcaption>Custody of a sealed set: briefed, written blind, sealed, run once, scored once; scanned nightly</figcaption>
+</div>
+
 1. **Briefs.** `flightdeck holdout brief reg-2 --writers 2 --count 20 --family regression --mined-after 2026-10-01`
    writes `briefs/reg-2_writer_{a,b}.txt` in Tower's blind-writer shape: what the set is for, the
    format, "do NOT read any file in this repository except what you create under `holdouts/incoming/<writer>/`",

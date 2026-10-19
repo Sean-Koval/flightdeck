@@ -3,6 +3,11 @@
 Flightdeck decides what to run (task sets, variants, how many trials); hangar runs it. A runner is the backend
 that hands flightdeck's plan to hangar and brings the results back into the data plane. Code: `src/flightdeck/runners/`.
 
+<div class="af-figure" markdown>
+--8<-- "docs/assets/flow-experiment.svg"
+<figcaption>An experiment's life: suite, plan, cost gate, hangar, collect, report; the cache skips what is already known</figcaption>
+</div>
+
 ## Backends
 
 ```python
