@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the front page's assets (README.md and docs/index.md) from the synthetic fixture experiment.
+"""Generate the front pages' assets (README.md, docs/index.md, docs/getting-started.md) from the fixture experiment.
 
 Runs the real CLI (`ingest -> check run -> stats compare -> report`) on `scripts/fixture_export.py`'s experiment in a
 temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`), and writes, next to this script:
@@ -8,7 +8,7 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
   session as an animated terminal (CSS keyframes; no player needed on GitHub or the docs site). The recording shows
   `ingest -> stats compare -> report` (`check run` feeds the report's Behavior specs section but is not shown), opens
   on the finished session with the verdict, holds it for `HOLD` seconds, then replays the typing; the loop is under
-  20 s and 80 columns wide, so it reads at the hero's width;
+  20 s and 80 columns wide, so it reads at the hero's width; `demo-still.svg`: its finished frame, for the README;
 - `stats-compare.svg`: the `stats compare` output as a still terminal;
 - `report.md` and `report-comment[-full]-{dark,light}.html`: the report, and the report rendered as a GitHub
   pull-request comment in GitHub's dark and light palettes, on a 760 px page so it reads inside a docs column: the top
@@ -345,6 +345,7 @@ def main() -> None:
     files = {
         "demo.cast": cast(steps),
         "demo.svg": terminal(lines, total, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
+        "demo-still.svg": terminal(lines, None, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
         "stats-compare.svg": terminal([(0, "cmd", stats[0])] + [(0, "out", x) for x in wrap(stats[1])], None,
                                       "flightdeck|stats compare"),
         "report.md": report,
