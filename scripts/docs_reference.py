@@ -64,14 +64,22 @@ def md(text: str | None) -> str:
     return "`".join(parts)
 
 
+def panel(cmd: Any) -> str:
+    return getattr(cmd, "rich_help_panel", None) or "Commands"
+
+
+def in_help_order(subs: dict[str, Any]) -> list[tuple[str, Any]]:
+    """The visible entries of a group as `--help` lists them: by panel (first appearance), then registration order."""
+    panels = list(dict.fromkeys(panel(c) for c in subs.values()))
+    return sorted(((n, c) for n, c in subs.items() if not c.hidden), key=lambda nc: panels.index(panel(nc[1])))
+
+
 def walk(cmd: Any, path: tuple[str, ...]) -> list[tuple[tuple[str, ...], Any]]:
-    """(path, command) for every visible command under `cmd`, groups expanded, in registration order."""
+    """(path, command) for every visible command under `cmd`, groups expanded, in `--help` order."""
     subs = getattr(cmd, "commands", None)
     if subs is None:
         return [(path, cmd)]
-    leaves = [(path + (n,), c) for n, c in subs.items() if not c.hidden and getattr(c, "commands", None) is None]
-    groups = [(n, c) for n, c in subs.items() if not c.hidden and getattr(c, "commands", None) is not None]
-    return leaves + [x for n, c in groups for x in walk(c, path + (n,))]
+    return [x for n, c in in_help_order(subs) for x in walk(c, path + (n,))]
 
 
 def usage(path: tuple[str, ...], cmd: Any) -> str:
@@ -117,24 +125,22 @@ def cli_reference() -> str:
            "scripts/docs_reference.py` (`tests/test_docs_reference.py` fails when this page is stale). Every command "
            "also takes `--help`. Options with an environment variable read it when the option isn't given; an option "
            "without a description here is explained in its group's guide.", "",
-           "| Group | What it does | Commands | Guide |", "| --- | --- | --- | --- |"]
-    top = [n for n, c in subs.items() if getattr(c, "commands", None) is None and not c.hidden]
-    out.append("| (none) | Top-level commands | " + ", ".join(f"[`{n}`](#flightdeck-{n})" for n in top) + " | "
-               + ", ".join(f"`{n}`: {guide(n)}" for n in top if n in GUIDES) + " |")
-    for n, c in subs.items():
-        if getattr(c, "commands", None) is not None and not c.hidden:
-            cmds = ", ".join(f"[`{s}`](#flightdeck-{n}-{s})" for s in c.commands)
-            out.append(f"| [`{n}`](#flightdeck-{n}) | {md(c.help)} | {cmds} | {guide(n)} |")
+           "| Command | What it does | Subcommands | Guide |", "| --- | --- | --- | --- |"]
+    heading = None  # the table and the sections follow `flightdeck --help`: its panels, in its order
+    for n, c in in_help_order(subs):
+        if panel(c) != heading:
+            heading = panel(c)
+            out.append(f"| **{heading}** | | | |")
+        cmds = ", ".join(f"[`{s}`](#flightdeck-{n}-{s})" for s in getattr(c, "commands", ()))
+        out.append(f"| [`{n}`](#flightdeck-{n}) | {md(c.help)} | {cmds or '—'} | {guide(n) if n in GUIDES else '—'} |")
     group = None
     for path, cmd in walk(root, ()):
         if len(path) > 1 and path[0] != group:
             group = path[0]
             out += ["", f"## `flightdeck {group}`", "", md(subs[group].help) + f" Guide: {guide(group)}."]
-        elif len(path) == 1 and group is None:
-            group = ""
-            out += ["", "## Top-level commands"]
         more = f" Guide: {guide(path[0])}." if len(path) == 1 and path[0] in GUIDES else ""
-        out += ["", f"### `flightdeck {' '.join(path)}`", "", md(cmd.help) + more, "", "```", usage(path, cmd), "```"]
+        head = f"{'##' if len(path) == 1 else '###'} `flightdeck {' '.join(path)}`"
+        out += ["", head, "", md(cmd.help) + more, "", "```", usage(path, cmd), "```"]
         params = [p for p in cmd.params if not getattr(p, "hidden", False)]
         if params:
             out += ["", "| Argument or option | Type | Default | Environment | Description |",

@@ -2,65 +2,34 @@
 
 Every command, argument and option of `flightdeck`, generated from the code by `uv run python scripts/docs_reference.py` (`tests/test_docs_reference.py` fails when this page is stale). Every command also takes `--help`. Options with an environment variable read it when the option isn't given; an option without a description here is explained in its group's guide.
 
-| Group | What it does | Commands | Guide |
+| Command | What it does | Subcommands | Guide |
 | --- | --- | --- | --- |
-| (none) | Top-level commands | [`compact`](#flightdeck-compact), [`version`](#flightdeck-version), [`query`](#flightdeck-query) | `compact`: [Data plane: compactor](data-plane.md#compactor), `query`: [Data plane: querying](data-plane.md#querying) |
-| [`ingest`](#flightdeck-ingest) | Pull hangar runs into the local data plane (flightdeck.parquet/v1). | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`session`](#flightdeck-ingest-session), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
-| [`stats`](#flightdeck-stats) | Paired statistics over the data plane. | [`compare`](#flightdeck-stats-compare) | [Statistics](statistics.md#flightdeck-stats-compare) |
-| [`report`](#flightdeck-report) | Markdown reports, posted where the change is reviewed. | [`experiment`](#flightdeck-report-experiment), [`post`](#flightdeck-report-post) | [Reports](reports.md) |
-| [`spec`](#flightdeck-spec) | Behavior specs over hangar.trace/v1: lint them, test them on an export. | [`lint`](#flightdeck-spec-lint), [`test`](#flightdeck-spec-test) | [Behavior specs](behavior-specs.md) |
-| [`check`](#flightdeck-check) | Nightly specs and ADR checks over the data plane; check-edit labels. | [`run`](#flightdeck-check-run), [`diff`](#flightdeck-check-diff) | [Behavior specs: nightly runner](behavior-specs.md#adr-checks-and-the-nightly-runner) |
-| [`mutate`](#flightdeck-mutate) | Mutation scoring: mutate the harness, check the suite catches each mutant. | [`plan`](#flightdeck-mutate-plan), [`run`](#flightdeck-mutate-run), [`score`](#flightdeck-mutate-score) | [Behavior specs: mutation scoring](behavior-specs.md#mutation-scoring) |
+| **Judge a change** | | | |
+| [`ingest`](#flightdeck-ingest) | Pull hangar runs and experiments into the data plane. | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`session`](#flightdeck-ingest-session), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
+| [`stats`](#flightdeck-stats) | Compare the arms of an experiment, paired by task. | [`compare`](#flightdeck-stats-compare) | [Statistics](statistics.md#flightdeck-stats-compare) |
+| [`report`](#flightdeck-report) | The verdict as a report, posted on the pull request. | [`experiment`](#flightdeck-report-experiment), [`post`](#flightdeck-report-post) | [Reports](reports.md) |
+| **Run experiments** | | | |
+| [`experiment`](#flightdeck-experiment) | Trials on hangar: submit a suite, follow it, collect it. | [`run`](#flightdeck-experiment-run), [`status`](#flightdeck-experiment-status), [`collect`](#flightdeck-experiment-collect) | [Running experiments](runners.md) |
 | [`task`](#flightdeck-task) | Harbor-compatible task directories: write, check, digest. | [`new`](#flightdeck-task-new), [`check`](#flightdeck-task-check), [`digest`](#flightdeck-task-digest), [`import-aidlc`](#flightdeck-task-import-aidlc) | [Tasks](tasks.md) |
+| [`cache`](#flightdeck-cache) | The trial-result cache: drop entries, check the drift sentinel. | [`drop`](#flightdeck-cache-drop), [`sentinel`](#flightdeck-cache-sentinel) | [Running experiments: cache](runners.md#cache) |
+| **Behavior** | | | |
+| [`spec`](#flightdeck-spec) | Behavior specs over traces: lint them, test them on an export. | [`lint`](#flightdeck-spec-lint), [`test`](#flightdeck-spec-test) | [Behavior specs](behavior-specs.md) |
+| [`check`](#flightdeck-check) | Run the behavior specs and ADR checks over the data plane; label edits to them. | [`run`](#flightdeck-check-run), [`diff`](#flightdeck-check-diff) | [Behavior specs: nightly runner](behavior-specs.md#adr-checks-and-the-nightly-runner) |
+| [`mutate`](#flightdeck-mutate) | Mutation scoring: mutate the harness, check the suite catches each mutant. | [`plan`](#flightdeck-mutate-plan), [`run`](#flightdeck-mutate-run), [`score`](#flightdeck-mutate-score) | [Behavior specs: mutation scoring](behavior-specs.md#mutation-scoring) |
+| **Sealed sets** | | | |
 | [`holdout`](#flightdeck-holdout) | Sealed holdouts: briefs, seal, canary scan, score once. | [`brief`](#flightdeck-holdout-brief), [`seal`](#flightdeck-holdout-seal), [`score`](#flightdeck-holdout-score), [`canary-scan`](#flightdeck-holdout-canary-scan) | [Holdouts](holdouts.md) |
 | [`knowledge`](#flightdeck-knowledge) | The knowledge gold set: seal it, score arms on correctness and citations. | [`seal`](#flightdeck-knowledge-seal), [`score`](#flightdeck-knowledge-score) | [Knowledge evals](knowledge-evals.md) |
-| [`experiment`](#flightdeck-experiment) | Trials on hangar: submit a suite, follow it, collect it. | [`run`](#flightdeck-experiment-run), [`status`](#flightdeck-experiment-status), [`collect`](#flightdeck-experiment-collect) | [Running experiments](runners.md) |
-| [`cache`](#flightdeck-cache) | The trial-result cache: drop entries, check the drift sentinel. | [`drop`](#flightdeck-cache-drop), [`sentinel`](#flightdeck-cache-sentinel) | [Running experiments: cache](runners.md#cache) |
-| [`metrics`](#flightdeck-metrics) | Team metrics over the data plane (docs/metrics.md). | [`weekly`](#flightdeck-metrics-weekly) | [Weekly metrics](metrics.md) |
-| [`judge`](#flightdeck-judge) | Rubric judges: label sheets, calibration, judge labels, PPI estimates. | [`label`](#flightdeck-judge-label), [`calibrate`](#flightdeck-judge-calibrate), [`score`](#flightdeck-judge-score), [`estimate`](#flightdeck-judge-estimate) | [Judges](judges.md) |
-
-## Top-level commands
-
-### `flightdeck compact`
-
-Compact hangar's outbox into the data plane (nightly on Cloud Run: deploy/compactor/). Guide: [Data plane: compactor](data-plane.md#compactor).
-
-```
-flightdeck compact [OPTIONS]
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `--date` | text |  |  | UTC outbox date, YYYY-MM-DD (default: today). |
-| `--lookback` | integer | `3` |  | Also recompact this many days before --date whose inputs changed. |
-| `--rebuild` / `--no-rebuild` | flag | off |  | Rewrite the dates even if their inputs are unchanged. |
-| `--input` | text | required | `FLIGHTDECK_RUNS_URI` | Outbox root: gs://, file:// or path. |
-| `--out` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root. |
-
-### `flightdeck version`
-
-Print flightdeck's version.
-
-```
-flightdeck version
-```
-
-### `flightdeck query`
-
-Run SQL over the data plane's tables (runs, spans, events, manifests, grades, test_cases). Guide: [Data plane: querying](data-plane.md#querying).
-
-```
-flightdeck query [OPTIONS] SQL
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `SQL` | text | required |  |  |
-| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane root: a directory or gs:// URI. |
+| [`judge`](#flightdeck-judge) | Rubric judges: label sheets, calibration, judge labels, corrected estimates. | [`label`](#flightdeck-judge-label), [`calibrate`](#flightdeck-judge-calibrate), [`score`](#flightdeck-judge-score), [`estimate`](#flightdeck-judge-estimate) | [Judges](judges.md) |
+| **Data plane** | | | |
+| [`metrics`](#flightdeck-metrics) | Weekly team metrics over the data plane. | [`weekly`](#flightdeck-metrics-weekly) | [Weekly metrics](metrics.md) |
+| [`compact`](#flightdeck-compact) | Compact hangar's outbox into the data plane (nightly on Cloud Run: deploy/compactor/). | — | [Data plane: compactor](data-plane.md#compactor) |
+| [`query`](#flightdeck-query) | Run SQL over the data plane's tables (runs, spans, events, manifests, grades, test_cases); tab-separated. | — | [Data plane: querying](data-plane.md#querying) |
+| **About** | | | |
+| [`version`](#flightdeck-version) | Print flightdeck's version. | — | — |
 
 ## `flightdeck ingest`
 
-Pull hangar runs into the local data plane (flightdeck.parquet/v1). Guide: [Data plane: ingest](data-plane.md#ingest).
+Pull hangar runs and experiments into the data plane. Guide: [Data plane: ingest](data-plane.md#ingest).
 
 ### `flightdeck ingest export`
 
@@ -134,7 +103,7 @@ flightdeck ingest github [OPTIONS]
 
 ## `flightdeck stats`
 
-Paired statistics over the data plane. Guide: [Statistics](statistics.md#flightdeck-stats-compare).
+Compare the arms of an experiment, paired by task. Guide: [Statistics](statistics.md#flightdeck-stats-compare).
 
 ### `flightdeck stats compare`
 
@@ -157,7 +126,7 @@ flightdeck stats compare [OPTIONS] EXPERIMENT
 
 ## `flightdeck report`
 
-Markdown reports, posted where the change is reviewed. Guide: [Reports](reports.md).
+The verdict as a report, posted on the pull request. Guide: [Reports](reports.md).
 
 ### `flightdeck report experiment`
 
@@ -197,9 +166,150 @@ flightdeck report post [OPTIONS] REPORT
 | `--full-url` | text |  |  | Where the full report is (https), linked when a comment is clipped. |
 | `--gist` | flag | off |  | Link a clipped comment to a secret gist of the full report. |
 
+## `flightdeck experiment`
+
+Trials on hangar: submit a suite, follow it, collect it. Guide: [Running experiments](runners.md).
+
+### `flightdeck experiment run`
+
+Gate a suite's plan on model pins and projected cost, then submit it (or print it with --dry-run).
+
+```
+flightdeck experiment run [OPTIONS] SUITE
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `SUITE` | path | required |  | Suite file (YAML). |
+| `--dry-run` | flag | off |  | Print the spec and the projection; submit nothing. |
+| `--max-usd` | number |  |  | Refuse a plan projected above this. |
+| `--assume` | number | `3.0` |  | $ per trial for a task without cost history. |
+| `--budgets` | path |  | `FLIGHTDECK_BUDGETS` | Caps. |
+| `--author` | text |  | `FLIGHTDECK_AUTHOR` | Whose sub-cap the plan spends. |
+| `--allow-model` | text, repeatable |  |  | Accept this id as concrete. |
+| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane: cost history, collect target. |
+| `--backend` | text | `hangar` |  | hangar, or local: Docker on this machine (fixtures, CI). |
+| `--cache` | flag | off |  | Reuse matching trials from --data; submit only the rest. |
+
+### `flightdeck experiment status`
+
+A run set's state, trial counts, and pins that break pairing (exit 1 when there are any).
+
+```
+flightdeck experiment status [OPTIONS] RUN_SET
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `RUN_SET` | text | required |  |  |
+| `--json` | flag | off |  |  |
+| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane: cost history, collect target. |
+
+### `flightdeck experiment collect`
+
+Write a run set's trials and grades into the data plane.
+
+```
+flightdeck experiment collect [OPTIONS] RUN_SET
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `RUN_SET` | text | required |  |  |
+| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane: cost history, collect target. |
+
+## `flightdeck task`
+
+Harbor-compatible task directories: write, check, digest. Guide: [Tasks](tasks.md).
+
+### `flightdeck task new`
+
+Write a new task from the template: safe test.sh, hidden tests, Harbor task.toml.
+
+```
+flightdeck task new [OPTIONS] PATH
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `PATH` | path | required |  |  |
+| `--id` | text |  |  | Task id (default: the directory's name). |
+
+### `flightdeck task check`
+
+Validate task directories: layout, symlinks, files_digest, hangar's limits.
+
+```
+flightdeck task check PATHS...
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `PATHS` | path, one or more | required |  |  |
+
+### `flightdeck task digest`
+
+Print the task digest and the tests' digest (files_digest).
+
+```
+flightdeck task digest [OPTIONS] PATH
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `PATH` | path | required |  |  |
+| `--write` | flag | off |  | Update files_digest in task.toml. |
+
+### `flightdeck task import-aidlc`
+
+Convert an ai-dlc evaluation suite (JSON) into task dirs, specs and a suite file; print the assertion mapping.
+
+```
+flightdeck task import-aidlc [OPTIONS] SUITE
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `SUITE` | path | required |  |  |
+| `--out` | path | required |  | An empty directory to write into. |
+
+## `flightdeck cache`
+
+The trial-result cache: drop entries, check the drift sentinel. Guide: [Running experiments: cache](runners.md#cache).
+
+### `flightdeck cache drop`
+
+Stop reusing trials of these tasks or identities finished before now.
+
+```
+flightdeck cache drop [OPTIONS]
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root (local). |
+| `--task` | text, repeatable |  |  | A task id. |
+| `--identity` | text, repeatable |  |  | An identity (harness+environment digest). |
+
+### `flightdeck cache sentinel`
+
+Check the nightly sentinel (`experiment run <suite>` without --cache) for a step change; exit 1 on alerts.
+
+```
+flightdeck cache sentinel [OPTIONS] SUITE VARIANT
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `SUITE` | path | required |  |  |
+| `VARIANT` | text | required |  |  |
+| `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root (local). |
+| `--window` | integer | `14` |  |  |
+| `--alerts-repo` | text |  |  | owner/repo for an issue (gh). |
+
 ## `flightdeck spec`
 
-Behavior specs over hangar.trace/v1: lint them, test them on an export. Guide: [Behavior specs](behavior-specs.md).
+Behavior specs over traces: lint them, test them on an export. Guide: [Behavior specs](behavior-specs.md).
 
 ### `flightdeck spec lint`
 
@@ -229,7 +339,7 @@ flightdeck spec test [OPTIONS] SPEC
 
 ## `flightdeck check`
 
-Nightly specs and ADR checks over the data plane; check-edit labels. Guide: [Behavior specs: nightly runner](behavior-specs.md#adr-checks-and-the-nightly-runner).
+Run the behavior specs and ADR checks over the data plane; label edits to them. Guide: [Behavior specs: nightly runner](behavior-specs.md#adr-checks-and-the-nightly-runner).
 
 ### `flightdeck check run`
 
@@ -315,61 +425,6 @@ flightdeck mutate score [OPTIONS] PLAN_FILE RUN_SET
 | `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane root. |
 | `--bound` | number | `0.9` |  |  |
 | `--out` | path |  |  |  |
-
-## `flightdeck task`
-
-Harbor-compatible task directories: write, check, digest. Guide: [Tasks](tasks.md).
-
-### `flightdeck task new`
-
-Write a new task from the template: safe test.sh, hidden tests, Harbor task.toml.
-
-```
-flightdeck task new [OPTIONS] PATH
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `PATH` | path | required |  |  |
-| `--id` | text |  |  | Task id (default: the directory's name). |
-
-### `flightdeck task check`
-
-Validate task directories: layout, symlinks, files_digest, hangar's limits.
-
-```
-flightdeck task check PATHS...
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `PATHS` | path, one or more | required |  |  |
-
-### `flightdeck task digest`
-
-Print the task digest and the tests' digest (files_digest).
-
-```
-flightdeck task digest [OPTIONS] PATH
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `PATH` | path | required |  |  |
-| `--write` | flag | off |  | Update files_digest in task.toml. |
-
-### `flightdeck task import-aidlc`
-
-Convert an ai-dlc evaluation suite (JSON) into task dirs, specs and a suite file; print the assertion mapping.
-
-```
-flightdeck task import-aidlc [OPTIONS] SUITE
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `SUITE` | path | required |  |  |
-| `--out` | path | required |  | An empty directory to write into. |
 
 ## `flightdeck holdout`
 
@@ -476,116 +531,9 @@ flightdeck knowledge score [OPTIONS] SUITE
 | `--candidate` | text |  |  |  |
 | `--seed` | integer | `0` |  |  |
 
-## `flightdeck experiment`
-
-Trials on hangar: submit a suite, follow it, collect it. Guide: [Running experiments](runners.md).
-
-### `flightdeck experiment run`
-
-Gate a suite's plan on model pins and projected cost, then submit it (or print it with --dry-run).
-
-```
-flightdeck experiment run [OPTIONS] SUITE
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `SUITE` | path | required |  | Suite file (YAML). |
-| `--dry-run` | flag | off |  | Print the spec and the projection; submit nothing. |
-| `--max-usd` | number |  |  | Refuse a plan projected above this. |
-| `--assume` | number | `3.0` |  | $ per trial for a task without cost history. |
-| `--budgets` | path |  | `FLIGHTDECK_BUDGETS` | Caps. |
-| `--author` | text |  | `FLIGHTDECK_AUTHOR` | Whose sub-cap the plan spends. |
-| `--allow-model` | text, repeatable |  |  | Accept this id as concrete. |
-| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane: cost history, collect target. |
-| `--backend` | text | `hangar` |  | hangar, or local: Docker on this machine (fixtures, CI). |
-| `--cache` | flag | off |  | Reuse matching trials from --data; submit only the rest. |
-
-### `flightdeck experiment status`
-
-A run set's state, trial counts, and pins that break pairing (exit 1 when there are any).
-
-```
-flightdeck experiment status [OPTIONS] RUN_SET
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `RUN_SET` | text | required |  |  |
-| `--json` | flag | off |  |  |
-| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane: cost history, collect target. |
-
-### `flightdeck experiment collect`
-
-Write a run set's trials and grades into the data plane.
-
-```
-flightdeck experiment collect [OPTIONS] RUN_SET
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `RUN_SET` | text | required |  |  |
-| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane: cost history, collect target. |
-
-## `flightdeck cache`
-
-The trial-result cache: drop entries, check the drift sentinel. Guide: [Running experiments: cache](runners.md#cache).
-
-### `flightdeck cache drop`
-
-Stop reusing trials of these tasks or identities finished before now.
-
-```
-flightdeck cache drop [OPTIONS]
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root (local). |
-| `--task` | text, repeatable |  |  | A task id. |
-| `--identity` | text, repeatable |  |  | An identity (harness+environment digest). |
-
-### `flightdeck cache sentinel`
-
-Check the nightly sentinel (`experiment run <suite>` without --cache) for a step change; exit 1 on alerts.
-
-```
-flightdeck cache sentinel [OPTIONS] SUITE VARIANT
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `SUITE` | path | required |  |  |
-| `VARIANT` | text | required |  |  |
-| `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root (local). |
-| `--window` | integer | `14` |  |  |
-| `--alerts-repo` | text |  |  | owner/repo for an issue (gh). |
-
-## `flightdeck metrics`
-
-Team metrics over the data plane (docs/metrics.md). Guide: [Weekly metrics](metrics.md).
-
-### `flightdeck metrics weekly`
-
-The weekly scorecard; team-wide runs with --reports also write &lt;week&gt;.json, &lt;week&gt;.md and latest.json.
-
-```
-flightdeck metrics weekly [OPTIONS]
-```
-
-| Argument or option | Type | Default | Environment | Description |
-| --- | --- | --- | --- | --- |
-| `--week` | text |  |  | ISO week, e.g. 2026-W45 (default: last complete week). |
-| `--format` | text | `md` |  | md, json or slack (Block Kit JSON). |
-| `--person` | text |  |  | Only this person's jobs (share with that person and admins only). |
-| `--repo` | text |  |  | Only this repository (owner/repo). |
-| `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root. |
-| `--reports` | text |  | `FLIGHTDECK_REPORTS_URI` | Write reports/weekly/ here (private). |
-
 ## `flightdeck judge`
 
-Rubric judges: label sheets, calibration, judge labels, PPI estimates. Guide: [Judges](judges.md).
+Rubric judges: label sheets, calibration, judge labels, corrected estimates. Guide: [Judges](judges.md).
 
 ### `flightdeck judge label`
 
@@ -647,6 +595,64 @@ flightdeck judge estimate [OPTIONS] RUBRIC HUMAN
 | `RUBRIC` | path | required |  |  |
 | `HUMAN` | path | required |  |  |
 | `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root. |
+
+## `flightdeck metrics`
+
+Weekly team metrics over the data plane. Guide: [Weekly metrics](metrics.md).
+
+### `flightdeck metrics weekly`
+
+The weekly scorecard; team-wide runs with --reports also write &lt;week&gt;.json, &lt;week&gt;.md and latest.json.
+
+```
+flightdeck metrics weekly [OPTIONS]
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `--week` | text |  |  | ISO week, e.g. 2026-W45 (default: last complete week). |
+| `--format` | text | `md` |  | md, json or slack (Block Kit JSON). |
+| `--person` | text |  |  | Only this person's jobs (share with that person and admins only). |
+| `--repo` | text |  |  | Only this repository (owner/repo). |
+| `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root. |
+| `--reports` | text |  | `FLIGHTDECK_REPORTS_URI` | Write reports/weekly/ here (private). |
+
+## `flightdeck compact`
+
+Compact hangar's outbox into the data plane (nightly on Cloud Run: deploy/compactor/). Guide: [Data plane: compactor](data-plane.md#compactor).
+
+```
+flightdeck compact [OPTIONS]
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `--date` | text |  |  | UTC outbox date, YYYY-MM-DD (default: today). |
+| `--lookback` | integer | `3` |  | Also recompact this many days before --date whose inputs changed. |
+| `--rebuild` / `--no-rebuild` | flag | off |  | Rewrite the dates even if their inputs are unchanged. |
+| `--input` | text | required | `FLIGHTDECK_RUNS_URI` | Outbox root: gs://, file:// or path. |
+| `--out` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root. |
+
+## `flightdeck query`
+
+Run SQL over the data plane's tables (runs, spans, events, manifests, grades, test_cases); tab-separated. Guide: [Data plane: querying](data-plane.md#querying).
+
+```
+flightdeck query [OPTIONS] SQL
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `SQL` | text | required |  |  |
+| `--data` | text |  | `FLIGHTDECK_DATA_URI` | Data plane root: a directory or gs:// URI. |
+
+## `flightdeck version`
+
+Print flightdeck's version.
+
+```
+flightdeck version
+```
 
 ## Environment
 

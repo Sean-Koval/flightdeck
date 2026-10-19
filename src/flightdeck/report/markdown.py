@@ -197,7 +197,7 @@ def post(text: str, target: str, token: str, full: str | None = None, gist: bool
     return gh("POST", f"{api}/{m[2]}/comments", token, {"body": text})["html_url"]
 
 
-app = typer.Typer(help="Markdown reports, posted where the change is reviewed.", no_args_is_help=True)
+app = typer.Typer(help="The verdict as a report, posted on the pull request.", no_args_is_help=True)
 POST = typer.Option(None, "--post", help="owner/repo#n: post as a PR or issue comment (token: GITHUB_TOKEN).")
 DECISION = typer.Option(None, help="Pre-registered decision.yaml; the verdict needs it.")
 DETAILS = typer.Option(False, help="Per-task rows and trial links (keep off for public repos).")
