@@ -19,38 +19,45 @@ from flightdeck.tasks.cli import app as task_app
 from flightdeck.tasks.custody import app as holdout_app
 from flightdeck.tasks.knowledge import app as knowledge_app
 
-app = typer.Typer(help="Judge coding-agent runs from hangar: paired statistics, behavior specs, task sets.",
-                  no_args_is_help=True)
-for _name, _sub in (("ingest", ingest.app), ("stats", compare.app), ("report", markdown.app), ("spec", spec_app),
-                    ("check", check_app), ("mutate", mutate_app), ("task", task_app), ("holdout", holdout_app),
-                    ("knowledge", knowledge_app), ("experiment", experiment_app), ("cache", cache_app),
-                    ("metrics", metrics_app), ("judge", judge_app)):
-    app.add_typer(_sub, name=_name)
-app.command("compact")(compact.compact)
+app = typer.Typer(no_args_is_help=True, help="Did that harness change help? Judge coding-agent runs from hangar: "
+                  "ingest an experiment, compare its arms paired by task, post the verdict on the pull request.")
+plumbing = typer.Typer()  # merged into `app` last (no name), so `--help` ends with the data plane and version
+PANELS = {  # `--help` in the order a newcomer needs them: the three core commands first
+    "Judge a change": (("ingest", ingest.app), ("stats", compare.app), ("report", markdown.app)),
+    "Run experiments": (("experiment", experiment_app), ("task", task_app), ("cache", cache_app)),
+    "Behavior": (("spec", spec_app), ("check", check_app), ("mutate", mutate_app)),
+    "Sealed sets": (("holdout", holdout_app), ("knowledge", knowledge_app), ("judge", judge_app)),
+    "Data plane": (("metrics", metrics_app),)}
+for _panel, _subs in PANELS.items():
+    for _name, _sub in _subs:
+        app.add_typer(_sub, name=_name, rich_help_panel=_panel)
+plumbing.command("compact", rich_help_panel="Data plane")(compact.compact)
 ingest.app.command("github")(github.prs)
 
 
-@app.command()
+@plumbing.command(rich_help_panel="About")
 def version() -> None:
     """Print flightdeck's version."""
     typer.echo(__version__)
 
 
-@app.command()
+@plumbing.command(rich_help_panel="Data plane")
 def query(
     sql: str,
     data: str = typer.Option(None, envvar="FLIGHTDECK_DATA_URI", help="Data plane root: a directory or gs:// URI."),
 ) -> None:
-    """Run SQL over the data plane's tables (runs, spans, events, manifests, grades, test_cases)."""
+    """Run SQL over the data plane's tables (runs, spans, events, manifests, grades, test_cases); tab-separated."""
     from flightdeck.dataplane.duck import connect
 
     if not data:
         raise typer.BadParameter("no data plane: pass --data or set FLIGHTDECK_DATA_URI")
     con = connect(os.path.expanduser(data))  # kept: the relation reads through it
     if (rel := con.sql(sql)) is not None:
-        typer.echo("\t".join(rel.columns))
-        for row in rel.fetchall():
-            typer.echo("\t".join("" if v is None else str(v) for v in row))
+        rows = ["\t".join("" if v is None else str(v) for v in row) for row in rel.fetchall()]
+        typer.echo("\n".join(["\t".join(rel.columns), *rows]))
+
+
+app.add_typer(plumbing)
 
 
 def run(args: list[str] | None = None) -> None:

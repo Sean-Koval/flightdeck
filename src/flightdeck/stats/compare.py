@@ -209,7 +209,7 @@ def plain(md: str) -> str:
     return "\n".join(out[:-1])
 
 
-app = typer.Typer(help="Paired statistics over the data plane.", no_args_is_help=True)
+app = typer.Typer(help="Compare the arms of an experiment, paired by task.", no_args_is_help=True)
 DATA = typer.Option("~/.flightdeck/data", "--data", envvar="FLIGHTDECK_DATA_URI", help="Data plane: directory or gs://")
 MD = typer.Option(False, "--md", help="Print markdown (for an issue or a file) instead of the terminal readout.")
 BASELINE = typer.Option("control", "--baseline", "--a", help="The arm that runs today; the verdict is against it.")

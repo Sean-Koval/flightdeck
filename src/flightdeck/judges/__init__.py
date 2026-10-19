@@ -103,7 +103,8 @@ def estimate_line(human: dict[str, float], judge: dict[str, float]) -> str:
             f"mean {np.mean(list(judge.values())):.3f}, not an estimate")
 
 
-app = typer.Typer(help="Rubric judges: label sheets, calibration, judge labels, PPI estimates.", no_args_is_help=True)
+app = typer.Typer(help="Rubric judges: label sheets, calibration, judge labels, corrected estimates.",
+                  no_args_is_help=True)
 DATA = Annotated[str, typer.Option("--data", envvar="FLIGHTDECK_DATA_URI", help="Data plane root.")]
 
 

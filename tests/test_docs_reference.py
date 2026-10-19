@@ -21,6 +21,6 @@ def test_cli_reference_covers_every_command_and_option() -> None:
 
     page = docs_reference.cli_reference()
     for path, cmd in docs_reference.walk(typer.main.get_command(app), ()):
-        assert f"### `flightdeck {' '.join(path)}`" in page
+        assert f"# `flightdeck {' '.join(path)}`" in page  # a top-level command is an H2, a group's command an H3
         for p in cmd.params:
             assert (f"`{p.name.upper()}`" if p.param_type_name == "argument" else f"`{p.opts[0]}`") in page
