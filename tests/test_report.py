@@ -22,9 +22,10 @@ def report(plane: str, **kw: Any) -> str:
 
 def test_report_renders_from_parquet_alone_with_a_preregistered_verdict(plane: str, export_dir: Path) -> None:
     text = report(plane, decision=export_dir / "decision.yaml")
-    assert text.startswith(f"<!-- flightdeck:report:{EXP} -->\n## treat is better than control on resolved: +21.2 pp "
-                           "(95% CI +1.5 to +43.9, margin −5.0)\n")  # the verdict is the headline
-    order = [f"`{EXP}`: treat against control, 12 tasks, 73 trials, seed 0. The arms differ in config_digest",
+    assert text.startswith(f"<!-- flightdeck:report:{EXP} -->\n## candidate is better than control on resolved: "
+                           "+21.2 pp (95% CI +1.5 to +43.9, margin −5.0)\n")  # the verdict is the headline
+    order = [f"`{EXP}`: candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. "
+             "The arms differ in config_digest",
              "Rule, pre-registered in `decision.yaml`: resolved, higher is better, margin −5.0 pp, at least 10",
              "### Outcome", "### Process", "Tool calls", "Wall time", "### Cost", "### Behavior specs",
              "### Exclusions and drift", "Excluded: cancelled 1, drift 1, infra_error 1, not finished 1, "
@@ -35,7 +36,7 @@ def test_report_renders_from_parquet_alone_with_a_preregistered_verdict(plane: s
              "across 12 tasks."]
     assert [text.index(s) for s in order] == sorted(text.index(s) for s in order)
     assert text.count("seed 0") == 1 and text.count("Excluded:") == 1 and "…" not in text  # once; no cut digests
-    assert "Per task" not in text and "t05/treat/2" not in text  # per-task details only behind --details
+    assert "Per task" not in text and "t05/candidate/2" not in text  # per-task details only behind --details
 
 
 def test_details_put_discordant_tasks_first_with_trial_links(plane: str) -> None:
@@ -44,7 +45,7 @@ def test_details_put_discordant_tasks_first_with_trial_links(plane: str) -> None
     zero = [i for i, r in enumerate(rows) if "| +0 pp |" in r]
     assert zero and zero == list(range(len(rows) - len(zero), len(rows)))
     assert f"https://hangar.example/api/experiments/{EXP}/trials/t03/control/1/trace" in text
-    assert "- `t05/treat/2`: harness drift" in text
+    assert "- `t05/candidate/2`: harness drift" in text
 
 
 def _commit(repo: Path, when: float) -> None:
@@ -76,14 +77,14 @@ def test_behavior_spec_section_gives_pass_rates_per_spec_per_variant(plane: str,
     copy = tmp_path / "plane"
     shutil.copytree(plane, copy)
     rows = [{"run_id": f"{EXP}/t03/{v}/{n}", "source": "experiment", "dt": "2025-10-16", "spec_id": "tests-before-pr",
-             "spec_source": "spec", "scope": "turn", "result": "pass" if v == "treat" or n == 1 else "fail"}
-            for v in ("control", "treat") for n in (1, 2, 3)]
+             "spec_source": "spec", "scope": "turn", "result": "pass" if v == "candidate" or n == 1 else "fail"}
+            for v in ("control", "candidate") for n in (1, 2, 3)]
     rows += [{**rows[0], "spec_id": "no-force-push", "spec_source": "adr:team/0007", "result": "not_applicable"},
              {**rows[0], "run_id": f"{EXP}/t08/control/1", "spec_id": "tests-before-pr"}]  # t08: task_invalid
     write_partitioned("spec_results", rows, str(copy), "check-2025-10-16")
     text = report(str(copy))
     section = text.split("### Behavior specs")[1].split("###")[0]
-    # t03/treat/3 was infra_error (excluded), its retry t03/treat/3~2 has no spec result: 2 treat trials counted
+    # t03/candidate/3 was infra_error (excluded); its retry 3~2 has no spec result: 2 candidate trials count
     assert "| tests-before-pr | 1 of 3 (33%) | 2 of 2 (100%) |" in section
     assert "no-force-push" not in section  # not applicable everywhere: no rate
 

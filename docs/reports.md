@@ -12,7 +12,7 @@ flightdeck report post report.md --to owner/repo#n [--full-url URL | --gist]
 `report experiment` reads only the data plane (`--data`, default `~/.flightdeck/data`), so it renders with hangar
 powered off. Its options:
 
-- `--baseline control`, `--b treat`: the two arms (the verdict is always `--b` against `--baseline`).
+- `--baseline control`, `--candidate candidate`: the two arms (the verdict is always the candidate against the baseline).
 - `--decision decision.yaml`: the pre-registered rule; without it the report says *No verdict*.
 - `--out report.md`: write the report (markdown) and print the verdict; without it the report prints as a terminal
   readout. `--post owner/repo#n`: post it as one comment, updated in place
@@ -28,7 +28,7 @@ powered off. Its options:
 ## Anatomy
 
 1. **The verdict is the headline**, in plain words from the pre-registered rule (below), with the numbers beside it:
-   *treat is non-inferior to control on resolved: −2.0 pp (95% CI −4.0 to +1.0, margin −5.0)*, or *No decision:
+   *candidate is non-inferior to control on resolved: −2.0 pp (95% CI −4.0 to +1.0, margin −5.0)*, or *No decision:
    underpowered*. Without a valid `decision.yaml` the headline is **No verdict** and the numbers follow anyway.
 2. **One line on the experiment**: the arms, how many tasks and trials, the seed, and which pins differ between the
    arms; then the rule as pre-registered (metric, direction, margin, minimum tasks).

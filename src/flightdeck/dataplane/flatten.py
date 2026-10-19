@@ -259,6 +259,7 @@ def flatten_experiment(index: dict[str, Any]) -> dict[str, list[Row]]:
                 "run_id": rid, "source": "experiment", "dt": day, "job_id": t.get("job"),
                 "session_id": t.get("session"), "experiment_id": exp_id, "trial_key": t["key"], "task_id": t["task"],
                 "variant": t["variant"], "trial": t["trial"], "person": index.get("person"), "repo": task.get("repo"),
+                "variant_description": v.get("description"),
                 "environment": v.get("environment"), "harness": v.get("harness"),
                 "harness_version": v.get("harness_version"), "model_id": usage.get("model") or v.get("model"),
                 "outcome": t.get("outcome"), "reason": t.get("reason"), "outcome_class": t.get("outcome_class"),

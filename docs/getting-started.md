@@ -38,7 +38,7 @@ never-push-main                 72      72       0        1
 ...
 5 specs over 73 units: 0 failed, 5 unknown
 ...
-Paired difference treat − control: +21.2 pp (95% CI +1.5 pp to +43.9 pp;
+Paired difference candidate − control: +21.2 pp (95% CI +1.5 pp to +43.9 pp;
   task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).
 
 At 11 paired tasks × 3 trials the minimum detectable lift at 80% power is
@@ -51,7 +51,7 @@ A spec that applied to no unit reads `—` and *not applied*, so it is never mis
 spec is the truncated trace. `report` printed the verdict and wrote `demo/report.md`:
 
 ```text
-treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9,
+candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9,
   margin −5.0)
 wrote demo/report.md (73 lines)
 ```

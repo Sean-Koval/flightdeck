@@ -15,6 +15,7 @@
  "pins": {
   "variants": {
    "control": {
+    "description": "no skills",
     "environment": "plain",
     "harness": "claude-code",
     "harness_version": "2.3.1",
@@ -23,7 +24,8 @@
     "approvals": "auto",
     "skills": null
    },
-   "treat": {
+   "candidate": {
+    "description": "the review skill",
     "environment": "plain",
     "harness": "claude-code",
     "harness_version": "2.3.1",
@@ -168,15 +170,15 @@
    }
   },
   {
-   "key": "semver/treat/1",
+   "key": "semver/candidate/1",
    "task": "semver",
-   "variant": "treat",
+   "variant": "candidate",
    "trial": 1,
-   "job": "job-semver-treat-1",
+   "job": "job-semver-candidate-1",
    "state": "done",
    "outcome": "succeeded",
    "reason": null,
-   "session": "ses-semver-treat-1",
+   "session": "ses-semver-candidate-1",
    "started_at": 1760600100.0,
    "finished_at": 1760600190.0,
    "turns": 1,
@@ -216,21 +218,21 @@
    ],
    "drift": [],
    "links": {
-    "job": "/api/jobs/job-semver-treat-1",
+    "job": "/api/jobs/job-semver-candidate-1",
     "manifest": null,
-    "trace": "/api/experiments/job-exp01/trials/semver/treat/1/trace"
+    "trace": "/api/experiments/job-exp01/trials/semver/candidate/1/trace"
    }
   },
   {
-   "key": "semver/treat/2",
+   "key": "semver/candidate/2",
    "task": "semver",
-   "variant": "treat",
+   "variant": "candidate",
    "trial": 2,
-   "job": "job-semver-treat-2",
+   "job": "job-semver-candidate-2",
    "state": "done",
    "outcome": "succeeded",
    "reason": null,
-   "session": "ses-semver-treat-2",
+   "session": "ses-semver-candidate-2",
    "started_at": 1760600200.0,
    "finished_at": 1760600290.0,
    "turns": 1,
@@ -270,9 +272,9 @@
    ],
    "drift": [],
    "links": {
-    "job": "/api/jobs/job-semver-treat-2",
+    "job": "/api/jobs/job-semver-candidate-2",
     "manifest": null,
-    "trace": "/api/experiments/job-exp01/trials/semver/treat/2/trace"
+    "trace": "/api/experiments/job-exp01/trials/semver/candidate/2/trace"
    }
   },
   {
@@ -330,15 +332,15 @@
    }
   },
   {
-   "key": "retry/treat/1",
+   "key": "retry/candidate/1",
    "task": "retry",
-   "variant": "treat",
+   "variant": "candidate",
    "trial": 1,
-   "job": "job-retry-treat-1",
+   "job": "job-retry-candidate-1",
    "state": "done",
    "outcome": "succeeded",
    "reason": null,
-   "session": "ses-retry-treat-1",
+   "session": "ses-retry-candidate-1",
    "started_at": 1760600100.0,
    "finished_at": 1760600190.0,
    "turns": 1,
@@ -380,21 +382,21 @@
     "its harness configuration differs"
    ],
    "links": {
-    "job": "/api/jobs/job-retry-treat-1",
+    "job": "/api/jobs/job-retry-candidate-1",
     "manifest": null,
-    "trace": "/api/experiments/job-exp01/trials/retry/treat/1/trace"
+    "trace": "/api/experiments/job-exp01/trials/retry/candidate/1/trace"
    }
   },
   {
-   "key": "retry/treat/2",
+   "key": "retry/candidate/2",
    "task": "retry",
-   "variant": "treat",
+   "variant": "candidate",
    "trial": 2,
-   "job": "job-retry-treat-2",
+   "job": "job-retry-candidate-2",
    "state": "done",
    "outcome": "cancelled",
    "reason": "cancelled by dev-a",
-   "session": "ses-retry-treat-2",
+   "session": "ses-retry-candidate-2",
    "started_at": 1760600200.0,
    "finished_at": 1760600290.0,
    "turns": 1,
@@ -425,9 +427,9 @@
    ],
    "drift": [],
    "links": {
-    "job": "/api/jobs/job-retry-treat-2",
+    "job": "/api/jobs/job-retry-candidate-2",
     "manifest": null,
-    "trace": "/api/experiments/job-exp01/trials/retry/treat/2/trace"
+    "trace": "/api/experiments/job-exp01/trials/retry/candidate/2/trace"
    }
   }
  ],
