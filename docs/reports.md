@@ -5,33 +5,44 @@ hangar's canary lock-bump PRs. Flightdeck's report is a markdown comment there, 
 `src/flightdeck/report/markdown.py`.
 
 ```sh
-flightdeck report experiment <id> [--baseline control] [--b treat] [--decision decision.yaml] [--details]
-                                  [--hangar URL] [--out report.md] [--post owner/repo#n] [--full-url URL | --gist]
+flightdeck report experiment <id> [options]
 flightdeck report post report.md --to owner/repo#n [--full-url URL | --gist]
 ```
 
-The report reads only the data plane (`--data`, default `~/.flightdeck/data`), so it renders with hangar powered off.
+`report experiment` reads only the data plane (`--data`, default `~/.flightdeck/data`), so it renders with hangar
+powered off. Its options:
+
+- `--baseline control`, `--b treat`: the two arms (the verdict is always `--b` against `--baseline`).
+- `--decision decision.yaml`: the pre-registered rule; without it the report says *No verdict*.
+- `--out report.md`: write the report (markdown) and print the verdict; without it the report prints as a terminal
+  readout. `--post owner/repo#n`: post it as one comment, updated in place
+  (`GITHUB_TOKEN`), with `--full-url URL` or `--gist` for where the full text lives when a comment is clipped.
+- `--details`: per-task rows and trial links (keep it off for public repositories); `--hangar URL`: the trial links.
 
 <figure class="af-figure" markdown>
-![The report as a pull-request comment: the verdict line, the pins table per variant and the outcome table with Wilson intervals and dollars per resolved task](assets/report-comment-dark.png#only-dark)
-![The report as a pull-request comment: the verdict line, the pins table per variant and the outcome table with Wilson intervals and dollars per resolved task](assets/report-comment-light.png#only-light)
-<figcaption>The top of a report on a pull request: verdict, pins, outcome (fixture experiment)</figcaption>
+![The whole flightdeck report as a pull-request comment: the verdict as its headline, the experiment and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-dark.png#only-dark){ width=816 height=1638 }
+![The whole flightdeck report as a pull-request comment: the verdict as its headline, the experiment and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-light.png#only-light){ width=816 height=1638 }
+<figcaption>A whole report on a pull request (fixture experiment)</figcaption>
 </figure>
 
 ## Anatomy
 
-1. **Verdict**, in plain words, from the pre-registered rule (below): *treat is non-inferior to control on resolved
-   (−2.0 pp, CI −4.0…+1.0, margin −5.0)*, or *No decision: underpowered*. Without a valid `decision.yaml` the report
-   says **No verdict** and shows the numbers only.
-2. **Pins** per variant: harness and version, model, environment, `config_digest`, `harness_digest`,
-   `environment_digest`, the grader command, and hangar's version from the manifests; the number of base SHAs.
+1. **The verdict is the headline**, in plain words from the pre-registered rule (below), with the numbers beside it:
+   *treat is non-inferior to control on resolved: −2.0 pp (95% CI −4.0 to +1.0, margin −5.0)*, or *No decision:
+   underpowered*. Without a valid `decision.yaml` the headline is **No verdict** and the numbers follow anyway.
+2. **One line on the experiment**: the arms, how many tasks and trials, the seed, and which pins differ between the
+   arms; then the rule as pre-registered (metric, direction, margin, minimum tasks).
 3. **Outcome**, **Process** (tool calls, wall time) and **Cost** tables from `flightdeck stats compare`
-   ([statistics.md](statistics.md)), each with its exclusions, seed and n.
+   ([statistics.md](statistics.md)), each with only the columns that apply and every number with its unit
+   (`10 of 32 (31%)`, `3.0 calls`, `174.9 s`, `$0.42`).
 4. **Behavior specs**: pass rate per spec per variant, from `spec_results` (written by `flightdeck check run`,
    [behavior-specs.md](behavior-specs.md)) over the trials the Outcome table counts; `not_applicable` and `unknown`
    results are left out, and a spec with none of either has no row.
-5. **Exclusions and drift**: the drifted trials.
-6. With `--details`: the **per-task table** (discordant tasks first, base SHA, resolved per arm) inside a collapsed
+5. **Exclusions and drift**: what every table left out and why, once; the drifted trials.
+6. **Pins**, collapsed: the rows that differ between the arms (harness and version, model, environment,
+   `config_digest`, `harness_digest`, `environment_digest`, the grader command, hangar's version), the ones that
+   are the same in one line, and the number of base SHAs. A missing pin says *not recorded*; a digest is never cut.
+7. With `--details`: the **per-task table** (discordant tasks first, base SHA, resolved per arm) inside a collapsed
    `<details>`, drift messages per trial, and with `--hangar` links to each trial's trace on hangar REST.
 
 ## Pre-registration

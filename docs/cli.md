@@ -153,6 +153,7 @@ flightdeck stats compare [OPTIONS] EXPERIMENT
 | `--seed` | integer | `0` |  |  |
 | `--include-drift` | flag | off |  |  |
 | `--data` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane: directory or gs:// |
+| `--md` | flag | off |  | Print markdown (for an issue or a file) instead of the terminal readout. |
 
 ## `flightdeck report`
 
@@ -160,7 +161,7 @@ Markdown reports, posted where the change is reviewed. Guide: [Reports](reports.
 
 ### `flightdeck report experiment`
 
-Render an experiment's report from the data plane; print it, write it, post it.
+Render an experiment's report from the data plane: print it as a readout, write it (markdown), post it.
 
 ```
 flightdeck report experiment [OPTIONS] EXPERIMENT

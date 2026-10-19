@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-flightdeck = "flightdeck.cli:app"
+flightdeck = "flightdeck.cli:run"
 
 [project.optional-dependencies]
 gcs = [

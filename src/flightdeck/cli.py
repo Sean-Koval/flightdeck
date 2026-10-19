@@ -2,6 +2,7 @@
 
 import os
 
+import duckdb
 import typer
 
 from flightdeck import __version__
@@ -18,30 +19,15 @@ from flightdeck.tasks.cli import app as task_app
 from flightdeck.tasks.custody import app as holdout_app
 from flightdeck.tasks.knowledge import app as knowledge_app
 
-app = typer.Typer(
-    help="Judge coding-agent runs from hangar: paired statistics, behavior specs, task sets.", no_args_is_help=True
-)
-
-app.add_typer(ingest.app, name="ingest")
-app.add_typer(compare.app, name="stats")
-app.add_typer(markdown.app, name="report")
-app.add_typer(spec_app, name="spec")
-app.add_typer(check_app, name="check")
-app.add_typer(mutate_app, name="mutate")
-app.add_typer(task_app, name="task")
-app.add_typer(holdout_app, name="holdout")
-app.add_typer(knowledge_app, name="knowledge")
-app.add_typer(experiment_app, name="experiment")
-app.add_typer(cache_app, name="cache")
+app = typer.Typer(help="Judge coding-agent runs from hangar: paired statistics, behavior specs, task sets.",
+                  no_args_is_help=True)
+for _name, _sub in (("ingest", ingest.app), ("stats", compare.app), ("report", markdown.app), ("spec", spec_app),
+                    ("check", check_app), ("mutate", mutate_app), ("task", task_app), ("holdout", holdout_app),
+                    ("knowledge", knowledge_app), ("experiment", experiment_app), ("cache", cache_app),
+                    ("metrics", metrics_app), ("judge", judge_app)):
+    app.add_typer(_sub, name=_name)
 app.command("compact")(compact.compact)
-app.add_typer(metrics_app, name="metrics")
-app.add_typer(judge_app, name="judge")
 ingest.app.command("github")(github.prs)
-
-
-@app.callback()
-def main() -> None:
-    """flightdeck: reads hangar runs, owns sampling and analysis."""
 
 
 @app.command()
@@ -61,10 +47,17 @@ def query(
     if not data:
         raise typer.BadParameter("no data plane: pass --data or set FLIGHTDECK_DATA_URI")
     con = connect(os.path.expanduser(data))  # kept: the relation reads through it
-    rel = con.sql(sql)
-    if rel is None:
-        return
-    cols = rel.columns
-    typer.echo("\t".join(cols))
-    for row in rel.fetchall():
-        typer.echo("\t".join("" if v is None else str(v) for v in row))
+    if (rel := con.sql(sql)) is not None:
+        typer.echo("\t".join(rel.columns))
+        for row in rel.fetchall():
+            typer.echo("\t".join("" if v is None else str(v) for v in row))
+
+
+def run(args: list[str] | None = None) -> None:
+    """The console entry point. A wrong path, id or query is one line on stderr, not a traceback."""
+    try:
+        app(args)
+    except (OSError, ValueError, duckdb.Error) as e:
+        why = f"{str(e.strerror).lower()}: {e.filename}" if isinstance(e, OSError) and e.filename else str(e)
+        typer.secho(f"error: {why}", fg="red", err=True)
+        raise SystemExit(1) from None

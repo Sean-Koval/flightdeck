@@ -2,13 +2,18 @@
 """Generate the front page's assets (README.md and docs/index.md) from the synthetic fixture experiment.
 
 Runs the real CLI (`ingest -> check run -> stats compare -> report`) on `scripts/fixture_export.py`'s experiment in a
-temporary directory and writes, next to this script:
+temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`), and writes, next to this script:
 
 - `demo.cast`: the session as an asciicast v2 recording (typed commands, real output), and `demo.svg`: the same
-  session as an animated terminal (CSS keyframes, loops; no player needed on GitHub or the docs site);
+  session as an animated terminal (CSS keyframes; no player needed on GitHub or the docs site). The recording shows
+  `ingest -> stats compare -> report` (`check run` feeds the report's Behavior specs section but is not shown), opens
+  on the finished session with the verdict, holds it for `HOLD` seconds, then replays the typing; the loop is under
+  20 s and 80 columns wide, so it reads at the hero's width;
 - `stats-compare.svg`: the `stats compare` output as a still terminal;
-- `report.md` and `report-comment-{dark,light}.html`: the report, and the report rendered as a GitHub pull-request
-  comment in GitHub's dark and light palettes, then `report-comment-{dark,light}.png` (screenshots of them);
+- `report.md` and `report-comment[-full]-{dark,light}.html`: the report, and the report rendered as a GitHub
+  pull-request comment in GitHub's dark and light palettes, on a 760 px page so it reads inside a docs column: the top
+  (the verdict and the Outcome table, for the README and the docs home) and the whole comment (for Reports), then
+  the `.png` screenshots of them;
 - `suite.svg`: where flightdeck sits in the suite, drawn with agent-factory's diagram conventions (Airframe tokens,
   theme-aware when inlined), then `suite-dark.png` and `suite-light.png`.
 
@@ -43,14 +48,15 @@ ROOT = HERE.parent.parent
 TOKENS = ROOT / "docs/stylesheets/airframe-tokens.json"  # vendored by scripts/sync-airframe.sh
 NIGHT: dict[str, str] = json.loads(TOKENS.read_text(encoding="utf-8"))["themes"]["dark"]
 EXP, DAY = "job-expdemo", "2025-10-16"
-COMMANDS = [
-    "flightdeck ingest export export --out plane",
-    f"flightdeck check run --data plane --date {DAY} --specs specs",
-    f"flightdeck stats compare {EXP} --data plane",
-    f"flightdeck report experiment {EXP} --data plane --decision export/decision.yaml --out report.md",
-    "grep Verdict report.md",
+COMMANDS = [  # (command, shown in the recording); the paths are the quickstart's (README, docs/getting-started.md)
+    ("flightdeck ingest export demo/export --out demo/plane", True),
+    (f"flightdeck check run --data demo/plane --date {DAY} --specs specs/examples/team-default.yaml", False),
+    (f"flightdeck stats compare {EXP} --data demo/plane", True),
+    (f"flightdeck report experiment {EXP} --data demo/plane \\\n"
+     "    --decision demo/export/decision.yaml --out demo/report.md", True),  # two lines, as the quickstart shows it
 ]
-COLS, ROWS = 104, 36  # terminal size; output lines wrap at COLS
+COLS, ROWS = 80, 30  # terminal size; output lines wrap at COLS
+HOLD = 5.0  # seconds the finished session (with the verdict) shows before the typing replays
 FONTS = ("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900"
          "&family=DM+Mono:wght@400;500&family=Red+Hat+Text:wght@400..700&display=swap")
 
@@ -61,25 +67,24 @@ def esc(s: str) -> str:
 
 # ---------------------------------------------------------------------------------------------------- the session
 def session(tmp: Path) -> list[tuple[str, str]]:
-    """Run each command in `tmp` on the fixture experiment; (command, output) pairs."""
+    """Run each command in `tmp` on the fixture experiment; the shown ones as (command, output) pairs."""
     spec = importlib.util.spec_from_file_location("fixture_export", ROOT / "scripts" / "fixture_export.py")
     assert spec and spec.loader
     fixture = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(fixture)
-    fixture.build(tmp / "export")
-    (tmp / "specs").mkdir()
-    shutil.copy(ROOT / "specs" / "examples" / "team-default.yaml", tmp / "specs")
+    fixture.build(tmp / "demo" / "export")
+    shutil.copytree(ROOT / "specs" / "examples", tmp / "specs" / "examples")
     exe = str(Path(sys.executable).with_name("flightdeck"))
     env = {**os.environ, "COLUMNS": str(COLS), "NO_COLOR": "1", "TERM": "dumb"}
     env.pop("FLIGHTDECK_DATA_URI", None)
     out = []
-    for cmd in COMMANDS:
-        argv = cmd.split()
+    for cmd, shown in COMMANDS:
+        argv = cmd.replace("\\\n", " ").split()
         argv[0] = exe if argv[0] == "flightdeck" else argv[0]
         res = subprocess.run(argv, cwd=tmp, env=env, capture_output=True, text=True)
         if res.returncode:
             sys.exit(f"build: `{cmd}` failed ({res.returncode}):\n{res.stdout}{res.stderr}")
-        out.append((cmd, (res.stdout + res.stderr).expandtabs(4).rstrip("\n")))
+        out += [(cmd, (res.stdout + res.stderr).expandtabs(4).rstrip("\n"))] if shown else []
     return out
 
 
@@ -96,32 +101,35 @@ def wrap(text: str) -> list[str]:
 
 
 def timeline(steps: list[tuple[str, str]]) -> tuple[list[tuple[float, str, str]], float]:
-    """Screen lines as (time shown, kind, text): kind `cmd` (typed from that time) or `out`. And the total length."""
-    t, lines = 0.6, []
+    """Screen lines as (time shown in the replay, kind, text): kind `cmd` (typed from that time) or `out`. And the
+    replay's length; the loop is `HOLD` seconds of the finished frame, then the replay."""
+    t, lines = 0.3, []
     for cmd, output in steps:
-        lines.append((t, "cmd", cmd))
-        t += len(cmd) * 0.035 + 0.5
+        for j, part in enumerate(cmd.split("\n")):  # a continuation line is typed after a `> ` prompt
+            lines.append((t, "cmd" if j == 0 else "cmd2", part))
+            t += len(part) * 0.03
+        t += 0.4
         for line in wrap(output):
             lines.append((t, "out", line))
-            t += 0.06
-        t += 1.6
+            t += 0.05
+        t += 1.2
     lines.append((t, "cmd", ""))
-    return lines, t + 4.0
+    return lines, t + 0.5
 
 
 def cast(steps: list[tuple[str, str]]) -> str:
     """asciicast v2 (https://docs.asciinema.org/manual/asciicast/v2/), with fixed timings and no timestamp."""
-    head = {"version": 2, "width": COLS, "height": ROWS, "title": "flightdeck: ingest, check, compare, report",
+    head = {"version": 2, "width": COLS, "height": ROWS, "title": "flightdeck: ingest, compare, report",
             "env": {"SHELL": "/bin/sh", "TERM": "xterm-256color"}}
-    events, t = [], 0.6
+    events, t = [], 0.3
     for cmd, output in steps:
         events.append([round(t, 3), "o", "$ "])
         for ch in cmd:
-            t += 0.035
-            events.append([round(t, 3), "o", ch])
-        t += 0.5
+            t += 0.03
+            events.append([round(t, 3), "o", "\r\n> " if ch == "\n" else ch])
+        t += 0.4
         events.append([round(t, 3), "o", "\r\n" + output.replace("\n", "\r\n") + "\r\n"])
-        t += 1.6
+        t += 1.2
     events.append([round(t, 3), "o", "$ "])
     return "\n".join(json.dumps(x, ensure_ascii=False) for x in [head, *events]) + "\n"
 
@@ -129,7 +137,8 @@ def cast(steps: list[tuple[str, str]]) -> str:
 # ---------------------------------------------------------------------------------------------------- terminal SVG
 CW, LH, PAD, BAR = 7.8, 17.0, 18, 34  # char width (0.6em at 13px), line height, padding, title bar
 MONO = "'DM Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
-LIT = re.compile(r"\bis worse than\b|\bfail=[1-9]")  # the lines a terminal may color: the failed role, never green
+LIT = re.compile(r"\bis worse than\b|\b[1-9]\d* failed\b")  # lines a terminal may color: the failed role, never green
+VERDICT = re.compile(r"^(\S+ is (better than|non-inferior to|worse than) \S+ on \S+:|No (decision|verdict):)")
 TERM_ICON = ('<g fill="none" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" '
              'transform="translate({x},{y}) scale(.7)"><rect x="2.5" y="3.5" width="15" height="13"/>'
              '<path d="M6 8l2.5 2L6 12M10.5 12.5H14"/></g>')  # Airframe's `terminal` icon, 20px grid drawn at 14px
@@ -138,10 +147,13 @@ TERM_ICON = ('<g fill="none" stroke-width="1.5" stroke-linecap="square" stroke-l
 def terminal(lines: list[tuple[float, str, str]], total: float | None, title: str) -> str:
     """A terminal window on Airframe's Terminal contract: always dark, DM Mono on `terminal-bg`, a bar with the product
     and scope in mono capitals, output in `terminal-fg`, the prompt and cursor in `brand`, and color on one kind of line
-    only (`terminal-err` for the failed role). The bar reads `title` as `product|scope|scope`. With `total`, lines
-    appear at their times and commands type out, looping every `total` seconds; without it, a still of every line."""
+    only (`terminal-err` for the failed role). The bar reads `title` as `product|scope|scope`. With `total` (the
+    replay's length), the finished session shows first and holds `HOLD` seconds, then lines appear at their times and
+    commands type out, looping every `HOLD + total` seconds; without it, a still of every line."""
     t = NIGHT
     w, h = round(COLS * CW + 2 * PAD), round(BAR + PAD + len(lines) * LH + PAD / 2)
+    loop = HOLD + (total or 0)
+    pc = lambda sec: f"{100 * sec / loop:.3f}%"  # noqa: E731  a moment in the loop as a keyframe percentage
     css = [f".t{{font:13px {MONO};fill:{t['terminal-fg']};white-space:pre}}.p{{fill:{t['brand']}}}"
            f".c{{fill:{t['code-keyword']}}}.x{{fill:{t['terminal-err']}}}"
            f".b{{font:500 10.5px {MONO};letter-spacing:.08em;fill:{t['terminal-dim']}}}.b1{{fill:{t['terminal-fg']}}}"]
@@ -155,26 +167,26 @@ def terminal(lines: list[tuple[float, str, str]], total: float | None, title: st
         x += round(len(part) * (10.5 * 0.6 + 0.84)) + 14
     for i, (at, kind, text) in enumerate(lines):
         y = BAR + PAD + (i + 0.75) * LH
-        if kind == "cmd":
-            n = len(text)
-            inner = (f'<tspan class="p">$ </tspan><tspan class="c">{esc(text)}</tspan>' if text
+        if kind.startswith("cmd"):
+            n, prompt = len(text), "$ " if kind == "cmd" else "> "
+            inner = (f'<tspan class="p">{esc(prompt)}</tspan><tspan class="c">{esc(text)}</tspan>' if text
                      else '<tspan class="p">$ ▌</tspan>')
             attrs = f' textLength="{(n + 2) * CW:.1f}" lengthAdjust="spacingAndGlyphs"' if text else ""
             el = f'<text class="t" x="{PAD}" y="{y:.1f}"{attrs}>{inner}</text>'
-            if total and text:  # a cover over the command that steps right one character at a time
-                x0, d = PAD + 2 * CW, n * 0.035
-                body.append(f'<style>@keyframes y{i}{{0%,{100 * at / total:.3f}%{{transform:translateX(0)}}'
-                            f'{100 * (at + d) / total:.3f}%,100%{{transform:translateX({n * CW:.1f}px)}}}}'
-                            f'.y{i}{{animation:y{i} {total:.2f}s steps({n},end) infinite}}</style>')
+            if total and text:  # a cover over the command: off during the hold, back at the replay's start, then it
+                x0, d, full = PAD + 2 * CW, n * 0.03, f"transform:translateX({n * CW:.1f}px)"  # steps right per char
+                body.append(f'<style>@keyframes y{i}{{0%,{pc(HOLD)}{{{full}}}{pc(HOLD + 0.001)},{pc(HOLD + at)}'
+                            f'{{transform:translateX(0)}}{pc(HOLD + at + d)},100%{{{full}}}}}'
+                            f'.y{i}{{animation:y{i} {loop:.2f}s steps({n},end) infinite}}</style>')
                 el += (f'<rect class="y{i}" x="{x0:.1f}" y="{y - LH * 0.8:.1f}" width="{n * CW + 4:.1f}" '
                        f'height="{LH:.1f}" fill="{t["terminal-bg"]}"/>')
         else:  # the verdict is the brightest line; a regression is the only red
-            cls = "t x" if LIT.search(text) else "t c" if text.startswith("**Verdict**") else "t"
+            cls = "t x" if LIT.search(text) else "t c" if VERDICT.match(text) else "t"
             el = f'<text class="{cls}" x="{PAD}" y="{y:.1f}">{esc(text)}</text>'
-        if total:
-            css.append(f"@keyframes s{i}{{0%,{100 * at / total:.3f}%{{opacity:0}}"
-                       f"{100 * at / total + 0.001:.3f}%,100%{{opacity:1}}}}.s{i}{{animation:s{i} {total:.2f}s "
-                       "step-end infinite}")
+        if total:  # shown through the hold, hidden from the replay's start until its moment
+            css.append(f"@keyframes s{i}{{0%,{pc(HOLD)}{{opacity:1}}{pc(HOLD + 0.001)},{pc(HOLD + at)}{{opacity:0}}"
+                       f"{pc(HOLD + at + 0.001)},100%{{opacity:1}}}}.s{i}{{animation:s{i} {loop:.2f}s step-end "
+                       "infinite}")
             el = f'<g class="s{i}">{el}</g>'
         body.append(el)
     label = title.replace("|", ", ")
@@ -190,7 +202,7 @@ GH = {"light": {"bg": "#ffffff", "fg": "#1f2328", "muted": "#59636e", "line": "#
                "code": "#656c7633", "fade": "rgba(13,17,23,0)"}}
 GH_CSS = """
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",
-"Noto Sans",Helvetica,Arial,sans-serif}.page{width:880px;padding:24px 28px}.row{display:flex;gap:14px}
+"Noto Sans",Helvetica,Arial,sans-serif}.page{width:var(--w);padding:24px 28px}.row{display:flex;gap:14px}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--well);border:1px solid var(--line);
 box-sizing:border-box;flex:none;color:var(--muted);text-align:center;
 font:600 14px/38px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
@@ -207,15 +219,19 @@ background:linear-gradient(var(--fade),var(--bg))}
 """
 
 
-def comment_page(report: str, theme: str) -> str:
-    """The report as GitHub renders a PR comment (GFM tables, the hidden marker stays hidden) in that GitHub theme."""
+def comment_page(report: str, theme: str, top: bool) -> str:
+    """The report as GitHub renders a PR comment (GFM tables, the hidden marker stays hidden) in that GitHub theme:
+    with `top`, only the verdict and the Outcome table, fading out; otherwise the whole comment. A 760 px page (GitHub's
+    is 880) so the text still reads once a 686 px docs column scales it."""
     from markdown_it import MarkdownIt
 
-    body = MarkdownIt("commonmark", {"html": True}).enable("table").render(report)
-    root = ";".join(f"--{k}:{v}" for k, v in GH[theme].items())
+    body = MarkdownIt("commonmark", {"html": True}).enable("table").render(report.split("\n### Process")[0] if top
+                                                                           else report)
+    root = ";".join(f"--{k}:{v}" for k, v in GH[theme].items()) + ";--w:760px"
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>:root{{{root}}}{GH_CSS}</style></head><body>'
             '<div class="page"><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head">'
-            f'<b>dev-a</b> commented</div><div class="md fade">{body}</div></div></div></div></body></html>\n')
+            f'<b>dev-a</b> commented</div><div class="md{" fade" if top else ""}">{body}</div></div></div></div>'
+            "</body></html>\n")
 
 
 # ---------------------------------------------------------------------------------------------------- the diagram
@@ -309,11 +325,9 @@ def shoot(pages: dict[str, tuple[str, str]]) -> None:
             tab.set_content(page, wait_until="networkidle")
             tab.evaluate("document.fonts.ready")
             el = tab.locator(selector).first
-            if name.startswith("report-comment"):  # the top of the report: verdict, pins, outcome; then a fade
-                tab.evaluate("""() => { const h = [...document.querySelectorAll('.md h3')]
-                    .find(e => e.textContent === 'Process'); while (h.nextSibling) h.nextSibling.remove();
-                    h.remove(); }""")
             el.screenshot(path=str(HERE / name))
+            box = el.bounding_box() or {}
+            print(f"build: {name} is {box.get('width', 0):.0f}×{box.get('height', 0):.0f} css px")
             print("build: wrote", name)
         browser.close()
 
@@ -324,18 +338,22 @@ def main() -> None:
     args = ap.parse_args()
     with tempfile.TemporaryDirectory() as d:
         steps = session(Path(d))
-        report = (Path(d) / "report.md").read_text(encoding="utf-8")
+        report = (Path(d) / "demo" / "report.md").read_text(encoding="utf-8")
     lines, total = timeline(steps)
+    print(f"build: the recording loops every {HOLD + total:.1f} s ({len(lines)} lines, {COLS} columns)")
+    stats = next(s for s in steps if s[0].startswith("flightdeck stats compare"))
     files = {
         "demo.cast": cast(steps),
         "demo.svg": terminal(lines, total, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
-        "stats-compare.svg": terminal([(0, "cmd", steps[2][0])] + [(0, "out", x) for x in wrap(steps[2][1])], None,
+        "stats-compare.svg": terminal([(0, "cmd", stats[0])] + [(0, "out", x) for x in wrap(stats[1])], None,
                                       "flightdeck|stats compare"),
         "report.md": report,
-        **{f"report-comment-{t}.html": comment_page(report, t) for t in ("dark", "light")},
+        **{f"report-comment{k}-{t}.html": comment_page(report, t, not k) for k in ("", "-full")
+           for t in ("dark", "light")},
         "suite.svg": diagram(),
     }
-    pages = {**{f"report-comment-{t}.png": (files[f"report-comment-{t}.html"], "div.page") for t in ("dark", "light")},
+    pages = {**{f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page") for k in ("", "-full")
+                for t in ("dark", "light")},
              **{f"suite-{t}.png": (diagram_page(files["suite.svg"], t), "svg") for t in ("dark", "light")}}
     files["sources.sha256"] = "".join(f"{hashlib.sha256(p.encode()).hexdigest()}  {n}\n"
                                       for n, (p, _) in sorted(pages.items()))

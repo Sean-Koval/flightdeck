@@ -7,6 +7,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
 from typer.testing import CliRunner
@@ -139,10 +140,10 @@ def test_refusals_name_the_field_never_the_secret(tmp_path: Path, suite_file, ch
     assert not (tmp_path / "out").exists()  # refused before writing anything
 
 
-def test_cli_prints_the_mapping(tmp_path: Path) -> None:
+def test_cli_prints_the_mapping(tmp_path: Path, entry: Any) -> None:
     res = CliRunner().invoke(app, ["task", "import-aidlc", str(SUITES / "real-client.json"), "--out",
                                    str(tmp_path / "o")])
     assert res.exit_code == 0, res.output
     assert "| csv-duplicate-rows | work-before-code | ordering | spec: first edit" in res.output
-    again = CliRunner().invoke(app, ["task", "import-aidlc", str(SUITES / "smoke.json"), "--out", str(tmp_path / "o")])
-    assert again.exit_code == 1 and "isn't empty" in again.output
+    code, output = entry(["task", "import-aidlc", str(SUITES / "smoke.json"), "--out", str(tmp_path / "o")])
+    assert code == 1 and output.startswith("error: ") and "isn't empty" in output
