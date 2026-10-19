@@ -37,9 +37,10 @@ experiment (12 tasks × 2 variants × 3 trials):
   <img alt="The top of the flightdeck report as a pull-request comment: the headline is the verdict, treat is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task" src="docs/assets/report-comment-dark.png" width="816" height="656">
 </picture>
 
-The run that produced it, `ingest → check run → stats compare → report`:
+The run that produced it, `ingest → stats compare → report` (`check run`, which feeds the Behavior specs section,
+is in the quickstart below):
 
-![A terminal session: flightdeck ingests the fixture experiment, runs the behavior specs, compares the variants paired by task and writes a report whose verdict is that treat is better than control](docs/assets/demo.svg)
+<img alt="A terminal session on the fixture experiment: flightdeck ingests the export, compares the variants paired by task and writes a report, printing its verdict, treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0). It opens on the finished session and then replays the typing." src="docs/assets/demo.svg" width="660" height="537">
 
 <details><summary><code>stats compare</code> on its own</summary>
 
