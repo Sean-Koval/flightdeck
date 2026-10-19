@@ -10,7 +10,7 @@ hide:
 
 # Did that harness change actually help?
 
-<p class="af-lede">Flightdeck answers that from the runs hangar already records: paired statistics, behavior specs and a verdict posted on the pull request where the change is reviewed.</p>
+<p class="af-lede">Flightdeck answers that from the runs hangar already records: paired statistics, behavior specs and a <a href="#the-verdict">verdict</a> posted on the pull request where the change is reviewed.</p>
 
 [Get started](getting-started.md){ .md-button .md-button--primary } [Suite overview](https://sean-koval.github.io/agent-factory/){ .md-button }
 </div>
@@ -18,6 +18,15 @@ hide:
 <img src="assets/demo.svg" alt="A terminal session: flightdeck ingests the fixture experiment, runs the behavior specs, compares the variants paired by task and writes a report whose verdict is that treat is better than control" width="847" height="537">
 <figcaption>ingest, check run, stats compare, report: the fixture experiment, recorded by docs/assets/build.py</figcaption>
 </figure>
+</div>
+
+<div id="the-verdict" markdown>
+!!! verdict "The verdict"
+    One of five words: *better*, *non-inferior*, *worse*, *No decision* or *No verdict*. It says how the treatment
+    arm did against the control arm on one metric, with the paired difference and its 95% interval beside it:
+    *treat is better than control on resolved (+21.2 pp, CI +1.5…+43.9, margin −5.0)*. The rule that picks the word
+    (`decision.yaml`: metric, direction, margin, minimum tasks) is committed before the first trial, so nobody moves
+    the goalposts. [Concepts](concepts.md) has the words; [Reports](reports.md#pre-registration) has the rule.
 </div>
 
 **Is:** the Judge. It reads hangar's outbox (GCS → Parquet → DuckDB), or an experiment, job or session over
@@ -123,14 +132,14 @@ and post with `--post owner/repo#n`. [Getting started](getting-started.md) has t
 | Mutation scoring | Remove one harness component at a time and check that a grader or spec notices | Code merged; [#16](https://github.com/Sean-Koval/flightdeck/issues/16) open until the first live run | [Behavior specs](behavior-specs.md#mutation-scoring) |
 | Small by design | 3,785 counted lines of analysis code, enforced in CI; raised from 1,500 by ADRs 0003–0005 | The budget is full: any increase needs a new ADR | [ADR-0005](decisions/0005-post-v0-budget.md) |
 
-Vocabulary (run, turn, trial, check vs grader) is in [Concepts](concepts.md); every command and flag in the
+Vocabulary (verdict, variant, trial, check vs grader) is in [Concepts](concepts.md); every command and flag in the
 [CLI reference](cli.md); what flightdeck reads, writes and pins in [Contracts](contracts.md).
 
 
 ## Where to go next
 
 - [Getting started](getting-started.md): the boundary, the fixture end to end, a real hangar, the code map.
-- [Concepts](concepts.md): the vocabulary (run, turn, trial, check vs grader).
+- [Concepts](concepts.md): the vocabulary (verdict, variant, trial, check vs grader).
 - [CLI](cli.md) and [Contracts](contracts.md): every command and flag; what flightdeck reads, writes and pins.
 - [Decisions](decisions/0001-boundary-with-hangar.md): the boundary with hangar, the public-code, private-data split
   and the line budget.
