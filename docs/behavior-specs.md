@@ -1,17 +1,18 @@
-# Behavior specs: `flightdeck.spec/v1`
+# Behavior specs
 
-!!! note "Status"
-    The spec language, `spec lint` and `spec test` are done ([#14](https://github.com/Sean-Koval/flightdeck/issues/14)). The nightly runner and mutation scoring are
-    merged but their issues are open; each section below says what is left.
+A behavior spec is a predicate over what an agent did, read from hangar's trace export. It says how the agent worked,
+never whether the task was resolved.
 
-A behavior spec is a predicate over what an agent did, read from hangar's trace export (`hangar.trace/v1`,
-hangar `docs/api/traces.md`) as flattened into the data plane ([data-plane.md](data-plane.md)). Specs answer "how did
-it work?" questions: tests before the commit, no push to `main`, asked before deleting. They do not answer "did it
-work?". **Outcome graders come first**: a task's hidden tests decide whether a trial resolved, and a spec never
-overrides a grader. Specs are predicates, and predicates can be gamed, so the language counts only trusted test runs
-and `spec lint` flags the weak shapes below.
+Specs answer "how did it work?" questions: tests before the commit, no push to `main`, asked before deleting. They do
+not answer "did it work?". **Outcome graders come first.** A task's hidden tests decide whether a trial resolved, and a
+spec never overrides a grader.
 
-Code: `src/flightdeck/specs/lang.py`. Examples: [`specs/examples/`](https://github.com/Sean-Koval/flightdeck/tree/main/specs/examples). Team specs live in the private
+Predicates can be gamed. So the language counts only trusted test runs, and `spec lint` flags the weak shapes listed
+under [Anti-gaming](#anti-gaming).
+
+The input is `hangar.trace/v1` (hangar `docs/api/traces.md`) as flattened into the [data plane](data-plane.md). The
+contract is `flightdeck.spec/v1`. Code: `src/flightdeck/specs/lang.py`. Examples:
+[`specs/examples/`](https://github.com/Sean-Koval/flightdeck/tree/main/specs/examples). Team specs live in the private
 data repository ([ADR-0002](decisions/0002-public-code-private-data.md)).
 
 ```sh
@@ -44,15 +45,25 @@ assert:
   never: {tool: {kind: shell, ops: [git.push]}, where: {input: {regex: "\\b(main|master)\\b"}}}
 ```
 
-**Units.** A spec is judged once per unit: `turn` is one agent run (`hangar.run.id`), `job` a hangar job with all its
-turns and its own events (verify, test runs, delivered commits, PR, merge), `session` one session's turns. Job-level
-events sit on the job span, so a spec about `test.run`, `git.commit` events or `pr.merge` needs `scope: job`.
+### Units
 
-**Applicability.** `harness` matches the run's `hangar.harness` (a glob); `applies_when` takes globs (one or a list)
-over four `runs` columns: `source` (`job`, `session`, `experiment`, `shadow`, `local`), `repo` (the job's repo URL),
-`task_id` and `variant` (an experiment trial's task and variant, so a spec can judge one task's treatment arm, as
-imported ai-dlc workflow assertions do). Any other key (for example `untrusted`, which the data plane does not carry
-yet) makes every result `unknown`, never a guess.
+A spec is judged once per unit. `turn` is one agent run (`hangar.run.id`). `job` is a hangar job with all its turns
+and its own events: verify, test runs, delivered commits, PR, merge. `session` is one session's turns.
+
+Job-level events sit on the job span. So a spec about `test.run`, `git.commit` events or `pr.merge` needs
+`scope: job`.
+
+### Applicability
+
+`harness` matches the run's `hangar.harness` as a glob. `applies_when` takes globs (one or a list) over four `runs`
+columns: `source` (`job`, `session`, `experiment`, `shadow`, `local`), `repo` (the job's repo URL), `task_id` and
+`variant`.
+
+`task_id` and `variant` are an experiment trial's task and variant. So a spec can judge one task's candidate arm, as
+imported ai-dlc workflow assertions do.
+
+Any other key makes every result `unknown`, never a guess. `untrusted`, for example, is a key the data plane does not
+carry yet.
 
 ### Matchers
 
@@ -67,12 +78,15 @@ A matcher is a mapping; every key in it must hold for an item to match.
 | `input: <regex>`, `output: <regex>` | the clipped tool input or output (500 characters) | `hangar.tool.input`, `hangar.tool.output` |
 | `where: {field: test}` | a field test | below |
 
-`where` fields are item columns (`name`, `tool_kind`, `seq`, `turn`, `path`, `op` (file op), `input`, `output`,
-`status`, `mcp_server`, `mcp_tool`, `skill`, `trusted`, `total`, `complete`) or a full attribute name
-(`hangar.pr.merged_by`, `hangar.verify.passed`). A test is a scalar (equality; `null` means absent) or a mapping of
-`not`, `in`, `regex`, `glob`, `gt`, `gte`, `lt`, `lte`. A missing value never matches `not`. Globs are
-`fnmatch`/DuckDB `GLOB`: `*` also matches `/`, so `src/*` and `src/**` are the same. Regexes are the common subset of
-Python `re` and RE2 (DuckDB): no lookaround or backreferences.
+`where` fields are item columns or a full attribute name such as `hangar.pr.merged_by` or `hangar.verify.passed`.
+The columns: `name`, `tool_kind`, `seq`, `turn`, `path`, `op` (file op), `input`, `output`, `status`, `mcp_server`,
+`mcp_tool`, `skill`, `trusted`, `total`, `complete`.
+
+A test is a scalar (equality; `null` means absent) or a mapping of `not`, `in`, `regex`, `glob`, `gt`, `gte`, `lt`,
+`lte`. A missing value never matches `not`.
+
+Globs are `fnmatch` and DuckDB `GLOB`: `*` also matches `/`, so `src/*` and `src/**` are the same. Regexes are the
+common subset of Python `re` and RE2 (DuckDB): no lookaround or backreferences.
 
 ### Operators
 
@@ -89,37 +103,52 @@ Python `re` and RE2 (DuckDB): no lookaround or backreferences.
 | `all: {paths: {from: [file.change, diff.files]}, match: <glob or list>}` | every path matches; a `file.change` outside the checkout has no repo path and fails; `not_applicable` with no paths |
 | `any: {paths: {from: [...]}, match: <glob or list>}` | at least one path matches (a delivered file, for ai-dlc's `path-committed`); `not_applicable` with no paths |
 
-**Order** is `hangar.seq` within a session, the event log's position, because many items share a timestamp. Items
-without a seq (job events, test runs, steers recorded before [hangar#162](https://github.com/Sean-Koval/hangar/issues/162)) are compared by time, so mixed comparisons
-are by time (traces.md 'Order'). A `within: {seq: N}` window on an item without a seq is `unknown`. Across sessions
-(best-of-N attempts) order is by time only.
+### Order
 
-**Steers.** Since [hangar#162](https://github.com/Sean-Koval/hangar/issues/162), `steer` and `interrupt` events carry `hangar.seq` (the event-log position where the
-steer was delivered) and `hangar.steer.class` (`correction`, `redirect`, `new_info` or `unclassified`, with
-`hangar.steer.classified_by`); a later classification is also a `steer.classified` event. A steer that arrives after
-its turn ended is `queued` and starts the next turn, so its seq is that turn's start. Steer-avoidance counts only
-corrections: `never: {event: steer, where: {hangar.steer.class: correction}}`. For steers recorded before hangar#162 (no
-seq, class `unclassified`), analyses that need a fork point ([#29](https://github.com/Sean-Koval/flightdeck/issues/29)) take the nearest preceding seq and a judge's class
-(a [calibrated rubric](judges.md)), and say the result is approximate.
+Order is `hangar.seq` within a session: the event log's position, because many items share a timestamp. Items
+without a seq are compared by time, so mixed comparisons are by time (traces.md "Order"). Those are job events, test
+runs, and steers recorded before [hangar#162](https://github.com/Sean-Koval/hangar/issues/162).
+
+A `within: {seq: N}` window on an item without a seq is `unknown`. Across sessions (best-of-N attempts) order is by
+time only.
+
+### Steers
+
+Since [hangar#162](https://github.com/Sean-Koval/hangar/issues/162), `steer` and `interrupt` events carry `hangar.seq`
+(the event-log position where the steer was delivered) and `hangar.steer.class`. The class is `correction`,
+`redirect`, `new_info` or `unclassified`, with `hangar.steer.classified_by`; a later classification is also a
+`steer.classified` event.
+
+A steer that arrives after its turn ended is `queued` and starts the next turn, so its seq is that turn's start.
+Steer-avoidance counts only corrections: `never: {event: steer, where: {hangar.steer.class: correction}}`.
+
+Steers recorded before hangar#162 have no seq and the class `unclassified`. Analyses that need a fork point
+([#29](https://github.com/Sean-Koval/flightdeck/issues/29)) take the nearest preceding seq and a judge's class (a
+[calibrated rubric](judges.md)), and say the result is approximate.
 
 ### Results
 
-Each unit gets `pass`, `fail`, `not_applicable` or `unknown`. `unknown` never counts as a pass (the same rule as
-ai-dlc's "unavailable mandatory observations never pass"): a truncated export (`hangar.export.truncated`) turns a
-would-be `pass` or `not_applicable` into `unknown`, since what it lost could have been the violation; a `fail` it
-shows stays a `fail`.
+Each unit gets `pass`, `fail`, `not_applicable` or `unknown`. `unknown` never counts as a pass, the same rule as
+ai-dlc's "unavailable mandatory observations never pass".
+
+A truncated export (`hangar.export.truncated`) turns a would-be `pass` or `not_applicable` into `unknown`, since what
+it lost could have been the violation. A `fail` it shows stays a `fail`.
 
 ### Two evaluators
 
 `lang.evaluate` is the reference evaluator, in Python over one flattened export. `lang.sql` compiles a spec to DuckDB
-SQL over the data plane (`prepare` builds one `items` table of tool calls, approvals, events and test runs, optionally
-for one day). Each matcher is written once and yields both a Python predicate and a SQL expression;
-`tests/test_specs.py` checks that both evaluators agree on 50 random synthetic exports for every operator and scope.
+SQL over the data plane. For it, `prepare` builds one `items` table of tool calls, approvals, events and test runs,
+optionally for one day.
+
+Each matcher is written once and yields both a Python predicate and a SQL expression. `tests/test_specs.py` checks
+that both evaluators agree on 50 random synthetic exports for every operator and scope.
 
 ### Hangar's reference predicates
 
-[`specs/examples/hangar-reference.yaml`](https://github.com/Sean-Koval/flightdeck/blob/main/specs/examples/hangar-reference.yaml) writes hangar's four
-(tests before the commit, no edits outside `src/`, asked before deleting, plan → edit → test → PR) in this language.
+[`specs/examples/hangar-reference.yaml`](https://github.com/Sean-Koval/flightdeck/blob/main/specs/examples/hangar-reference.yaml)
+writes hangar's four in this language. They are: tests before the commit, no edits outside `src/`, asked before
+deleting, and plan → edit → test → PR.
+
 They pass and fail exactly as hangar `tests/test_interfaces.py::_behavior` does on the same exports
 (`tests/fixtures/hangar/trace_session_{good,bad}.json`). Two differences when the trigger is absent: `before` and
 `each` say `not_applicable` where hangar's plain predicates say false and true.
@@ -127,15 +156,19 @@ They pass and fail exactly as hangar `tests/test_interfaces.py::_behavior` does 
 ## The trusted-test rule
 
 `event: test.run` matches only a run hangar ran itself and trusts: `hangar.test.run.trusted = true`,
-`hangar.test.total > 0` and a complete report (hangar `src/hangar/testresults.py`, the `TRUSTED` kinds such as
-`verify`; [hangar#164](https://github.com/Sean-Koval/hangar/issues/164) adds `grader` runs and the `hangar.test.run.counted` attribute with the same meaning). The
-agent's own in-turn runs are untrusted, and `pytest --collect-only` reports 0 tests. A spec may say
+`hangar.test.total > 0` and a complete report. That is hangar `src/hangar/testresults.py`'s `TRUSTED` kinds, such as
+`verify`. [hangar#164](https://github.com/Sean-Koval/hangar/issues/164) adds `grader` runs and the
+`hangar.test.run.counted` attribute with the same meaning.
+
+The agent's own in-turn runs are untrusted, and `pytest --collect-only` reports 0 tests. A spec may say
 `allow_untrusted: true`, and `spec lint` flags it.
 
 The shell `test` op is a *hint* read from the command text: `uv run pytest --collect-only` has it. Specs that need
-proof of testing use `event: test.run`. In a job, hangar's verify run precedes every delivered commit (the job's
-`git.commit` events), while the agent's own in-turn commit always precedes hangar's verify, so "tests before the
-commit" for a job is `before: {first: {event: test.run}, then: {event: git.commit}}`.
+proof of testing use `event: test.run`.
+
+In a job, hangar's verify run precedes every delivered commit (the job's `git.commit` events). The agent's own
+in-turn commit always precedes hangar's verify. So "tests before the commit" for a job is
+`before: {first: {event: test.run}, then: {event: git.commit}}`.
 
 ## Anti-gaming
 
@@ -148,20 +181,18 @@ commit" for a job is `before: {first: {event: test.run}, then: {event: git.commi
 | Matching on `hangar.tool.input` alone | it is clipped and trivially rephrased (`git push origin HEAD:main`); lint warns unless the matcher also names ops, an event, an approval or a path. Shell semantics read from text accept false negatives |
 | Editing the contract | specs and graders live outside anything a harness optimizer can edit ([ADR-0001](decisions/0001-boundary-with-hangar.md) point 5); loosening or deleting one needs a second reviewer |
 
-`spec lint` warns on: a missing `harness`, a schema other than `flightdeck.spec/v1`, `allow_untrusted`, matching on
-tool input or output text alone, the shell `test` op, `applies_when` keys the data plane lacks, and a missing
-`assert`.
+`spec lint` warns on a missing `harness`, a schema other than `flightdeck.spec/v1`, `allow_untrusted` and a missing
+`assert`. It also warns on matching on tool input or output text alone, the shell `test` op, and `applies_when` keys
+the data plane lacks.
 
 ## ADR checks and the nightly runner
 
-!!! note "Status"
-    Code merged ([#41](https://github.com/Sean-Koval/flightdeck/pull/41)); issue [#15](https://github.com/Sean-Koval/flightdeck/issues/15) stays open until one real team ADR carries a `checks:` block and
-    the nightly run is scheduled in the private data repository.
-
 An accepted decision can carry trace predicates that flightdeck runs every night: executable decisions. The `checks:`
-convention for ADRs is ai-dlc's ([ai-dlc#207](https://github.com/Sean-Koval/ai-dlc/issues/207): `docs/decisions/NNNN-slug.md` with knowledge-note
-frontmatter); the grammar is this page's. Each check is a spec without the header: `id`, optional `scope`,
-`applies_when`, `harness` (default `"*"`) and `assert`.
+convention for ADRs is ai-dlc's ([ai-dlc#207](https://github.com/Sean-Koval/ai-dlc/issues/207):
+`docs/decisions/NNNN-slug.md` with knowledge-note frontmatter); the grammar is this page's.
+
+Each check is a spec without the header: `id`, optional `scope`, `applies_when`, `harness` (default `"*"`) and
+`assert`.
 
 ```yaml
 ---
@@ -175,32 +206,49 @@ checks:
 ---
 ```
 
-The expected actor is written in the check, not in flightdeck's code: it depends on hangar's landing identity. Checks
-can also sit in a fenced `yaml` block holding `checks:` under a plain `Status: Accepted` line (flightdeck's own
-[template](https://github.com/Sean-Koval/flightdeck/blob/main/docs/decisions/0000-template.md)). A check written in another grammar (ai-dlc's example `predicate:` string) has
-no `assert` and yields `unknown` for every unit, never a pass.
+The expected actor is written in the check, not in flightdeck's code: it depends on hangar's landing identity.
+
+Checks can also sit in a fenced `yaml` block holding `checks:` under a plain `Status: Accepted` line (flightdeck's own
+[template](https://github.com/Sean-Koval/flightdeck/blob/main/docs/decisions/0000-template.md)). A check written in
+another grammar, such as ai-dlc's example `predicate:` string, has no `assert`. It yields `unknown` for every unit,
+never a pass.
 
 ```sh
 flightdeck check run --data ./plane [--date 2026-11-03] --specs specs/ --adrs ~/src/team-app:docs/decisions \
     [--alerts-repo team/flightdeck-data]
 ```
 
-- **Inputs.** The day's `dt=` partition of the data plane and git: `<checkout>:<dir>` reads the ADRs of the
-  checkout's committed `HEAD` (uncommitted edits don't count); a plain directory is read as is. No hangar endpoint.
-- **Output.** `spec_results` rows (`dt, run_id` (the unit), `source` (the run's), `spec_id`, `spec_source` (`spec` or
-  `adr:<repo>/<adr>`), `scope`, `result`, `repo`, `harness_digest`, `knowledge_snapshot`) written to
-  `<out>/spec_results/dt=<date>/` (a local root; sync it to the bucket), plus one summary line per check with counts and
-  example failing unit ids. A rerun replaces the day's partition.
-- **Alerts.** Per (check, repo), over the last `--window` days of `spec_results`: the daily violation rate
-  (`fail / (pass + fail)`). The runner picks the split into before/after that best explains the counts (a binomial
-  likelihood ratio, an offline change-point) and alerts only when the rate rose and the two Wilson 95% intervals don't
-  overlap. The alert names the `harness_digest`/`knowledge_snapshot` values first seen on the change day and links
-  example runs. With `--alerts-repo` it opens or comments on one issue per check, labelled `flightdeck:violation`,
-  through the operator's `gh` login (flightdeck holds no credentials). Violations go to the Friday review. A check that
-  fails on most runs is wrong or badly compiled into the harness. Mute it only by editing the ADR, which needs two
-  people.
-- **Schedule.** After the nightly compactor: a Cloud Run job, or a GitHub Actions cron in the private data repo. Both
-  run while hangar's sandbox pools are off:
+### Inputs
+
+The day's `dt=` partition of the data plane, and git. `<checkout>:<dir>` reads the ADRs of the checkout's committed
+`HEAD`; uncommitted edits don't count. A plain directory is read as is. No hangar endpoint.
+
+### Output
+
+`spec_results` rows: `dt`, `run_id` (the unit), `source` (the run's), `spec_id`, `spec_source` (`spec` or
+`adr:<repo>/<adr>`), `scope`, `result`, `repo`, `harness_digest`, `knowledge_snapshot`. They are written to
+`<out>/spec_results/dt=<date>/`, a local root to sync to the bucket.
+
+The runner also prints one summary line per check with counts and example failing unit ids. A rerun replaces the
+day's partition.
+
+### Alerts
+
+Per (check, repo), over the last `--window` days of `spec_results`, the runner computes the daily violation rate:
+`fail / (pass + fail)`. It picks the split into before and after that best explains the counts (a binomial likelihood
+ratio, an offline change-point). It alerts only when the rate rose and the two Wilson 95% intervals don't overlap.
+
+The alert names the `harness_digest` and `knowledge_snapshot` values first seen on the change day and links example
+runs. With `--alerts-repo` it opens or comments on one issue per check, labelled `flightdeck:violation`, through the
+operator's `gh` login. Flightdeck holds no credentials.
+
+Violations go to the Friday review. A check that fails on most runs is wrong, or badly compiled into the harness.
+Mute it only by editing the ADR, which needs two people.
+
+### Schedule
+
+After the nightly compactor: a Cloud Run job, or a GitHub Actions cron in the private data repo. Both run while
+hangar's sandbox pools are off.
 
 ```yaml
 on: {schedule: [{cron: "30 8 * * *"}]}     # 04:30 ET, after the compactor
@@ -217,22 +265,26 @@ jobs:
 
 ### Two people to loosen a check
 
-`flightdeck check diff <old> <new>` compares two spec files or ADRs by check id and prints `tightened` (added),
-`loosened`, `removed` or `unchanged` per check, then the worst as `label: checks:<label>`. Any edit to an existing
-check counts as `loosened`: whether a new regex, window or filter admits more runs can't be decided in general, so a
-second reviewer looks. A GitHub Action in the team repo runs it on PRs that touch `docs/decisions/` or `specs/`
-(`git show origin/main:<path> > old`) and adds the label; branch protection plus a CODEOWNERS entry for those paths
-(the hangar/ai-dlc side) require a reviewer other than the author for `checks:loosened` and `checks:removed`.
+`flightdeck check diff <old> <new>` compares two spec files or ADRs by check id. It prints `tightened` (added),
+`loosened`, `removed` or `unchanged` per check, then the worst as `label: checks:<label>`.
+
+Any edit to an existing check counts as `loosened`. Whether a new regex, window or filter admits more runs can't be
+decided in general, so a second reviewer looks.
+
+A GitHub Action in the team repo runs it on PRs that touch `docs/decisions/` or `specs/`
+(`git show origin/main:<path> > old`) and adds the label. Branch protection plus a CODEOWNERS entry for those paths
+then require a second reviewer for `checks:loosened` and `checks:removed`. That is the hangar or ai-dlc side.
+
+!!! note "Status"
+    Code merged ([#41](https://github.com/Sean-Koval/flightdeck/pull/41)). Issue
+    [#15](https://github.com/Sean-Koval/flightdeck/issues/15) stays open until one real team ADR carries a `checks:`
+    block and the nightly run is scheduled in the private data repository.
 
 ## Mutation scoring
 
-!!! note "Status"
-    Code merged ([#53](https://github.com/Sean-Koval/flightdeck/pull/53)); issue [#16](https://github.com/Sean-Koval/flightdeck/issues/16) stays open until the first live mutation run on hangar (at most
-    $40). The acceptance case so far is shown on stored results in tests.
-
-A suite with a low mutation score is decoration: if deleting part of the harness changes nothing the suite can see,
+A suite with a low mutation score is decoration. If deleting part of the harness changes nothing the suite can see,
 the suite isn't testing that part. `flightdeck mutate` removes one component of a harness at a time and checks that
-some grader or spec notices (code: `src/flightdeck/specs/mutate.py`).
+some grader or spec notices. Code: `src/flightdeck/specs/mutate.py`.
 
 ```sh
 flightdeck mutate plan tasks/smoke/suite.yaml --harness claude-code --out mutants.yaml [--ops ...] [--max 12] \
@@ -241,8 +293,10 @@ flightdeck mutate run mutants.yaml [--max-usd 40] [--dry-run]
 flightdeck mutate score mutants.yaml <run-set> --specs specs/team.yaml --data <plane> [--out score.md]
 ```
 
-**Operators**, over the base variant's hangar overlay (`Variant{skills, skills_remove, instructions,
-instructions_append, approvals}`):
+### Operators
+
+Over the base variant's hangar overlay (`Variant{skills, skills_remove, instructions, instructions_append,
+approvals}`):
 
 | Operator | Mutants |
 | --- | --- |
@@ -252,26 +306,54 @@ instructions_append, approvals}`):
 | `noop` | the variant unchanged: a control that must come out equivalent |
 | `drop-hook`, `widen-egress` | not generated, and said so: hooks need harness locks ([hangar#133](https://github.com/Sean-Koval/hangar/issues/133)); hangar fixes egress per experiment, so widening it is a separate experiment |
 
+### Plan and run
+
 `plan` writes a suite file: the base and its mutants as variants named `mutant-<op>-<component>`, `n` trials each
-(default 2; keep tasks cheap, since a changed instruction changes the prompt prefix and every trial runs in full),
-plus `base:` and `mutants:` for `score`. **Equivalent** mutants (the no-op, and a dropped skill no trace in `--data`
-ever used, by `spans.skill_name`) are listed but not run, and never counted. `run` submits through
-`experiment run`'s cost gate: it prints the projection first and refuses a plan above `--max-usd` (default $40).
-Mutants are per harness; hooks and the in-turn verify gate differ by runtime. A mutant is never promoted:
-`decision.yaml` and `stats compare` name the variants they read, and `mutant-*` variants appear nowhere else.
+(default 2), plus `base:` and `mutants:` for `score`. Keep tasks cheap: a changed instruction changes the prompt
+prefix, and every trial runs in full.
 
-**Killed** ([statistics](statistics.md#mutation-scores)): the resolved rate differs from the base's (paired task
-bootstrap interval excluding 0), or a spec that held on the base (pass^k at or above `--bound`, default 0.9) falls
-below it on the mutant. Otherwise it **survived**. The score is killed / (killed + survived) with a Wilson interval;
-equivalent and not-run mutants are left out. `score` prints a markdown section for the report or PR: the score, each
-mutant's verdict and why, and each survivor's component with a spec worth adding (for a dropped skill,
-`eventually: {tool: {skill: <name>}}`).
+**Equivalent** mutants are listed but not run, and never counted: the no-op, and a dropped skill no trace in `--data`
+ever used (by `spans.skill_name`).
 
-Example: on the semver smoke task with `tests-before-commit`, a base variant whose `instructions_append` says "Write
-your own tests ... and make them pass" and the mutant without that block. When the mutant's trials commit without a
-trusted test run, the spec's pass^k falls from 1 to 0 and the mutant is killed; the no-op is equivalent.
+`run` submits through `experiment run`'s cost gate. It prints the projection first and refuses a plan above
+`--max-usd` (default $40). Mutants are per harness; hooks and the in-turn verify gate differ by runtime.
+
+A mutant is never promoted. `decision.yaml` and `stats compare` name the variants they read, and `mutant-*` variants
+appear nowhere else.
+
+### Score
+
+A mutant is **killed** ([statistics](statistics.md#mutation-scores)) when the resolved rate differs from the base's
+(paired task bootstrap interval excluding 0). It is also killed when a spec that held on the base (pass^k at or above
+`--bound`, default 0.9) falls below it on the mutant. Otherwise it **survived**.
+
+The score is killed / (killed + survived) with a Wilson interval. Equivalent and not-run mutants are left out.
+
+`score` prints a markdown section for the report or PR: the score, then each mutant's verdict and why. Each survivor's
+component comes with a spec worth adding; for a dropped skill that is `eventually: {tool: {skill: <name>}}`.
+
+Example: the semver smoke task with `tests-before-commit`. The base variant's `instructions_append` says "Write your
+own tests ... and make them pass"; the mutant drops that block. When the mutant's trials commit without a trusted test
+run, the spec's pass^k falls from 1 to 0 and the mutant is killed. The no-op is equivalent.
+
+!!! note "Status"
+    Code merged ([#53](https://github.com/Sean-Koval/flightdeck/pull/53)). Issue
+    [#16](https://github.com/Sean-Koval/flightdeck/issues/16) stays open until the first live mutation run on hangar
+    (at most $40). The acceptance case so far is shown on stored results in tests.
 
 ## Versioning
 
-`flightdeck.spec/v1` is additive: a new operator, matcher key or field is not a new version; renaming or removing one
+`flightdeck.spec/v1` is additive. A new operator, matcher key or field is not a new version; renaming or removing one
 is `v2`, as with hangar's interfaces.
+
+!!! note "Status"
+    The spec language, `spec lint` and `spec test` are done ([#14](https://github.com/Sean-Koval/flightdeck/issues/14)).
+    The nightly runner and mutation scoring are merged, and their issues are open; each section above says what is
+    left.
+
+## See also
+
+- [Data plane](data-plane.md): the tables the SQL evaluator reads.
+- [Judges](judges.md): rubric judges, for what a predicate cannot see.
+- [Reports](reports.md): where spec pass rates appear beside the verdict.
+- [Statistics](statistics.md#mutation-scores): how a mutant is judged killed.

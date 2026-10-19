@@ -1,7 +1,7 @@
 # Concepts
 
-One vocabulary for flightdeck's code, docs and reports. Where hangar or ai-dlc uses a word differently, the entry
-says so.
+One vocabulary for flightdeck's code, docs and reports, and the status of each feature. Where hangar or ai-dlc uses
+a word differently, the entry says so.
 
 | Term | Meaning | Source |
 | --- | --- | --- |
@@ -66,3 +66,10 @@ until it has run for real.
 
 Every command and flag is in the [CLI reference](cli.md); what flightdeck reads, writes and pins is in
 [Contracts](contracts.md).
+
+## See also
+
+- [Getting started](getting-started.md): the words in use, on the fixture experiment.
+- [Reports](reports.md#pre-registration): the verdict rule in full.
+- [Statistics](statistics.md): pp, CI, margin and the paired bootstrap, with the numbers.
+- [Contracts](contracts.md): what each term maps to in hangar's interfaces and the data plane.

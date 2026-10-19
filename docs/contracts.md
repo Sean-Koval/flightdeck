@@ -1,7 +1,9 @@
 # Contracts
 
-What flightdeck reads, what it writes, the files a team commits for it, and the pin set it judges trials by. Every
-contract here is additive within its version: a new optional field is not a new version; removing or renaming one is.
+What flightdeck reads, what it writes, the files a team commits for it, and the pin set it judges trials by.
+
+Every contract here is additive within its version. A new optional field is not a new version; removing or renaming
+one is.
 
 ## What flightdeck reads
 
@@ -19,7 +21,7 @@ Only hangar's versioned interfaces and the Parquet data plane, never hangar's da
 How they're checked:
 
 - **Manifests and experiment indexes** are validated against the vendored JSON Schemas (below). A mismatch warns and
-  the ingest goes on; a document whose `schema` isn't `hangar.manifest/v1` or `hangar.experiment/v1` is refused.
+  the ingest goes on. A document whose `schema` isn't `hangar.manifest/v1` or `hangar.experiment/v1` is refused.
 - **Traces** have no JSON Schema: the resource's `hangar.trace.schema` must be `hangar.trace/v1`, and unknown
   attributes are kept in `attrs`.
 - **Outbox objects** (`run.json`, job events) aren't validated at compaction; the compactor keeps what it understands.
@@ -45,11 +47,13 @@ flightdeck also reads one optional field hangar does not write yet: a `descripti
 (one line saying what the arm is, such as *the review skill*). The report names the arms with it; without it the
 arms are their names. The fixture carries it, and an experiment index may add it by hand.
 
-So the index of an experiment whose variants run from harness locks fails the vendored check
-(`model_concrete_basis: harness_lock` isn't in its enum); ingest warns and goes on, and the new fields stay in the raw
-JSON. `python scripts/sync_hangar_schemas.py --hangar ../hangar` refreshes the copies. That refresh goes with
-accepting `harness_lock` variants in `experiment run`, which refuses them today (`VARIANT_KEYS` in
-`src/flightdeck/runners/hangar.py`), and that needs counted lines: the [line budget](decisions/0005-post-v0-budget.md)
+So the index of an experiment whose variants run from harness locks fails the vendored check:
+`model_concrete_basis: harness_lock` isn't in its enum. Ingest warns and goes on, and the new fields stay in the raw
+JSON.
+
+`python scripts/sync_hangar_schemas.py --hangar ../hangar` refreshes the copies. That refresh goes with accepting
+`harness_lock` variants in `experiment run`, which refuses them today (`VARIANT_KEYS` in
+`src/flightdeck/runners/hangar.py`). That needs counted lines, and the [line budget](decisions/0005-post-v0-budget.md)
 has none left, so both wait for a new budget ADR.
 
 ## What flightdeck writes
@@ -108,9 +112,10 @@ Every table also has `run_id`, `source` and `dt` (`flightdeck.parquet/v1`; `dt` 
 ## The pin set
 
 The seam between hangar and flightdeck is a trial run against an immutable **pin set**: what the trial runs with,
-content-addressed, so a baseline pinned today re-runs identically next month (hangar
+content-addressed. So a baseline pinned today re-runs identically next month (hangar
 [`docs/api/trials.md`](https://github.com/Sean-Koval/hangar/blob/main/docs/api/trials.md), `hangar.pinset/v1`).
-Flightdeck owns the sampling (which tasks, how many trials, against which pin sets, when to stop); hangar runs each
+
+Flightdeck owns the sampling: which tasks, how many trials, against which pin sets, when to stop. Hangar runs each
 trial as pinned. Flightdeck still submits batch experiments, whose variants hangar records as pin sets; submitting
 trials against pin sets directly is [#25](https://github.com/Sean-Koval/flightdeck/issues/25).
 
@@ -124,7 +129,15 @@ trials against pin sets directly is [#25](https://github.com/Sean-Koval/flightde
 | `knowledge_snapshot` | What a retrieval tool could read | Optional, once a retrieval tool exists; the manifest schema has no `knowledge` section yet | `manifests.knowledge_snapshot`: null today |
 
 Hangar's pin set also records the harness and its CLI version, the lock reference, the environment, the approvals
-policy and the egress policy's digest. Until every trial carries `harness_digest` and `environment_digest`,
-flightdeck's reports and cache fall back to `config_digest`, which mixes the two halves (and, for the cache, the
-manifest's `environment.build.id`): see the report's Pins table ([Reports](reports.md#anatomy)) and the cache key
-([Running experiments](runners.md#cache)).
+policy and the egress policy's digest.
+
+Until every trial carries `harness_digest` and `environment_digest`, flightdeck's reports and cache fall back to
+`config_digest`, which mixes the two halves. The cache adds the manifest's `environment.build.id`. See the report's
+Pins table ([Reports](reports.md#anatomy)) and the cache key ([Running experiments](runners.md#cache)).
+
+## See also
+
+- [Data plane](data-plane.md): the tables behind `flightdeck.parquet/v1`, and how they are filled.
+- [CLI reference](cli.md): every command and option, generated from the code.
+- [ADR 0001: Boundary with hangar](decisions/0001-boundary-with-hangar.md): why only these interfaces.
+- [Concepts](concepts.md): the words the contracts use.
