@@ -1,6 +1,6 @@
 # 0003: The v0 line budget is 2,500 lines
 
-Status: Accepted, raised by [0004](0004-local-runner-budget.md) · Oct 17, 2026
+Status: Accepted (owner-ratified 2026-10-18), raised by [0004](0004-local-runner-budget.md) · Oct 17, 2026
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 0006: Sealed holdouts are hash-manifested, canaried, written blind and scored once
 
-Status: Accepted · Oct 17, 2026 (agent-proposed; owner review requested)
+Status: Accepted (owner-ratified 2026-10-18, scope amended in [Scope](#scope-owner-2026-10-18)) · Oct 17, 2026
 
 ## Context
 
@@ -50,3 +50,13 @@ B. `flightdeck holdout` (docs/holdouts.md) enforces:
 - The first set (two writers, at least 20 regression tasks) is an owner action in the private data repo; its manifest
   commit is linked from #13.
 - Shadows as a continuous holdout are #31's, not this ADR's.
+
+## Scope (owner, 2026-10-18)
+
+A holdout gates search winners, and promotions whose candidate changed after its results on the judging suite were
+seen.
+
+- A pre-registered single A/B (decision file committed before the first trial, candidate frozen for the run) may
+  promote without one; #20 is such a case.
+- Rule 6's grader isolation is not met on GKE (hangar `docs/security.md`, `trust: best_effort`). Until hangar#152
+  closes, sealed sets are scored on a Docker or single-VM hangar.
