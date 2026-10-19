@@ -7,7 +7,14 @@
 
 **Did that harness change actually help our coding agents, or did we just get lucky on a few runs?** Flightdeck answers
 that from the runs [hangar](https://github.com/Sean-Koval/hangar) already records: paired statistics, behavior specs
-and a verdict posted on the pull request where the change is reviewed.
+and a [verdict](#the-verdict) posted on the pull request where the change is reviewed.
+
+<a id="the-verdict"></a>
+> **The verdict** is one of five words: *better*, *non-inferior*, *worse*, *No decision* or *No verdict*. It says how
+> the treatment arm did against the control arm on one metric, with the paired difference and its 95% interval beside
+> it: *treat is better than control on resolved (+21.2 pp, CI +1.5…+43.9, margin −5.0)*. The rule that picks the word
+> (`decision.yaml`: metric, direction, margin, minimum tasks) is committed before the first trial, so nobody moves the
+> goalposts. [Concepts](docs/concepts.md) has the words; [Reports](docs/reports.md#pre-registration) has the rule.
 
 Docs site: <https://sean-koval.github.io/flightdeck/> · Part of the [agent factory](https://sean-koval.github.io/agent-factory/)
 (Run / **Judge** / Govern).
@@ -117,7 +124,7 @@ and post with `--post owner/repo#n`. [Getting started](docs/getting-started.md) 
 | Mutation scoring | Remove one harness component at a time and check that a grader or spec notices | Code merged; [#16](https://github.com/Sean-Koval/flightdeck/issues/16) open until the first live run | [Behavior specs](docs/behavior-specs.md#mutation-scoring) |
 | Small by design | 3,785 counted lines of analysis code, enforced in CI; raised from 1,500 by ADRs 0003–0005 | The budget is full: any increase needs a new ADR | [ADR-0005](docs/decisions/0005-post-v0-budget.md) |
 
-Vocabulary (run, turn, trial, check vs grader) is in [Concepts](docs/concepts.md); every command and flag in the
+Vocabulary (verdict, variant, trial, check vs grader) is in [Concepts](docs/concepts.md); every command and flag in the
 [CLI reference](docs/cli.md); what flightdeck reads, writes and pins in [Contracts](docs/contracts.md).
 
 ## Development
