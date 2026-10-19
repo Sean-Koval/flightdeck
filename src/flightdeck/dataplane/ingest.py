@@ -30,8 +30,9 @@ DEFAULT_OUT = "~/.flightdeck/data"
 Tables = dict[str, list[flatten.Row]]
 
 
-class NotFound(Exception):
-    """Hangar answered 404: the record is missing, or the token's owner may not see it (owner scoping, 0014 §1)."""
+class NotFound(ValueError):
+    """Hangar answered 404: the record is missing, or the token's owner may not see it (owner scoping, 0014 §1).
+    Reported as one line by the entry point (`cli.run`), like any other wrong id or path."""
 
 
 def _get(base: str, path: str, token: str | None, dest: Path | None = None) -> Any:
@@ -154,15 +155,11 @@ TURN = typer.Option(None, help="Only this turn.")
 
 
 def _run(unit: str, out: str, load: Any, hangar: str | None = "") -> None:
-    """Load one unit's rows (`load(base_url, token)`) and merge them into `out`; 404s are reported as such."""
+    """Load one unit's rows (`load(base_url, token)`) and merge them into `out`."""
     if hangar is None:
         raise typer.BadParameter("pass --hangar or set HANGAR_URL")
     out = os.path.expanduser(out)
-    try:
-        counts = write_unit(load(hangar, os.environ.get("HANGAR_TOKEN")), out, unit)
-    except NotFound as e:
-        typer.secho(f"error: {e}", fg="red", err=True)
-        raise typer.Exit(1) from None
+    counts = write_unit(load(hangar, os.environ.get("HANGAR_TOKEN")), out, unit)
     typer.echo(f"{unit}: " + ", ".join(f"{n} {t}" for t, n in counts.items()) + f" -> {out}")
 
 

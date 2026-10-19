@@ -20,14 +20,12 @@ def lint(paths: list[Path]) -> None:
     bad = 0
     for p in paths:
         try:
-            specs = lang.load(p.read_text())
+            for s in lang.load(p.read_text()):
+                for w in lang.lint(s):
+                    typer.echo(f"{p}: warning: {w}")
         except (lang.SpecError, ValueError) as e:
             typer.echo(f"{p}: error: {e}")
             bad = 1
-            continue
-        for s in specs:
-            for w in lang.lint(s):
-                typer.echo(f"{p}: warning: {w}")
     raise typer.Exit(bad)
 
 
@@ -72,6 +70,7 @@ def run(
     from flightdeck.dataplane.duck import connect
     from flightdeck.dataplane.schema import write_partitioned
     from flightdeck.specs import checks
+    from flightdeck.stats.compare import plain
 
     out = os.path.expanduser(out or data)
     if out.startswith(("gs://", "s3://")):
@@ -85,11 +84,18 @@ def run(
     by: dict[tuple, list[dict]] = {}
     for r in rows:
         by.setdefault((r["spec_source"], r["spec_id"]), []).append(r)
-    for (src, sid), rs in sorted(by.items()):
-        counts = {k: sum(r["result"] == k for r in rs) for k in (lang.PASS, lang.FAIL, lang.NA, lang.UNKNOWN)}
+    table, failed, unknown = ["| spec | applied | passed | failed | unknown | |", "| --- |"], 0, 0
+    for (src, sid), rs in sorted(by.items()):  # a spec that applied to no unit reads as such, never as passed
+        n = {k: sum(r["result"] == k for r in rs) for k in (lang.PASS, lang.FAIL, lang.UNKNOWN)}
         fails = [r["run_id"] for r in rs if r["result"] == lang.FAIL][:3]
-        typer.echo(f"{src}\t{sid}\t" + " ".join(f"{k}={v}" for k, v in counts.items()) + (f"\te.g. {' '.join(fails)}"
-                                                                                       if fails else ""))
+        applied = n[lang.PASS] + n[lang.FAIL]
+        cells = [applied, n[lang.PASS], n[lang.FAIL], n[lang.UNKNOWN]] if applied else ["—"] * 3 + [n[lang.UNKNOWN]]
+        note = f"e.g. {' '.join(fails)}" if fails else "" if applied else "not applied"
+        table.append(f"| {sid if src == 'spec' else f'{sid} ({src})'} | {' | '.join(map(str, cells))} | {note} |")
+        failed, unknown = failed + n[lang.FAIL], unknown + n[lang.UNKNOWN]
+    typer.echo(plain("\n".join(table)))
+    typer.secho(f"{len(by)} specs over {max(map(len, by.values()), default=0)} units: {failed} failed, {unknown} "
+                "unknown", fg="red" if failed else None)
     since = (datetime.strptime(day, "%Y-%m-%d") - timedelta(days=window)).strftime("%Y-%m-%d")
     hist = []
     tables = {r[0] for r in con.execute("select table_name from information_schema.tables").fetchall()}

@@ -6,6 +6,7 @@ Every comparison prints its exclusions with counts and the resolved definition i
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from functools import cache
 from typing import Any
@@ -68,10 +69,7 @@ def exclusion(t: dict[str, Any], metric: str, include_drift: bool = False) -> st
 
 
 def value(t: dict[str, Any], metric: str) -> float | None:
-    if metric == "resolved":
-        return float(bool(resolved(t)[0]))
-    v = t.get(metric)
-    return None if v is None else float(v)
+    return float(bool(resolved(t)[0])) if metric == "resolved" else None if t.get(metric) is None else float(t[metric])
 
 
 @cache
@@ -149,13 +147,12 @@ def compare(trials: list[dict[str, Any]], metric: str, a: str, b: str, seed: int
 def _num(metric: str, v: float | None, signed: bool = False) -> str:
     if v is None:
         return "-"
-    if metric == "resolved":
-        return f"{v * 100:+.1f} pp" if signed else f"{v:.1%}"
-    return f"{v:+.3f}" if signed else f"{v:.3f}"
+    pct = f"{v * 100:+.1f} pp" if signed else f"{v:.1%}"
+    return pct if metric == "resolved" else f"{v:+.3f}" if signed else f"{v:.3f}"
 
 
 def render(c: Comparison) -> str:
-    """The comparison as markdown (readable in a terminal too)."""
+    """The comparison as markdown (the report embeds it; `plain` turns it into the terminal readout)."""
     head = "resolved (95% Wilson)" if c.metric == "resolved" else "mean"
     out = [f"**{c.metric}**: {c.b} vs {c.a}, experiment `{c.experiment}`, seed {c.seed}", "",
            f"| variant | trials | {head} | $ / resolved (95%) |", "| --- | --- | --- | --- |"]
@@ -190,18 +187,40 @@ def render(c: Comparison) -> str:
     return "\n".join(out)
 
 
+def plain(md: str) -> str:
+    """Markdown as a terminal readout: no emphasis, code ticks, headings marks or HTML comments; pipe tables as
+    aligned columns, headers in capitals, numbers right-aligned."""
+    out, rows = [], []
+    for line in [*md.splitlines(), ""]:
+        line = re.sub(r"\*\*|`", "", line)
+        if line.startswith("|") and not line.startswith("| ---"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            rows.append(cells if rows else [c.upper() for c in cells])
+        elif not line.startswith(("|", "<!--")):
+            if rows:
+                cols = list(zip(*rows, strict=True))
+                num = [all(re.match(r"[-+−—$\d]|$", x) for x in c[1:]) for c in cols]
+                out += ["  ".join((x.rjust if num[i] else x.ljust)(max(map(len, cols[i]))) for i, x in enumerate(r))
+                        .rstrip() for r in rows]
+                rows = []
+            out.append(line.lstrip("#").lstrip() if line.startswith("#") else line)
+    return "\n".join(out[:-1])
+
+
 app = typer.Typer(help="Paired statistics over the data plane.", no_args_is_help=True)
 DATA = typer.Option("~/.flightdeck/data", "--data", envvar="FLIGHTDECK_DATA_URI", help="Data plane: directory or gs://")
+MD = typer.Option(False, "--md", help="Print markdown (for an issue or a file) instead of the terminal readout.")
 
 
 @app.command("compare")
 def compare_cmd(experiment: str, a: str = typer.Option("control", "--a"), b: str = typer.Option("treat", "--b"),
                 metric: str = typer.Option("resolved", help="|".join(METRICS)), seed: int = 0,
-                include_drift: bool = typer.Option(False, "--include-drift"), data: str = DATA) -> None:
+                include_drift: bool = typer.Option(False, "--include-drift"), data: str = DATA, md: bool = MD) -> None:
     """Compare variant B against A on one metric, paired by task, with exclusions printed."""
     from flightdeck.dataplane.duck import connect
 
     trials = load_trials(connect(os.path.expanduser(data)), experiment)
     if not trials:
         raise typer.BadParameter(f"no trials of experiment {experiment!r} in {data}")
-    typer.echo(render(compare(trials, metric, a, b, seed, include_drift)))
+    text = render(compare(trials, metric, a, b, seed, include_drift))
+    typer.echo(text if md else plain(text))

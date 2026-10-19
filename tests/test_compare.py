@@ -4,7 +4,7 @@ from typer.testing import CliRunner
 
 from flightdeck.cli import app
 from flightdeck.dataplane.duck import connect
-from flightdeck.stats.compare import compare, exclusion, load_trials, render, resolved
+from flightdeck.stats.compare import compare, exclusion, load_trials, plain, render, resolved
 
 
 @pytest.fixture(scope="module")
@@ -70,9 +70,19 @@ def test_unknown_metric_is_refused(trials: list[dict]) -> None:
         compare(trials, "vibes", "control", "treat")
 
 
-def test_stats_compare_cli(plane: str) -> None:
+def test_stats_compare_cli_prints_a_readout_or_markdown(plane: str) -> None:
     result = CliRunner().invoke(app, ["stats", "compare", EXP, "--data", plane, "--metric", "wall_s"])
     assert result.exit_code == 0, result.output
-    assert "**wall_s**: treat vs control" in result.output and "truncated trace 1" in result.output
+    assert result.output.startswith("wall_s: treat vs control") and "truncated trace 1" in result.output
+    assert "**" not in result.output and "| ---" not in result.output and "VARIANT  TRIALS" in result.output
+    md = CliRunner().invoke(app, ["stats", "compare", EXP, "--data", plane, "--metric", "wall_s", "--md"])
+    assert md.output.startswith("**wall_s**: treat vs control") and "| --- |" in md.output
     missing = CliRunner().invoke(app, ["stats", "compare", "nope", "--data", plane])
     assert missing.exit_code == 2
+
+
+def test_plain_turns_markdown_into_aligned_columns() -> None:
+    md = "**resolved**: `e`, seed 0\n\n| variant | trials | rate |\n| --- | --- | --- |\n| control | 32 | 31.2% |\n" \
+         "| treat | 310 | - |\n\n### Next\n<!-- marker -->\nPaired difference: **+21.2 pp**."
+    assert plain(md).splitlines() == ["resolved: e, seed 0", "", "VARIANT  TRIALS   RATE", "control      32  31.2%",
+                                      "treat       310      -", "", "Next", "Paired difference: +21.2 pp."]

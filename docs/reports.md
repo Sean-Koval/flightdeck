@@ -14,7 +14,8 @@ powered off. Its options:
 
 - `--baseline control`, `--b treat`: the two arms (the verdict is always `--b` against `--baseline`).
 - `--decision decision.yaml`: the pre-registered rule; without it the report says *No verdict*.
-- `--out report.md`: write the report; `--post owner/repo#n`: post it as one comment, updated in place
+- `--out report.md`: write the report (markdown) and print the verdict; without it the report prints as a terminal
+  readout. `--post owner/repo#n`: post it as one comment, updated in place
   (`GITHUB_TOKEN`), with `--full-url URL` or `--gist` for where the full text lives when a comment is clipped.
 - `--details`: per-task rows and trial links (keep it off for public repositories); `--hangar URL`: the trial links.
 

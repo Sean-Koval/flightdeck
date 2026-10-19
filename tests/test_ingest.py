@@ -7,6 +7,7 @@ import subprocess
 import sys
 import types
 from pathlib import Path
+from typing import Any
 
 import pyarrow.parquet as pq
 import pytest
@@ -108,12 +109,10 @@ def test_experiment_collect_and_ingest_produce_identical_tables(
     assert tables(str(tmp_path)) == tables(plane)  # traces and manifests arrive with the runs and grades
 
 
-def test_rest_404_is_reported_as_missing_or_not_yours(tmp_path: Path, no_proxy: None) -> None:
+def test_rest_404_is_reported_as_missing_or_not_yours(tmp_path: Path, no_proxy: None, entry: Any) -> None:
     with Recorded({}) as hangar:
-        result = CliRunner().invoke(app, ["ingest", "experiment", "nope", "--hangar", hangar.url, "--out",
-                                          str(tmp_path)])
-    assert result.exit_code == 1
-    assert "not visible to this token" in result.output
+        code, output = entry(["ingest", "experiment", "nope", "--hangar", hangar.url, "--out", str(tmp_path)])
+    assert code == 1 and output.startswith("error: ") and "not visible to this token" in output
 
 
 def test_job_and_session_ingest_over_rest(tmp_path: Path, no_proxy: None) -> None:

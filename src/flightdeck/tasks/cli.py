@@ -14,18 +14,6 @@ from flightdeck.tasks.format import NAME, TaskError, load_task, write_digest
 app = typer.Typer(help="Harbor-compatible task directories: write, check, digest.", no_args_is_help=True)
 
 
-def _try(fn, *args):
-    try:
-        return fn(*args)
-    except TaskError as e:
-        typer.secho(f"error: {e}", fg="red", err=True)
-        raise typer.Exit(1) from None
-
-
-def _load(path: Path):
-    return _try(load_task, path)
-
-
 @app.command()
 def new(path: Path, task_id: str = typer.Option(None, "--id", help="Task id (default: the directory's name).")):
     """Write a new task from the template: safe test.sh, hidden tests, Harbor task.toml."""
@@ -40,7 +28,7 @@ def new(path: Path, task_id: str = typer.Option(None, "--id", help="Task id (def
         p.rename(p.with_suffix(""))
     toml = path / "task.toml"
     toml.write_text(toml.read_text(encoding="utf-8").replace("{id}", task_id), encoding="utf-8")
-    _try(write_digest, path)
+    write_digest(path)
     typer.echo(f"wrote {path}: edit instruction.md and tests/, then `flightdeck task digest --write {path}`")
 
 
@@ -65,8 +53,8 @@ def check(paths: list[Path]):
 def digest(path: Path, write: bool = typer.Option(False, "--write", help="Update files_digest in task.toml.")):
     """Print the task digest and the tests' digest (files_digest)."""
     if write:
-        _try(write_digest, path)
-    task = _load(path)
+        write_digest(path)
+    task = load_task(path)  # a TaskError is one line from the entry point (cli.run)
     typer.echo(f"task_digest  {task.digest}\nfiles_digest {task.files_digest}")
 
 
@@ -75,11 +63,7 @@ def import_aidlc(suite: Path, out: Annotated[Path, typer.Option(help="An empty d
     """Convert an ai-dlc evaluation suite (JSON) into task dirs, specs and a suite file; print the assertion mapping."""
     from flightdeck.tasks.aidlc import import_suite
 
-    try:
-        rows = import_suite(suite, out)
-    except ValueError as e:
-        typer.secho(f"error: {e}", fg="red", err=True)
-        raise typer.Exit(1) from None
+    rows = import_suite(suite, out)
     typer.echo("| scenario | assertion | kind | maps to |\n| --- | --- | --- | --- |")
     for r in rows:
         typer.echo("| " + " | ".join(r) + " |")
