@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the front page's assets (README.md and docs/index.md) from the synthetic fixture experiment.
+"""Generate the front pages' assets (README.md, docs/index.md, docs/getting-started.md) from the fixture experiment.
 
 Runs the real CLI (`ingest -> check run -> stats compare -> report`) on `scripts/fixture_export.py`'s experiment in a
 temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`), and writes, next to this script:
@@ -8,14 +8,15 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
   session as an animated terminal (CSS keyframes; no player needed on GitHub or the docs site). The recording shows
   `ingest -> stats compare -> report` (`check run` feeds the report's Behavior specs section but is not shown), opens
   on the finished session with the verdict, holds it for `HOLD` seconds, then replays the typing; the loop is under
-  20 s and 80 columns wide, so it reads at the hero's width;
+  20 s and 80 columns wide, so it reads at the hero's width; `demo-still.svg`: its finished frame, for the README;
 - `stats-compare.svg`: the `stats compare` output as a still terminal;
 - `report.md` and `report-comment[-full]-{dark,light}.html`: the report, and the report rendered as a GitHub
   pull-request comment in GitHub's dark and light palettes, on a 760 px page so it reads inside a docs column: the top
   (the verdict and the Outcome table, for the README and the docs home) and the whole comment (for Reports), then
   the `.png` screenshots of them;
-- `suite.svg`: where flightdeck sits in the suite, drawn with agent-factory's diagram conventions (Airframe tokens,
-  theme-aware when inlined), then `suite-dark.png` and `suite-light.png`.
+- `suite.svg`: where flightdeck sits in the suite, and `flow-data-plane.svg`, `flow-experiment.svg`,
+  `flow-holdout.svg` and `paired-by-task.svg` for the guides, drawn with agent-factory's diagram conventions
+  (Airframe tokens with Night fallbacks, so they follow the theme when inlined with `--8<--`).
 
 The terminals follow Airframe's Terminal component and the diagram's fallbacks are Airframe's Night values, both read
 from the vendored `docs/stylesheets/airframe-tokens.json` (`scripts/sync-airframe.sh`), since an SVG shown as an image
@@ -234,83 +235,181 @@ def comment_page(report: str, theme: str, top: bool) -> str:
             "</body></html>\n")
 
 
-# ---------------------------------------------------------------------------------------------------- the diagram
-def diagram() -> str:
-    """Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides (agent-factory's conventions:
-    `scripts/diagrams.py` there; every color an Airframe token with its dark fallback)."""
-    v = {k: f"var(--af-{t}, {NIGHT[t]})" for k, t in {
-        "canvas": "canvas", "raised": "raised", "surface": "surface", "line": "line-strong", "fg": "fg",
-        "muted": "fg-muted", "subtle": "fg-subtle", "brand": "brand-line", "rule": "line", "fd": "product-flightdeck",
-        "hangar": "product-hangar", "ws": "product-tower"}.items()}
-    font = {"name": "700 17px Archivo,'Helvetica Neue',Arial,sans-serif", "body":
-            "400 12.5px 'Red Hat Text','Helvetica Neue',Arial,sans-serif", "lbl": "500 10.5px 'DM Mono',ui-monospace,"
-            "Menlo,monospace", "small": "700 13px Archivo,'Helvetica Neue',Arial,sans-serif"}
-    style = (f".fd-d .n{{font:{font['name']};font-stretch:125%;fill:{v['fg']}}}"
-             f".fd-d .s{{font:{font['small']};font-stretch:125%;fill:{v['fg']}}}"
-             f".fd-d .b{{font:{font['body']};fill:{v['muted']}}}.fd-d .e{{font:{font['body']};fill:{v['subtle']}}}"
-             f".fd-d .l{{font:{font['lbl']};letter-spacing:.08em;fill:{v['subtle']}}}"
-             f".fd-d .edge{{fill:none;stroke:{v['subtle']};stroke-width:1.25}}"
-             f".fd-d .plan{{fill:none;stroke:{v['subtle']};stroke-width:1.25;stroke-dasharray:5 4}}")
-    out: list[str] = []
+# --------------------------------------------------------------------------------------------------- the diagrams
+# Drawn with agent-factory's conventions (`scripts/diagrams.py` there): every color an Airframe token with its Night
+# fallback, so a diagram inlined in a docs page follows the theme and the same file on its own renders dark. Authored
+# at 720 px, the width a docs column shows them at, with 13 px body and 11 px labels, so nothing is read scaled down.
+V = {k: f"var(--af-{t}, {NIGHT[t]})" for k, t in {
+    "canvas": "canvas", "raised": "raised", "surface": "surface", "line": "line-strong", "fg": "fg",
+    "muted": "fg-muted", "subtle": "fg-subtle", "brand": "brand-line", "rule": "line"}.items()}
+SANS, HEAD = "'Red Hat Text','Helvetica Neue',Arial,sans-serif", "Archivo,'Helvetica Neue',Arial,sans-serif"
+D_STYLE = (f".fd-d .n{{font:700 15px {HEAD};font-stretch:125%;fill:{V['fg']}}}"
+           f".fd-d .s{{font:700 13px {HEAD};font-stretch:125%;fill:{V['fg']}}}"
+           f".fd-d .b{{font:400 13px {SANS};fill:{V['muted']}}}.fd-d .e{{font:400 11px {SANS};fill:{V['subtle']}}}"
+           f".fd-d .l{{font:500 11px {MONO};letter-spacing:.08em;fill:{V['subtle']}}}"
+           f".fd-d .k{{font:500 11px {MONO};fill:{V['fg']}}}"
+           f".fd-d .edge{{fill:none;stroke:{V['subtle']};stroke-width:1.25}}"
+           f".fd-d .plan{{fill:none;stroke:{V['subtle']};stroke-width:1.25;stroke-dasharray:5 4}}")
 
-    def box(x: int, y: int, w: int, h: int, eyebrow: str, name: str, lines: tuple[str, ...], hue: str | None,
+
+class Diagram:
+    """One SVG: `box` (eyebrow, name, body lines), `step` (a small named row), `edge` (an arrow with a label) and
+    `text`, then `svg(label)`; `kind` is `raised` (default), `hub` (brand outline: flightdeck) or `plan` (dashed)."""
+
+    def __init__(self, name: str, w: int, h: int, title: str) -> None:
+        self.id, self.w, self.h = name, w, h
+        self.out = [f'<rect width="{w}" height="{h}" fill="{V["canvas"]}"/>',
+                    f'<text class="l" x="24" y="30">{esc(title.upper())}</text>']
+
+    def box(self, x: int, y: int, w: int, h: int, eyebrow: str, name: str, lines: tuple[str, ...] = (),
             kind: str = "raised") -> None:
-        stroke = {"hub": f' stroke="{v["brand"]}" stroke-width="1.5"', "plan": f' stroke="{v["line"]}" '
-                  'stroke-dasharray="4 4" fill-opacity="0"'}.get(kind, f' stroke="{v["rule"]}"')
-        out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="3" fill="{v["raised"]}"{stroke}/>')
-        if hue:
-            out.append(f'<rect x="{x}" y="{y}" width="{w}" height="2" fill="{v[hue]}"/>')
-        out.append(f'<text class="l" x="{x + 18}" y="{y + 26}">{esc(eyebrow)}</text>'
-                   f'<text class="n" x="{x + 18}" y="{y + 50}">{esc(name)}</text>')
-        out.extend(f'<text class="b" x="{x + 18}" y="{y + 74 + 19 * i}">{esc(t)}</text>' for i, t in enumerate(lines))
+        stroke = {"hub": f' stroke="{V["brand"]}" stroke-width="1.5"', "plan": f' stroke="{V["line"]}" '
+                  'stroke-dasharray="4 4" fill-opacity="0"'}.get(kind, f' stroke="{V["rule"]}"')
+        self.out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="3" fill="{V["raised"]}"{stroke}/>')
+        if eyebrow:
+            self.out.append(f'<text class="l" x="{x + 14}" y="{y + 22}">{esc(eyebrow)}</text>')
+        self.out.append(f'<text class="n" x="{x + 14}" y="{y + (44 if eyebrow else 26)}">{esc(name)}</text>')
+        top = y + (66 if eyebrow else 48)
+        self.out += [f'<text class="b" x="{x + 14}" y="{top + 18 * i}">{esc(t)}</text>' for i, t in enumerate(lines)]
 
-    def step(x: int, y: int, name: str, sub: str) -> None:
-        out.append(f'<rect x="{x}" y="{y}" width="300" height="52" rx="3" fill="{v["surface"]}" stroke="{v["line"]}"/>'
-                   f'<text class="s" x="{x + 14}" y="{y + 21}">{esc(name)}</text>'
-                   f'<text class="b" x="{x + 14}" y="{y + 40}">{esc(sub)}</text>')
+    def step(self, x: int, y: int, w: int, name: str, sub: str = "", h: int = 40) -> None:
+        self.out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="3" fill="{V["surface"]}" '
+                        f'stroke="{V["line"]}"/><text class="s" x="{x + 12}" y="{y + (24 if not sub else 18)}">'
+                        f'{esc(name)}</text>')
+        if sub:
+            self.out.append(f'<text class="e" x="{x + 12}" y="{y + 32}">{esc(sub)}</text>')
 
-    def edge(d: str, label: str, lx: int, ly: int, cls: str = "edge", anchor: str = "middle") -> None:
-        out.append(f'<path class="{cls}" d="{d}" marker-end="url(#fd-arrow)"/>')
-        out.extend(f'<text class="e" x="{lx}" y="{ly + 16 * i}" text-anchor="{anchor}">{esc(t)}</text>'
-                   for i, t in enumerate(label.split("|")))
+    def edge(self, d: str, label: str = "", lx: int = 0, ly: int = 0, cls: str = "edge", anchor: str = "middle",
+             head: bool = True) -> None:
+        end = f' marker-end="url(#{self.id}-arrow)"' if head else ""
+        self.out.append(f'<path class="{cls}" d="{d}"{end}/>')
+        self.out += [f'<text class="e" x="{lx}" y="{ly + 15 * i}" text-anchor="{anchor}">{esc(t)}</text>'
+                     for i, t in enumerate(label.split("|")) if label]
 
-    w, h = 1200, 600
-    out.append(f'<rect width="{w}" height="{h}" fill="{v["canvas"]}"/>')
-    out.append('<text class="l" x="40" y="44">WHERE FLIGHTDECK SITS · RUN / JUDGE / GOVERN</text>')
-    box(30, 90, 270, 300, "RUN", "hangar", ("runs coding agents in sandboxes", "records manifests, traces and",
-                                              "the experiment index", "runs the trials it is asked for,",
-                                              "pinned; does no analysis"), "hangar")
-    box(430, 70, 360, 380, "JUDGE", "flightdeck", (), "fd", "hub")
-    for i, (name, sub) in enumerate((("ingest", "hangar REST or an experiment export"),
-                                     ("data plane", "flightdeck.parquet/v1 · DuckDB"),
-                                     ("stats compare · check run", "paired by task · behavior specs"),
-                                     ("report", "verdict from a pre-registered rule"))):
-        step(460, 140 + 72 * i, name, sub)
+    def text(self, x: int, y: int, text: str, cls: str = "b", anchor: str = "start") -> None:
+        self.out.append(f'<text class="{cls}" x="{x}" y="{y}" text-anchor="{anchor}">{esc(text)}</text>')
+
+    def svg(self, label: str) -> str:
+        defs = (f'<defs><marker id="{self.id}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" '
+                f'markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{V["subtle"]}"/>'
+                "</marker></defs>")
+        return (f'<svg class="fd-d" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {self.w} {self.h}" '
+                f'width="{self.w}" height="{self.h}" style="max-width:100%;height:auto" role="img" '
+                f'aria-label="{esc(label)}">'
+                f'<style>{D_STYLE}</style>{defs}{"".join(self.out)}</svg>\n')
+
+
+def suite() -> str:
+    """Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower (planned) governs. Three
+    boxes in a row, Tower a one-line strip under them, the roles on the eyebrows (no product hues)."""
+    d = Diagram("suite", 720, 420, "Where flightdeck sits · run / judge / decide")
+    y, h, bw = 56, 276, 160
+    xs = (24, 280, 536)
+    d.box(xs[0], y, bw, h, "RUN", "hangar", ("runs coding agents", "in sandboxes;", "records manifests,",
+                                             "traces and the", "experiment index.", "Runs the trials it",
+                                             "is asked for, pinned;", "does no analysis."))
+    d.box(xs[1], y, bw, h, "JUDGE", "flightdeck", (), "hub")
+    for i, (name, sub) in enumerate((("ingest", "REST or an export"), ("data plane", "Parquet · DuckDB"),
+                                     ("stats · check", "paired by task · specs"), ("report", "a pre-registered rule"))):
+        d.step(xs[1] + 12, y + 60 + 50 * i, bw - 24, name, sub)
         if i:
-            out.append(f'<path class="edge" d="M610 {140 + 72 * i - 20} V{140 + 72 * i - 2}" '
-                       'marker-end="url(#fd-arrow)"/>')
-    box(890, 90, 270, 300, "DECIDE", "the pull request", ("one comment, updated in place",
-                                                          "verdict, pins, outcome, cost,", "behavior specs",
-                                                          "a reviewer decides; the", "approver is never the author"),
-        None)
-    edge("M300 200 H426", "manifests, traces,|experiment index", 365, 170)
-    edge("M430 330 H304", "trials:|tasks × variants × n", 365, 356)
-    edge("M790 381 H886", "report", 838, 371)
-    box(430, 490, 730, 80, "GOVERN · PLANNED", "Tower: policy decisions, approvals, receipts", (),
-        "ws", "plan")
-    edge("M1025 390 V486", "promotion approval", 1035, 446, "plan", "start")
-    defs = (f'<defs><marker id="fd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
-            f'orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{v["subtle"]}"/></marker></defs>')
-    return (f'<svg class="fd-d" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" '
-            f'aria-label="Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides">'
-            f"<style>{style}</style>{defs}{''.join(out)}</svg>\n")
+            d.edge(f"M{xs[1] + bw // 2} {y + 60 + 50 * i - 10} V{y + 60 + 50 * i - 2}")
+    pr = ("one comment, updated", "in place: verdict,", "pins, outcome, cost,", "behavior specs.",
+          "A reviewer decides;", "the approver is", "never the author.")
+    d.box(xs[2], y, bw, h, "DECIDE", "the pull request", pr)
+    d.edge(f"M{xs[0] + bw} {y + 110} H{xs[1] - 4}", "runs, traces,|the index", 232, y + 88)
+    d.edge(f"M{xs[1]} {y + 200} H{xs[0] + bw + 4}", "trials to run:|tasks × arms × n", 232, y + 222)
+    d.edge(f"M{xs[1] + bw} {y + 110} H{xs[2] - 4}", "the report", 488, y + 100)
+    d.box(24, 358, 672, 40, "", "", (), "plan")
+    d.text(38, 383, "GOVERN · PLANNED", "l")
+    d.text(172, 383, "Tower: policy decisions, approvals, receipts", "s")
+    d.edge(f"M{xs[2] + bw // 2} {y + h} V354", "promotion approval", xs[2] + bw // 2 - 8, y + h + 16, "plan", "end")
+    return d.svg("Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower, planned, "
+                 "governs promotions")
 
 
-def diagram_page(svg: str, theme: str) -> str:
-    css = (ROOT / "docs" / "stylesheets" / "airframe.css").read_text(encoding="utf-8")
-    return (f'<!doctype html><html data-theme="{theme}"><head><meta charset="utf-8"><link rel="stylesheet" '
-            f'href="{FONTS}"><style>{css}html,body{{margin:0;background:var(--af-canvas)}}'
-            f"svg{{display:block;width:1200px;height:auto}}</style></head><body>{svg}</body></html>\n")
+def flow_data_plane() -> str:
+    d = Diagram("plane", 720, 236, "The data plane · two ways in, one way out")
+    d.box(24, 52, 200, 64, "", "hangar's outbox", ("one hangar.run/v1 per run,", "written to GCS"))
+    d.box(24, 140, 200, 64, "", "an export, or REST", ("hangar experiment export,", "or GET /api/experiments/{id}"))
+    d.step(264, 64, 140, "compact", "nightly, on Cloud Run")
+    d.step(264, 152, 140, "ingest", "when you need it now")
+    d.box(444, 52, 252, 152, "", "the data plane", ("Parquet: one table per kind", "of record, partitioned by day",
+                                                    "(flightdeck.parquet/v1).", "", "DuckDB views over it feed",
+                                                    "stats, check and report."))
+    for y in (84, 172):
+        d.edge(f"M224 {y} H260")
+        d.edge(f"M404 {y} H440")
+    return d.svg("The data plane: hangar's outbox is compacted nightly and an export or REST response is ingested on "
+                 "demand, both into Parquet tables that DuckDB views read for stats, check and report")
+
+
+def flow_experiment() -> str:
+    d = Diagram("exp", 720, 260, "An experiment · from suite to report")
+    steps = (("suite.yaml", "tasks, variants, trials"), ("plan", "tasks × arms × n, pinned"),
+             ("cost gate", "projected spend ≤ budget"), ("hangar runs it", "queued, isolated, pinned"),
+             ("collect", "into the data plane"), ("report", "verdict on the pull request"))
+    for i, (name, sub) in enumerate(steps):
+        x = 24 + (i % 3) * 232
+        y = 52 + (i // 3) * 136
+        d.step(x, y, 200, name, sub, 48)
+        if i % 3 != 2:
+            d.edge(f"M{x + 200} {y + 24} H{x + 228}")
+    d.edge("M588 100 V176 H124 V184")
+    d.step(256, 124, 200, "cache", "unchanged inputs: the trial is reused", 40)
+    d.edge("M356 124 V104", "", 0, 0, "plan")
+    d.text(470, 141, "so plan submits only", "e")
+    d.text(470, 156, "what is missing", "e")
+    return d.svg("An experiment: a suite is planned into pinned trials, passed through the cost gate, run by hangar, "
+                 "collected into the data plane and reported; the cache skips trials whose inputs are unchanged")
+
+
+def flow_holdout() -> str:
+    d = Diagram("hold", 720, 236, "A sealed holdout · written blind, scored once")
+    steps = (("brief", "writers who are not", "the change's authors"),
+             ("write blind", "tasks land in", "incoming/<writer>/"),
+             ("seal", "canaries and hashes", "added; plaintext gone"),
+             ("run", "decrypted, one arm,", "egress none"),
+             ("score once", "approver ≠ author;", "then the set is spent"))
+    for i, (name, a, b) in enumerate(steps):
+        x = 24 + i * 136
+        d.step(x, 52, 120, name, "", 36)
+        d.text(x + 2, 112, a, "e")
+        d.text(x + 2, 127, b, "e")
+        if i < 4:
+            d.edge(f"M{x + 120} 70 H{x + 134}")
+    d.box(24, 160, 672, 52, "", "", (), "plan")
+    d.text(38, 182, "NIGHTLY", "l")
+    d.text(38, 200, "canary-scan reads the last days' traces for the set's canary strings; a hit voids the set.", "b")
+    return d.svg("A sealed holdout: briefed to blind writers, written, sealed with canaries and hashes, run once on "
+                 "the candidate and scored once by an approver who is not the author; a nightly canary scan voids a "
+                 "leaked set")
+
+
+def paired_by_task() -> str:
+    """Two arms, tasks as rows, resolved or not per trial; the discordant pairs are what the comparison learns from."""
+    d = Diagram("pair", 720, 262, "Paired by task · the comparison resamples tasks, not trials")
+    rows = (("t01", "● ● ●", "● ● ●", "saturated: no information"),
+            ("t02", "○ ○ ○", "○ ○ ○", "saturated: no information"), ("t03", "○ ● ○", "● ● ○", "discordant: +1 of 3"),
+            ("t04", "○ ○ ●", "● ● ●", "discordant: +2 of 3"),
+            ("t05", "● ○ ●", "○ ● ●", "concordant: the same rate"), ("…", "", "", "every task runs in both arms"))
+    d.text(24, 62, "TASK", "l")
+    d.text(120, 62, "CONTROL", "l")
+    d.text(260, 62, "CANDIDATE", "l")
+    d.text(420, 62, "WHAT THE PAIR SAYS", "l")
+    d.out.append(f'<path d="M24 70 H696" stroke="{V["rule"]}"/>')
+    for i, (task, a, b, note) in enumerate(rows):
+        y = 94 + 24 * i
+        d.text(24, y, task, "k")
+        d.text(120, y, a, "k")
+        d.text(260, y, b, "k")
+        d.text(420, y, note, "b" if "discordant" in note else "e")
+    d.text(24, 236, "● resolved  ○ not resolved. The paired difference is the mean over tasks of the candidate rate "
+           "minus", "e")
+    d.text(24, 251, "the control rate; its interval comes from resampling tasks. A task with one arm missing is left "
+           "out.", "e")
+    return d.svg("Paired by task: each task runs three trials in both arms; saturated tasks carry no information, "
+                 "discordant tasks drive the paired difference, and the interval comes from resampling tasks")
 
 
 # ---------------------------------------------------------------------------------------------------- main
@@ -345,16 +444,17 @@ def main() -> None:
     files = {
         "demo.cast": cast(steps),
         "demo.svg": terminal(lines, total, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
+        "demo-still.svg": terminal(lines, None, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
         "stats-compare.svg": terminal([(0, "cmd", stats[0])] + [(0, "out", x) for x in wrap(stats[1])], None,
                                       "flightdeck|stats compare"),
         "report.md": report,
         **{f"report-comment{k}-{t}.html": comment_page(report, t, not k) for k in ("", "-full")
            for t in ("dark", "light")},
-        "suite.svg": diagram(),
+        "suite.svg": suite(), "flow-data-plane.svg": flow_data_plane(), "flow-experiment.svg": flow_experiment(),
+        "flow-holdout.svg": flow_holdout(), "paired-by-task.svg": paired_by_task(),
     }
-    pages = {**{f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page") for k in ("", "-full")
-                for t in ("dark", "light")},
-             **{f"suite-{t}.png": (diagram_page(files["suite.svg"], t), "svg") for t in ("dark", "light")}}
+    pages = {f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page") for k in ("", "-full")
+             for t in ("dark", "light")}
     files["sources.sha256"] = "".join(f"{hashlib.sha256(p.encode()).hexdigest()}  {n}\n"
                                       for n, (p, _) in sorted(pages.items()))
     for name, text in files.items():

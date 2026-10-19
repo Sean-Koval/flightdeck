@@ -44,7 +44,7 @@ def test_export_ingest_fills_all_six_tables_one_run_per_trial(plane: str) -> Non
 
 def test_pending_trial_has_no_outcome_and_truncated_trace_is_flagged(plane: str) -> None:
     con = connect(plane)
-    assert con.sql("select outcome from runs where trial_key = 't06/treat/3'").fetchone() == (None,)
+    assert con.sql("select outcome from runs where trial_key = 't06/candidate/3'").fetchone() == (None,)
     assert con.sql("select trial_key from runs where truncated").fetchall() == [("t07/control/1",)]
 
 
@@ -58,13 +58,13 @@ def test_reingest_adds_no_duplicates_and_replaces_a_finished_trial(export_dir: P
     changed = tmp_path / "export2"
     shutil.copytree(export_dir, changed)
     index = json.loads((changed / "index.json").read_text())
-    t = next(x for x in index["trials"] if x["key"] == "t06/treat/3")
+    t = next(x for x in index["trials"] if x["key"] == "t06/candidate/3")
     t.update(state="done", outcome="succeeded", finished_at=1760900000.0)
     (changed / "index.json").write_text(json.dumps(index))
     ingest.write_unit(ingest.read_export(changed), out, f"experiment-{EXP}")
     con = connect(out)
     assert con.sql("select count(*), count(distinct run_id) from runs").fetchone() == (73, 73)
-    assert con.sql("select outcome from runs where trial_key = 't06/treat/3'").fetchone() == ("succeeded",)
+    assert con.sql("select outcome from runs where trial_key = 't06/candidate/3'").fetchone() == ("succeeded",)
 
 
 def test_rest_and_export_ingest_yield_identical_tables(
@@ -82,21 +82,21 @@ def test_rest_and_export_ingest_yield_identical_tables(
 def test_an_infra_error_trial_and_its_retry_keep_hangars_class(plane: str) -> None:
     con = connect(plane)
     rows = con.sql("select run_id, outcome_class, infra_reason, excluded, outcome from runs "
-                   "where trial_key = 't03/treat/3' order by attempt").fetchall()
-    assert rows == [(f"{EXP}/t03/treat/3", "infra_error", "sandbox_create", True, "failed"),
-                    (f"{EXP}/t03/treat/3~2", "agent", None, False, "succeeded")]
-    assert con.sql(f"select count(*) > 0 from spans where run_id = '{EXP}/t03/treat/3~2'").fetchone() == (True,)
+                   "where trial_key = 't03/candidate/3' order by attempt").fetchall()
+    assert rows == [(f"{EXP}/t03/candidate/3", "infra_error", "sandbox_create", True, "failed"),
+                    (f"{EXP}/t03/candidate/3~2", "agent", None, False, "succeeded")]
+    assert con.sql(f"select count(*) > 0 from spans where run_id = '{EXP}/t03/candidate/3~2'").fetchone() == (True,)
 
 
 def test_ingest_warns_about_pins_hangars_model_rule_refuses(export_dir: Path, tmp_path: Path) -> None:
     bad = tmp_path / "export"
     shutil.copytree(export_dir, bad)
     index = json.loads((bad / "index.json").read_text())
-    index["pins"]["variants"]["treat"]["model"] = "claude-opus-latest"
+    index["pins"]["variants"]["candidate"]["model"] = "claude-opus-latest"
     (bad / "index.json").write_text(json.dumps(index))
     result = CliRunner().invoke(app, ["ingest", "export", str(bad), "--out", str(tmp_path / "plane")])
     assert result.exit_code == 0
-    assert "variant treat: pinned model 'claude-opus-latest' is a floating alias" in result.output
+    assert "variant candidate: pinned model 'claude-opus-latest' is a floating alias" in result.output
 
 
 def test_experiment_collect_and_ingest_produce_identical_tables(

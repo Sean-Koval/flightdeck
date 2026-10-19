@@ -2,10 +2,10 @@
 """Write a synthetic `hangar experiment export` directory: the fixture experiment for tests and the README's end-to-end.
 
 Built from the synthetic trace and manifest in `tests/fixtures/hangar/` (ADR-0002: no team data). 12 tasks x 2 variants
-(control, treat) x 3 trials, seeded, with treat a little better and cheaper, plus one of each case a report must handle:
-an infrastructure failure hangar retried (hangar#166), a cancelled trial, a drifted trial, a trial still running, a
-truncated trace and a task that failed hangar's base check. Also writes a `decision.yaml`, committed (in a git repo in
-DIR) before the first trial finished: pre-registered.
+(control, candidate; described in the index's pins) x 3 trials, seeded, with the candidate a little better and
+cheaper, plus one of each case a report must handle: an infrastructure failure hangar retried (hangar#166), a
+cancelled trial, a drifted trial, a trial still running, a truncated trace and a task that failed hangar's base check.
+Also writes a `decision.yaml`, committed (in a git repo in DIR) before the first trial finished: pre-registered.
 
     python scripts/fixture_export.py DIR
 """
@@ -24,8 +24,8 @@ FIX = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "hangar"
 EXP = "job-expdemo"
 CREATED = 1760600000.0
 TASKS = [f"t{i:02d}" for i in range(1, 13)]
-DIGEST = {"control": "sha256:" + "1" * 64, "treat": "sha256:" + "4" * 64}
-CONFIG = {"control": "sha256:" + "2" * 64, "treat": "sha256:" + "5" * 64}
+DIGEST = {"control": "sha256:" + "1" * 64, "candidate": "sha256:" + "4" * 64}
+CONFIG = {"control": "sha256:" + "2" * 64, "candidate": "sha256:" + "5" * 64}
 
 
 def _attr(span: dict, key: str, value: dict) -> None:
@@ -72,14 +72,14 @@ def build(out: Path, seed: int = 7) -> dict:
     base = {t: 1.0 if t == "t01" else 0.0 if t == "t02" else rng.uniform(0.2, 0.7) for t in TASKS}
     trials, n = [], 0
     for task in TASKS:
-        for variant in ("control", "treat"):
+        for variant in ("control", "candidate"):
             for trial in (1, 2, 3):
                 n += 1
                 key, job = f"{task}/{variant}/{trial}", f"job-{task}-{variant}-{trial}"
                 run_id = f"run-{task}-{variant}-{trial}"
-                lift = 0.25 if variant == "treat" and base[task] not in (0.0, 1.0) else 0.0
+                lift = 0.25 if variant == "candidate" and base[task] not in (0.0, 1.0) else 0.0
                 ok = rng.random() < base[task] + lift
-                cost = round(rng.uniform(0.3, 0.5) * (0.8 if variant == "treat" else 1.0), 3)
+                cost = round(rng.uniform(0.3, 0.5) * (0.8 if variant == "candidate" else 1.0), 3)
                 t = copy.deepcopy(template)
                 t.update(key=key, task=task, variant=variant, trial=trial, job=job, session="ses-" + job,
                          state="done", outcome="succeeded", reason=None, started_at=CREATED + 100 * n,
@@ -91,17 +91,17 @@ def build(out: Path, seed: int = 7) -> dict:
                 t["usage"] = {**t["usage"], "cost_usd": cost}
                 t["grade"] = {**t["grade"], "exit_code": 0 if ok else 1, "data": {"reward": int(ok)}}
                 retries = []
-                if key == "t03/treat/3":  # infrastructure ended it: hangar excludes it and runs attempt 2
+                if key == "t03/candidate/3":  # infrastructure ended it: hangar excludes it and runs attempt 2
                     retries.append(retry := copy.deepcopy(t))
                     retry.update(attempt=2, retry_of=job, job=job + "-2", finished_at=t["finished_at"] + 400)
                     t.update(outcome="failed", reason="sandbox could not be created", grade=None, stored=[],
                              outcome_class="infra_error", infra_reason="sandbox_create", excluded=True)
                 if key == "t04/control/3":
                     t.update(outcome="cancelled", reason="cancelled by dev-a", grade=None, outcome_class="cancelled")
-                if key == "t05/treat/2":
+                if key == "t05/candidate/2":
                     t.update(drift=["harness drift: its harness configuration differs"],
                              config_digest=CONFIG["control"])
-                if key == "t06/treat/3":
+                if key == "t06/candidate/3":
                     t.update(state="running", outcome=None, finished_at=None, grade=None, usage=None, stored=[])
                 for x in [t, *retries]:
                     q = f"?attempt={x['attempt']}" if x["attempt"] > 1 or x["excluded"] else ""
@@ -111,7 +111,7 @@ def build(out: Path, seed: int = 7) -> dict:
                     if x["stored"]:
                         d = out / "trials" / ref.replace("/", "__")
                         d.mkdir(parents=True, exist_ok=True)
-                        calls = 2 if variant == "treat" and trial != 3 else 3
+                        calls = 2 if variant == "candidate" and trial != 3 else 3
                         trace = _trace(x["job"], run_id, cost, calls, truncated=key == "t07/control/1")
                         (d / "trace.json").write_text(json.dumps(trace, indent=1))
                         (d / "manifest.json").write_text(json.dumps(_manifest(variant, x["job"], run_id), indent=1))
