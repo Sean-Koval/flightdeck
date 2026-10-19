@@ -15,8 +15,8 @@ hide:
 [Get started](getting-started.md){ .md-button .md-button--primary } [Suite overview](https://sean-koval.github.io/agent-factory/){ .md-button }
 </div>
 <figure class="af-hero__visual">
-<img src="assets/demo.svg" alt="A terminal session: flightdeck ingests the fixture experiment, runs the behavior specs, compares the variants paired by task and writes a report whose verdict is that treat is better than control" width="847" height="537">
-<figcaption>ingest, check run, stats compare, report: the fixture experiment, recorded by docs/assets/build.py</figcaption>
+<img src="assets/demo.svg" alt="A terminal session on the fixture experiment: flightdeck ingests the export, compares the variants paired by task and writes a report, printing its verdict, treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0). It opens on the finished session and then replays the typing." width="660" height="537">
+<figcaption>ingest, stats compare, report on the fixture experiment, recorded by docs/assets/build.py</figcaption>
 </figure>
 </div>
 
@@ -48,7 +48,8 @@ experiment (12 tasks × 2 variants × 3 trials):
 <figcaption>The top of the report on the pull request, from the fixture experiment</figcaption>
 </figure>
 
-The run that produced it is the recording above, `ingest → check run → stats compare → report`.
+The run that produced it is the recording above, `ingest → stats compare → report` (`check run`, which feeds the
+Behavior specs section, is in the quickstart below).
 
 <details><summary><code>stats compare</code> on its own</summary>
 
