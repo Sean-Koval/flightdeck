@@ -12,7 +12,7 @@ and a [verdict](#the-verdict) posted on the pull request where the change is rev
 <a id="the-verdict"></a>
 > **The verdict** is one of five words: *better*, *non-inferior*, *worse*, *No decision* or *No verdict*. It says how
 > the treatment arm did against the control arm on one metric, with the paired difference and its 95% interval beside
-> it: *treat is better than control on resolved (+21.2 pp, CI +1.5…+43.9, margin −5.0)*. The rule that picks the word
+> it: *treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)*. The rule that picks the word
 > (`decision.yaml`: metric, direction, margin, minimum tasks) is committed before the first trial, so nobody moves the
 > goalposts. [Concepts](docs/concepts.md) has the words; [Reports](docs/reports.md#pre-registration) has the rule.
 
@@ -34,7 +34,7 @@ experiment (12 tasks × 2 variants × 3 trials):
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/report-comment-light.png">
-  <img alt="The flightdeck report as a pull-request comment: a pre-registered verdict, treat is better than control on resolved (+21.2 pp, CI +1.5 to +43.9), the pins of each variant and the outcome table with Wilson intervals and dollars per resolved task" src="docs/assets/report-comment-dark.png">
+  <img alt="The top of the flightdeck report as a pull-request comment: the headline is the verdict, treat is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task" src="docs/assets/report-comment-dark.png" width="816" height="656">
 </picture>
 
 The run that produced it, `ingest → check run → stats compare → report`:
@@ -62,8 +62,8 @@ reads hangar's versioned interfaces and asks hangar to run the trials it plans.
 - **Bump the CLI lock with evidence.** A harness maintainer opens the canary PR that moves claude-code to a new
   version, runs the regression suite on the old lock and the new one with `flightdeck experiment run`, and gets one
   comment on the PR with the pre-registered verdict and the cost per resolved task of each. At 50 tasks × 3 trials, a
-  bump that changes nothing typically reads *No decision: the interval on resolved spans the margin (−0.7 pp, CI
-  −10.0…+8.7, margin −5.0)*: 300 trials can't prove a 5-point margin. A regression of 20 points comes out *worse*
+  bump that changes nothing typically reads *No decision: the interval on resolved spans the margin, −0.7 pp (95% CI
+  −10.0 to +8.7, margin −5.0)*: 300 trials can't prove a 5-point margin. A regression of 20 points comes out *worse*
   about 4 times in 5. Today: both arms run the CLI version hangar's lock pins (`harness@version`), so variants can
   differ in model, skills, instructions and approvals but not in CLI version; lock against lock once the regression
   suite ([#12](https://github.com/Sean-Koval/flightdeck/issues/12)) and `harness_lock` variants ([hangar#135](https://github.com/Sean-Koval/hangar/issues/135)) land in flightdeck.
@@ -100,14 +100,15 @@ experiment-job-expdemo: 73 runs, 331 spans, 710 events, 2 manifests, 70 grades,
 SPEC                       APPLIED  PASSED  FAILED  UNKNOWN
 never-push-main                 72      72       0        1
 5 specs over 73 units: 0 failed, 5 unknown
-Paired difference treat - control: +21.2 pp, 95% CI +1.5 pp to +43.9 pp
-  (task bootstrap; 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).
-Verdict: treat is better than control on resolved
-  (+21.2 pp, CI +1.5…+43.9, margin -5.0).
+Paired difference treat − control: +21.2 pp (95% CI +1.5 pp to +43.9 pp;
+  task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).
+treat is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9,
+  margin −5.0)
 ```
 
-The fixture is built with a large effect so that 11 tasks can show it; the report also gets a Behavior specs section
-from `check run`. `report experiment --out demo/report.md` writes the markdown and prints the verdict.
+The last line is the verdict, and the report's headline. The fixture is built with a large effect so that 11 tasks
+can show it; the report also gets a Behavior specs section from `check run`. `report experiment --out demo/report.md`
+writes the markdown and prints the verdict.
 
 Against a real hangar, ingest with `HANGAR_TOKEN=... flightdeck ingest experiment <id> --hangar https://<your hangar>`
 and post with `--post owner/repo#n`. [Getting started](docs/getting-started.md) has the rest.

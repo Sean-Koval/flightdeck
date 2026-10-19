@@ -16,10 +16,9 @@ import typer
 
 from flightdeck import judges
 from flightdeck.dataplane.flatten import SECRET
-from flightdeck.stats.compare import Comparison, compare, exclusion, load_trials, plain, render
+from flightdeck.stats.compare import Comparison, compare, exclusion, exclusions, fmt, load_trials, plain, ratio, render
 
 LIMIT = 65_536  # GitHub's comment size limit
-PROCESS = ("tool_calls", "wall_s")
 
 
 def marker(exp_id: str) -> str:
@@ -28,12 +27,8 @@ def marker(exp_id: str) -> str:
 
 def read_decision(path: Path) -> dict[str, Any]:
     """A pre-registered `decision.yaml`: flat `key: value` lines (metric, direction, margin, min_tasks)."""
-    out: dict[str, Any] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        key, sep, val = line.split("#", 1)[0].partition(":")
-        if sep and val.strip():
-            out[key.strip()] = val.strip()
-    return out
+    pairs = (line.split("#", 1)[0].partition(":") for line in path.read_text(encoding="utf-8").splitlines())
+    return {key.strip(): val.strip() for key, sep, val in pairs if sep and val.strip()}
 
 
 def committed_at(path: Path) -> float | None:
@@ -47,34 +42,33 @@ def committed_at(path: Path) -> float | None:
 
 def verdict(decision: dict[str, Any], c: Comparison) -> str:
     """The plain-words verdict from the pre-registered rule: better, non-inferior, worse, or no decision."""
-    d, name = c.diff, c.metric
-    if d is None:
-        return "No decision: no task has trials in both arms."
-    if d.n_tasks < int(decision.get("min_tasks", 10)) or d.note:
-        return f"No decision: underpowered ({d.n_tasks} paired tasks, pre-registered minimum " \
-               f"{decision.get('min_tasks', 10)})."
+    d, name, least = c.diff, c.metric, decision.get("min_tasks", 10)
+    if d is None or d.n_tasks < int(least) or d.note:
+        return "No decision: " + ("no task has trials in both arms." if d is None else
+                                  f"underpowered ({d.n_tasks} paired tasks, pre-registered minimum {least}).")
     sign = -1 if decision.get("direction", "higher") == "lower" else 1
     est, (lo, hi) = sign * d.estimate, sorted((sign * d.low, sign * d.high))
     margin = -abs(float(decision.get("margin", 0)))
-    scale, unit = (100, " pp") if name == "resolved" else (1, "")
-    nums = f"({est * scale:+.1f}{unit}, CI {lo * scale:+.1f}…{hi * scale:+.1f}, margin {margin * scale:+.1f})"
-    if lo > 0:
-        return f"{c.b} is better than {c.a} on {name} {nums}."
-    if lo > margin:
-        return f"{c.b} is non-inferior to {c.a} on {name} {nums}."
-    if hi < margin:
-        return f"{c.b} is worse than {c.a} on {name} {nums}."
-    return f"No decision: the interval on {name} spans the margin {nums}."
+    scale, p = (100, 1) if name == "resolved" else (1, 2 if name == "cost_usd" else 1)
+    nums = (f"{fmt(name, est, True)} (95% CI {lo * scale:+.{p}f} to {hi * scale:+.{p}f}, margin "
+            f"{margin * scale or 0.0:+.{p}f})").replace("-", "−")
+    word = "better than" if lo > 0 else "non-inferior to" if lo > margin else "worse than" if hi < margin else ""
+    if word:
+        return f"{c.b} is {word} {c.a} on {name}: {nums}."
+    return f"No decision: the interval on {name} spans the margin, {nums}."
 
 
-def _short(values: set[Any]) -> str:
-    vals = sorted(str(v) for v in values if v is not None)
-    return ", ".join(f"`{v[:19]}…`" if v.startswith("sha256:") else v for v in vals) or "-"
+PINS = (("harness", ("harness", "harness_version")), ("model", ("model_id",)), ("environment", ("environment",)),
+        ("config_digest", ("config_digest",)), ("harness_digest", ("harness_digest",)),
+        ("environment_digest", ("environment_digest",)), ("grader", ("grade_command",)),
+        ("hangar version", ("manifest_digest",)))
 
 
 def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", decision: Path | None = None,
                   details: bool = False, hangar: str | None = None, seed: int = 0) -> str:
-    """The report, from Parquet alone. Per-task rows and trial links only with `details` (public PRs: counts only)."""
+    """The report, from Parquet alone: the verdict as its headline, then what differs between the arms, the outcome,
+    process and cost tables, the behavior specs and the exclusions; the pins collapsed at the end. Per-task rows and
+    trial links only with `details` (public PRs: counts only)."""
     rubric = read_decision(decision).get("rubric") if decision and decision.is_file() else None
     if rubric and decision and (st := judges.status(decision.parent / rubric)) != "usable":
         raise ValueError(f"decision.yaml uses rubric {rubric}, which is {st}: only a usable rubric (kappa's "
@@ -82,58 +76,61 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", d
     trials = load_trials(con, exp_id)
     if not trials:
         raise ValueError(f"no trials of experiment {exp_id!r} in the data plane")
-    out = [marker(exp_id), f"## flightdeck report: `{exp_id}` ({b} vs {a})", ""]
     rule = read_decision(decision) if decision and decision.is_file() else None
     first = min((t["finished_epoch"] for t in trials if t["finished_epoch"]), default=None)
     when = committed_at(decision) if rule is not None and decision else None
-    if rule is None:
-        out.append("**No verdict**: no pre-registered `decision.yaml`.")
-    elif when is None:
-        out.append("**No verdict**: `decision.yaml` is not committed as it is (its commit time pre-registers it).")
-    elif first is not None and when > first:
-        out.append("**No verdict**: `decision.yaml` was committed after the first trial finished.")
-    else:
-        metric = rule.get("metric", "resolved")
-        out.append(f"**Verdict**: {verdict(rule, compare(trials, metric, a, b, seed))}")
+    head = ("No verdict: no pre-registered `decision.yaml`" if rule is None else
+            "No verdict: `decision.yaml` is not committed as it is (its commit time pre-registers it)" if when is None
+            else "No verdict: `decision.yaml` was committed after the first trial finished" if first is not None and
+            when > first else verdict(rule, compare(trials, rule.get("metric", "resolved"), a, b, seed)).rstrip("."))
     digests = {t["manifest_digest"] for t in trials if t["manifest_digest"]}
     hangar_v = {d: json.loads(j).get("hangar", {}).get("version")
                 for d, j in con.execute("select digest, json from manifests").fetchall() if d in digests}
-    out += ["", "### Pins", "", f"| | {a} | {b} |", "| --- | --- | --- |"]
-    for label, cols in (("harness", ("harness", "harness_version")), ("model", ("model_id",)),
-                        ("environment", ("environment",)), ("config_digest", ("config_digest",)),
-                        ("harness_digest", ("harness_digest",)), ("environment_digest", ("environment_digest",)),
-                        ("grader", ("grade_command",)), ("hangar version", ("manifest_digest",))):
-        cells = []
-        for arm in (a, b):
-            ts = [t for t in trials if t["variant"] == arm]
-            if label == "hangar version":
-                cells.append(_short({hangar_v.get(t["manifest_digest"]) for t in ts}))
-            else:
-                cells.append(_short({" ".join(str(t[k]) for k in cols if t[k] is not None) or None for t in ts}))
-        out.append(f"| {label} | {cells[0]} | {cells[1]} |")
-    out.append(f"\nBase SHAs: {len({t['base_sha'] for t in trials})} across {len({t['task_id'] for t in trials})} "
-               "tasks (per task below).")
-    outcome = compare(trials, "resolved", a, b, seed)
-    out += ["", "### Outcome", "", render(outcome), "", "### Process", ""]
-    out += [render(compare(trials, m, a, b, seed)) + "\n" for m in PROCESS]
-    out += ["### Cost", "", render(compare(trials, "cost_usd", a, b, seed)), "", "### Behavior specs", ""]
+
+    def pin(label: str, cols: tuple[str, ...], arm: str) -> str:  # a digest is never truncated; a missing pin says so
+        vals = {hangar_v.get(t["manifest_digest"]) if label == "hangar version" else " ".join(
+            str(t[k]) for k in cols if t[k] is not None) or None for t in trials if t["variant"] == arm}
+        return ", ".join(f"`{v}`" for v in sorted(map(str, vals - {None}))) or "not recorded"
+
+    pins = [(label, pin(label, cols, a), pin(label, cols, b)) for label, cols in PINS]
+    differ = [label for label, x, y in pins if x != y]
+    tasks = {t["task_id"] for t in trials}
+    out = [marker(exp_id), f"## {head}", "",
+           f"`{exp_id}`: {b} against {a}, {len(tasks)} tasks, {len(trials)} trials, seed {seed}. The arms differ in "
+           + (", ".join(differ) if differ else "no recorded pin") + " (pins at the end)."]
+    if rule:
+        metric = rule.get("metric", "resolved")
+        out.append(f"\nRule, pre-registered in `decision.yaml`: {metric}, {rule.get('direction', 'higher')} is better, "
+                   f"margin {fmt(metric, float(rule.get('margin', 0)), True)}, at least {rule.get('min_tasks', 10)} "
+                   "paired tasks.")
+    outcome, process = compare(trials, "resolved", a, b, seed), compare(trials, "tool_calls", a, b, seed)
+    out += ["", "### Outcome", "", render(outcome, False), "", "### Process", "", "Tool calls", "",
+            render(process, False), "", "Wall time", "", render(compare(trials, "wall_s", a, b, seed), False), "",
+            "### Cost", "", render(compare(trials, "cost_usd", a, b, seed), False), "", "### Behavior specs", ""]
     out += spec_rates(con, [t for t in trials if not exclusion(t, "resolved")], a, b)
-    out += ["", "### Exclusions and drift", ""]
     drift = [t for t in trials if t["drift"] and t["variant"] in (a, b)]
-    out.append(f"{len(drift)} drifted trial(s) excluded from paired analysis (`--include-drift` keeps them).")
+    out += ["", "### Exclusions and drift", "", exclusions(outcome, process), f"\n{len(drift)} drifted trial"
+            f"{'s'[:len(drift) != 1]} excluded from paired analysis (`--include-drift` keeps "
+            f"{'them' if len(drift) - 1 else 'it'})."]
     out += [f"- `{t['trial_key']}`: {'; '.join(t['drift'])}" for t in drift] if details else []
+    out += ["", "<details><summary>Pins</summary>", "", f"| | {a} | {b} |", "| --- | --- | --- |"]
+    out += [f"| {label} | {x} | {y} |" for label, x, y in pins if label in differ]
+    out += ["", "Same in both arms: " + "; ".join(f"{label} {x}" for label, x, y in pins if label not in differ)
+            + f". Base SHAs: {len({t['base_sha'] for t in trials})} across {len(tasks)} tasks"
+            + (" (per task below)." if details else "."), "", "</details>"]
     if details:
         out += ["", "<details><summary>Per task (discordant first)</summary>", "",
-                f"| task | base | {a} resolved | {b} resolved | {b} - {a} |" + (" trials |" if hangar else ""),
+                f"| task | base | {a} resolved | {b} resolved | {b} − {a} |" + (" trials |" if hangar else ""),
                 "| --- | --- | --- | --- | --- |" + (" --- |" if hangar else "")]
         rows = []
         for task, (x, y) in outcome.per_task.items():
             diff = (sum(y) / len(y) - sum(x) / len(x)) if x and y else None
-            base = next(t["base_sha"] for t in trials if t["task_id"] == task) or "-"
+            base = next(t["base_sha"] for t in trials if t["task_id"] == task) or "—"
             links = " ".join(f"[{t['variant'][0]}{t['trial']}]({hangar.rstrip('/')}/api/experiments/{exp_id}/trials/"
                              f"{t['trial_key']}/trace)" for t in trials if t["task_id"] == task) if hangar else None
-            rows.append((diff in (0, None), task, f"| {task} | `{base[:8]}` | {int(sum(x))}/{len(x)} | "
-                         f"{int(sum(y))}/{len(y)} | " + (f"{diff * 100:+.0f} pp" if diff is not None else "-")
+            rows.append((diff in (0, None), task, f"| {task} | `{base}` | {ratio(int(sum(x)), len(x))} | "
+                         f"{ratio(int(sum(y)), len(y))} | " + (f"{diff * 100:+.0f} pp".replace("-", "−") if diff
+                                                                 is not None else "—")
                          + (f" | {links} |" if links is not None else " |")))
         out += [r for _, _, r in sorted(rows)] + ["", "</details>"]
     return "\n".join(out) + "\n"
@@ -152,9 +149,8 @@ def spec_rates(con: Any, trials: list[dict[str, Any]], a: str, b: str) -> list[s
             k[0], k[1] = k[0] + (result == "pass"), k[1] + 1
     if not rates:
         return ["No behavior-spec results for these trials (`flightdeck check run` writes them)."]
-    cell = lambda k: f"{k[0]}/{k[1]} = {k[0] / k[1]:.0%}" if k[1] else "-"  # noqa: E731
     return [f"| spec | {a} pass | {b} pass |", "| --- | --- | --- |"] + [
-        f"| {sid}" + (f" ({src})" if src != "spec" else "") + f" | {cell(r[a])} | {cell(r[b])} |"
+        f"| {sid}" + (f" ({src})" if src != "spec" else "") + f" | {ratio(*r[a])} | {ratio(*r[b])} |"
         for (src, sid), r in sorted(rates.items())]
 
 
@@ -213,8 +209,7 @@ DATA = typer.Option("~/.flightdeck/data", "--data", envvar="FLIGHTDECK_DATA_URI"
 
 
 def _post(text: str, target: str, full: str | None, gist: bool) -> None:
-    token = os.environ.get("GITHUB_TOKEN")
-    if not token:
+    if not (token := os.environ.get("GITHUB_TOKEN")):
         raise typer.BadParameter("set GITHUB_TOKEN (issues:write / pull_requests:write on the target repo)")
     typer.echo(post(text, target, token, full, gist))  # a ValueError is one line from the entry point (cli.run)
 
@@ -230,7 +225,7 @@ def report_experiment(experiment: str, a: str = typer.Option("control", "--a", "
     text = render_report(connect(os.path.expanduser(data)), experiment, a, b, decision, details, hangar, seed)
     if out:
         out.write_text(text, encoding="utf-8")
-        typer.echo(plain(text.splitlines()[3]) + f"\nwrote {out} ({len(text.splitlines())} lines)")
+        typer.echo(plain(text.splitlines()[1]) + f"\nwrote {out} ({len(text.splitlines())} lines)")
     if post_to:
         _post(text, post_to, full_url, gist)
     elif not out:

@@ -22,17 +22,25 @@ def report(plane: str, **kw: Any) -> str:
 
 def test_report_renders_from_parquet_alone_with_a_preregistered_verdict(plane: str, export_dir: Path) -> None:
     text = report(plane, decision=export_dir / "decision.yaml")
-    assert text.startswith(f"<!-- flightdeck:report:{EXP} -->\n")
-    order = ["**Verdict**: treat is better than control on resolved", "### Pins", "### Outcome", "### Process",
-             "**tool_calls**", "**wall_s**", "### Cost", "**cost_usd**", "### Exclusions and drift"]
+    assert text.startswith(f"<!-- flightdeck:report:{EXP} -->\n## treat is better than control on resolved: +21.2 pp "
+                           "(95% CI +1.5 to +43.9, margin −5.0)\n")  # the verdict is the headline
+    order = [f"`{EXP}`: treat against control, 12 tasks, 73 trials, seed 0. The arms differ in config_digest",
+             "Rule, pre-registered in `decision.yaml`: resolved, higher is better, margin −5.0 pp, at least 10",
+             "### Outcome", "### Process", "Tool calls", "Wall time", "### Cost", "### Behavior specs",
+             "### Exclusions and drift", "Excluded: cancelled 1, drift 1, infra_error 1, not finished 1, "
+             "task_invalid 6; from the process and cost tables also truncated trace 1.", "1 drifted trial excluded",
+             "<details><summary>Pins</summary>", "| config_digest | `sha256:2222", "Same in both arms: harness "
+             "`claude-code 2.3.1`; model `claude-sonnet-5-1`; environment `plain`; harness_digest not recorded; "
+             "environment_digest not recorded; grader `bash tests/test.sh`; hangar version `0.1.0`. Base SHAs: 12 "
+             "across 12 tasks."]
     assert [text.index(s) for s in order] == sorted(text.index(s) for s in order)
-    assert "claude-code 2.3.1" in text and "bash tests/test.sh" in text and "| hangar version | 0.1.0 |" in text
-    assert "<details>" not in text and "t05/treat/2" not in text  # per-task details only behind --details
+    assert text.count("seed 0") == 1 and text.count("Excluded:") == 1 and "…" not in text  # once; no cut digests
+    assert "Per task" not in text and "t05/treat/2" not in text  # per-task details only behind --details
 
 
 def test_details_put_discordant_tasks_first_with_trial_links(plane: str) -> None:
     text = report(plane, details=True, hangar="https://hangar.example")
-    rows = [r for r in text.split("<details>")[1].splitlines() if r.startswith("| t")]
+    rows = [r for r in text.split("<details><summary>Per task")[1].splitlines() if r.startswith("| t")]
     zero = [i for i, r in enumerate(rows) if "| +0 pp |" in r]
     assert zero and zero == list(range(len(rows) - len(zero), len(rows)))
     assert f"https://hangar.example/api/experiments/{EXP}/trials/t03/control/1/trace" in text
@@ -58,7 +66,7 @@ def test_no_verdict_without_a_decision_committed_before_the_trials(plane: str, t
         _commit(tmp_path, CREATED - 10_000)
         decision.write_text("metric: resolved\nmargin: -0.20\n")
     text = report(plane, decision=decision)
-    assert "**Verdict**" not in text and "**No verdict**" in text
+    assert text.splitlines()[1].startswith("## No verdict: ")
     assert ("committed after" in text) == (when == "committed late")
     assert "### Outcome" in text  # the numbers are still there
 
@@ -76,7 +84,7 @@ def test_behavior_spec_section_gives_pass_rates_per_spec_per_variant(plane: str,
     text = report(str(copy))
     section = text.split("### Behavior specs")[1].split("###")[0]
     # t03/treat/3 was infra_error (excluded), its retry t03/treat/3~2 has no spec result: 2 treat trials counted
-    assert "| tests-before-pr | 1/3 = 33% | 2/2 = 100% |" in section
+    assert "| tests-before-pr | 1 of 3 (33%) | 2 of 2 (100%) |" in section
     assert "no-force-push" not in section  # not applicable everywhere: no rate
 
 
@@ -87,12 +95,14 @@ def _c(est: float, lo: float, hi: float, n: int = 20, metric: str = "resolved", 
 
 
 @pytest.mark.parametrize(("c", "rule", "start"), [
-    (_c(-0.02, -0.04, 0.01), {"margin": "-0.05"}, "B is non-inferior to A on resolved (-2.0 pp, CI -4.0…+1.0"),
+    (_c(-0.02, -0.04, 0.01), {"margin": "-0.05"}, "B is non-inferior to A on resolved: −2.0 pp (95% CI −4.0 to +1.0, "
+                                                   "margin −5.0)."),
     (_c(0.10, 0.02, 0.2), {}, "B is better than A"),
     (_c(-0.2, -0.3, -0.1), {"margin": "0.05"}, "B is worse than A"),
-    (_c(0.0, -0.2, 0.2), {"margin": "-0.05"}, "No decision: the interval on resolved spans the margin"),
+    (_c(0.0, -0.2, 0.2), {"margin": "-0.05"}, "No decision: the interval on resolved spans the margin, +0.0 pp"),
     (_c(0.3, 0.1, 0.5, n=5), {"min_tasks": "10"}, "No decision: underpowered (5 paired tasks"),
-    (_c(-0.1, -0.15, -0.05, metric="cost_usd"), {"direction": "lower"}, "B is better than A on cost_usd (+0.1"),
+    (_c(-0.1, -0.15, -0.05, metric="cost_usd"), {"direction": "lower"}, "B is better than A on cost_usd: +$0.10 (95% "
+                                                                         "CI +0.05 to +0.15, margin +0.00)."),
 ])
 def test_verdict_rules(c: Comparison, rule: dict, start: str) -> None:
     assert markdown.verdict(rule, c).startswith(start)
@@ -177,8 +187,8 @@ def test_report_cli_writes_and_posts(plane: str, tmp_path: Path, monkeypatch: py
     assert result.exit_code == 0, result.output
     assert out.read_text().startswith(markdown.marker(EXP)) and posted == [("o/r#9", None)]  # never a local path
     lines = result.output.splitlines()  # the verdict and what was written, not the markdown
-    assert lines[0].startswith("No verdict: no pre-registered decision.yaml") and lines[1].startswith(f"wrote {out} (")
+    assert lines[0] == "No verdict: no pre-registered decision.yaml" and lines[1].startswith(f"wrote {out} (")
     shown = CliRunner().invoke(app, ["report", "experiment", EXP, "--data", plane]).output
-    assert shown.startswith("flightdeck report: ") and "**" not in shown and "<!--" not in shown
+    assert shown.startswith("No verdict: ") and "**" not in shown and "<!--" not in shown
     result = CliRunner().invoke(app, ["report", "post", str(out), "--to", "o/r#10", "--full-url", "https://x/r.md"])
     assert result.exit_code == 0 and posted[-1] == ("o/r#10", "https://x/r.md")

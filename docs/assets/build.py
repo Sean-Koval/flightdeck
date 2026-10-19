@@ -7,8 +7,10 @@ temporary directory and writes, next to this script:
 - `demo.cast`: the session as an asciicast v2 recording (typed commands, real output), and `demo.svg`: the same
   session as an animated terminal (CSS keyframes, loops; no player needed on GitHub or the docs site);
 - `stats-compare.svg`: the `stats compare` output as a still terminal;
-- `report.md` and `report-comment-{dark,light}.html`: the report, and the report rendered as a GitHub pull-request
-  comment in GitHub's dark and light palettes, then `report-comment-{dark,light}.png` (screenshots of them);
+- `report.md` and `report-comment[-full]-{dark,light}.html`: the report, and the report rendered as a GitHub
+  pull-request comment in GitHub's dark and light palettes, on a 760 px page so it reads inside a docs column: the top
+  (the verdict and the Outcome table, for the README and the docs home) and the whole comment (for Reports), then
+  the `.png` screenshots of them;
 - `suite.svg`: where flightdeck sits in the suite, drawn with agent-factory's diagram conventions (Airframe tokens,
   theme-aware when inlined), then `suite-dark.png` and `suite-light.png`.
 
@@ -129,6 +131,7 @@ def cast(steps: list[tuple[str, str]]) -> str:
 CW, LH, PAD, BAR = 7.8, 17.0, 18, 34  # char width (0.6em at 13px), line height, padding, title bar
 MONO = "'DM Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
 LIT = re.compile(r"\bis worse than\b|\b[1-9]\d* failed\b")  # lines a terminal may color: the failed role, never green
+VERDICT = re.compile(r"^(\S+ is (better than|non-inferior to|worse than) \S+ on \S+:|No (decision|verdict):)")
 TERM_ICON = ('<g fill="none" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" '
              'transform="translate({x},{y}) scale(.7)"><rect x="2.5" y="3.5" width="15" height="13"/>'
              '<path d="M6 8l2.5 2L6 12M10.5 12.5H14"/></g>')  # Airframe's `terminal` icon, 20px grid drawn at 14px
@@ -168,7 +171,7 @@ def terminal(lines: list[tuple[float, str, str]], total: float | None, title: st
                 el += (f'<rect class="y{i}" x="{x0:.1f}" y="{y - LH * 0.8:.1f}" width="{n * CW + 4:.1f}" '
                        f'height="{LH:.1f}" fill="{t["terminal-bg"]}"/>')
         else:  # the verdict is the brightest line; a regression is the only red
-            cls = "t x" if LIT.search(text) else "t c" if text.startswith("Verdict:") else "t"
+            cls = "t x" if LIT.search(text) else "t c" if VERDICT.match(text) else "t"
             el = f'<text class="{cls}" x="{PAD}" y="{y:.1f}">{esc(text)}</text>'
         if total:
             css.append(f"@keyframes s{i}{{0%,{100 * at / total:.3f}%{{opacity:0}}"
@@ -189,7 +192,7 @@ GH = {"light": {"bg": "#ffffff", "fg": "#1f2328", "muted": "#59636e", "line": "#
                "code": "#656c7633", "fade": "rgba(13,17,23,0)"}}
 GH_CSS = """
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",
-"Noto Sans",Helvetica,Arial,sans-serif}.page{width:880px;padding:24px 28px}.row{display:flex;gap:14px}
+"Noto Sans",Helvetica,Arial,sans-serif}.page{width:var(--w);padding:24px 28px}.row{display:flex;gap:14px}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--well);border:1px solid var(--line);
 box-sizing:border-box;flex:none;color:var(--muted);text-align:center;
 font:600 14px/38px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
@@ -206,15 +209,19 @@ background:linear-gradient(var(--fade),var(--bg))}
 """
 
 
-def comment_page(report: str, theme: str) -> str:
-    """The report as GitHub renders a PR comment (GFM tables, the hidden marker stays hidden) in that GitHub theme."""
+def comment_page(report: str, theme: str, top: bool) -> str:
+    """The report as GitHub renders a PR comment (GFM tables, the hidden marker stays hidden) in that GitHub theme:
+    with `top`, only the verdict and the Outcome table, fading out; otherwise the whole comment. A 760 px page (GitHub's
+    is 880) so the text still reads once a 686 px docs column scales it."""
     from markdown_it import MarkdownIt
 
-    body = MarkdownIt("commonmark", {"html": True}).enable("table").render(report)
-    root = ";".join(f"--{k}:{v}" for k, v in GH[theme].items())
+    body = MarkdownIt("commonmark", {"html": True}).enable("table").render(report.split("\n### Process")[0] if top
+                                                                           else report)
+    root = ";".join(f"--{k}:{v}" for k, v in GH[theme].items()) + ";--w:760px"
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>:root{{{root}}}{GH_CSS}</style></head><body>'
             '<div class="page"><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head">'
-            f'<b>dev-a</b> commented</div><div class="md fade">{body}</div></div></div></div></body></html>\n')
+            f'<b>dev-a</b> commented</div><div class="md{" fade" if top else ""}">{body}</div></div></div></div>'
+            "</body></html>\n")
 
 
 # ---------------------------------------------------------------------------------------------------- the diagram
@@ -308,11 +315,9 @@ def shoot(pages: dict[str, tuple[str, str]]) -> None:
             tab.set_content(page, wait_until="networkidle")
             tab.evaluate("document.fonts.ready")
             el = tab.locator(selector).first
-            if name.startswith("report-comment"):  # the top of the report: verdict, pins, outcome; then a fade
-                tab.evaluate("""() => { const h = [...document.querySelectorAll('.md h3')]
-                    .find(e => e.textContent === 'Process'); while (h.nextSibling) h.nextSibling.remove();
-                    h.remove(); }""")
             el.screenshot(path=str(HERE / name))
+            box = el.bounding_box() or {}
+            print(f"build: {name} is {box.get('width', 0):.0f}×{box.get('height', 0):.0f} css px")
             print("build: wrote", name)
         browser.close()
 
@@ -331,10 +336,12 @@ def main() -> None:
         "stats-compare.svg": terminal([(0, "cmd", steps[2][0])] + [(0, "out", x) for x in wrap(steps[2][1])], None,
                                       "flightdeck|stats compare"),
         "report.md": report,
-        **{f"report-comment-{t}.html": comment_page(report, t) for t in ("dark", "light")},
+        **{f"report-comment{k}-{t}.html": comment_page(report, t, not k) for k in ("", "-full")
+           for t in ("dark", "light")},
         "suite.svg": diagram(),
     }
-    pages = {**{f"report-comment-{t}.png": (files[f"report-comment-{t}.html"], "div.page") for t in ("dark", "light")},
+    pages = {**{f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page") for k in ("", "-full")
+                for t in ("dark", "light")},
              **{f"suite-{t}.png": (diagram_page(files["suite.svg"], t), "svg") for t in ("dark", "light")}}
     files["sources.sha256"] = "".join(f"{hashlib.sha256(p.encode()).hexdigest()}  {n}\n"
                                       for n, (p, _) in sorted(pages.items()))

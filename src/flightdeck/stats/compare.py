@@ -75,10 +75,7 @@ def value(t: dict[str, Any], metric: str) -> float | None:
 @cache
 def mde(tasks: int, trials: int, power: float = 0.8) -> float | None:
     """The smallest lift (5 pp steps) simulate_power detects at `power` with this many paired tasks and trials."""
-    for pp in range(5, 55, 5):
-        if simulate_power(tasks, trials, pp / 100, sims=400) >= power:
-            return pp / 100
-    return None
+    return next((pp / 100 for pp in range(5, 55, 5) if simulate_power(tasks, trials, pp / 100, 400) >= power), None)
 
 
 @dataclass
@@ -114,8 +111,7 @@ def compare(trials: list[dict[str, Any]], metric: str, a: str, b: str, seed: int
             continue
         kept.append(t)
         c.reused += [t["reused_age_days"]] if t.get("reused_age_days") is not None else []
-        src = resolved(t)[1]
-        c.resolved_from[src] = c.resolved_from.get(src, 0) + 1
+        c.resolved_from[resolved(t)[1]] = c.resolved_from.get(resolved(t)[1], 0) + 1
         c.per_task.setdefault(t["task_id"], ([], []))[t["variant"] == b].append(value(t, metric) or 0.0)
     for arm in (a, b):
         ts = [t for t in kept if t["variant"] == arm]
@@ -138,53 +134,68 @@ def compare(trials: list[dict[str, Any]], metric: str, a: str, b: str, seed: int
             c.saturated = sorted(t for t, (x, y) in paired.items() if len(set(x + y)) == 1)
             n_trials = max(1, round(c.diff.n_trials / (2 * len(paired))))
             m = mde(len(paired), n_trials)
-            c.power = (f"At {len(paired)} paired tasks x {n_trials} trials the minimum detectable lift at 80% power "
-                       f"is about {m:.0%} (simulated)." if m else
-                       f"At {len(paired)} paired tasks x {n_trials} trials no lift up to 50 pp reaches 80% power.")
+            c.power = (f"At {len(paired)} paired tasks × {n_trials} trials the minimum detectable lift at 80% power "
+                       f"is about {m * 100:.0f} pp (simulated)." if m else
+                       f"At {len(paired)} paired tasks × {n_trials} trials no lift up to 50 pp reaches 80% power.")
     return c
 
 
-def _num(metric: str, v: float | None, signed: bool = False) -> str:
+def fmt(metric: str, v: float | None, signed: bool = False) -> str:
+    """One number the brand book's way: `31%` or `+21.2 pp`, `$0.42` or `−$0.09`, `174.9 s`, `3.0 calls`; a minus
+    sign, never a hyphen; an em dash for none."""
     if v is None:
-        return "-"
-    pct = f"{v * 100:+.1f} pp" if signed else f"{v:.1%}"
-    return pct if metric == "resolved" else f"{v:+.3f}" if signed else f"{v:.3f}"
+        return "—"
+    sign = "+" if signed else ""
+    return {"resolved": f"{v * 100:+.1f} pp" if signed else f"{v:.0%}", "wall_s": f"{v:{sign}.1f} s",
+            "cost_usd": f"{'+-'[v < 0] if signed else ''}${abs(v):.2f}", "tool_calls": f"{v:{sign}.1f} calls"
+            }[metric].replace("-", "−")
 
 
-def render(c: Comparison) -> str:
-    """The comparison as markdown (the report embeds it; `plain` turns it into the terminal readout)."""
-    head = "resolved (95% Wilson)" if c.metric == "resolved" else "mean"
-    out = [f"**{c.metric}**: {c.b} vs {c.a}, experiment `{c.experiment}`, seed {c.seed}", "",
-           f"| variant | trials | {head} | $ / resolved (95%) |", "| --- | --- | --- | --- |"]
+def ratio(k: int, n: int) -> str:
+    """`10 of 32 (31%)`: never a slash."""
+    return f"{k} of {n} ({k / n:.0%})" if n else "—"
+
+
+def render(c: Comparison, full: bool = True) -> str:
+    """The comparison as markdown; `plain` turns it into the terminal readout. `full` adds the header (metric, arms,
+    experiment, seed) and the exclusions, which the report prints once for all its tables."""
+    out = [f"**{c.metric}**: {c.b} vs {c.a}, experiment `{c.experiment}`, seed {c.seed}", ""] if full else []
+    per = c.metric in ("resolved", "cost_usd")  # $ per resolved task is a ratio of cost to outcome: not for process
+    head = ["variant", "trials", *(("resolved", "95% Wilson") if c.metric == "resolved" else ("mean",))]
+    head += ["$ per resolved (95%)"] if per else []
+    out += ["| " + " | ".join(head) + " |", "|" + " --- |" * len(head)]
     for arm, s in c.arms.items():
-        w, pr = s["wilson"], s["per_resolved"] if c.metric in ("resolved", "cost_usd") else None
-        stat = _num(c.metric, s["mean"])
-        if w:
-            stat = f"{s['k']}/{s['n']} = {stat} [{w[0]:.1%}, {w[1]:.1%}]"
-        dollars = f"{pr.estimate:.3f} [{pr.low:.3f}, {pr.high:.3f}]" + (f" ({pr.note})" if pr.note else "") if pr \
-            else "-"
-        out.append(f"| {arm} | {s['n']} | {stat} | {dollars} |")
-    out.append("")
-    if c.diff:
-        d = c.diff
+        w, pr = s["wilson"], s["per_resolved"] if per else None
+        row = [arm, str(s["n"])] + ([ratio(s["k"], s["n"]), f"{w[0]:.0%} to {w[1]:.0%}"] if w else
+                                    [fmt(c.metric, s["mean"])])
+        row += [f"{fmt('cost_usd', pr.estimate)} ({fmt('cost_usd', pr.low)} to {fmt('cost_usd', pr.high)})"
+                + (f" ({pr.note})" if pr.note else "") if pr else "—"] if per else []
+        out.append("| " + " | ".join(row) + " |")
+    if d := c.diff:  # the notes below the table are paragraphs of their own, so GitHub does not run them together
         pairs = f"; {c.concordant} concordant, {c.discordant} discordant tasks" if c.metric == "resolved" else ""
-        out.append(f"Paired difference {c.b} - {c.a}: **{_num(c.metric, d.estimate, True)}**, 95% CI "
-                   f"{_num(c.metric, d.low, True)} to {_num(c.metric, d.high, True)} (task bootstrap; "
-                   f"{d.n_tasks} tasks, {d.n_trials} trials{pairs})." + (f" **{d.note}.**" if d.note else ""))
+        notes = [f"Paired difference {c.b} − {c.a}: **{fmt(c.metric, d.estimate, True)}** (95% CI "
+                 f"{fmt(c.metric, d.low, True)} to {fmt(c.metric, d.high, True)}; task bootstrap, "
+                 f"{d.n_tasks} tasks, {d.n_trials} trials{pairs})." + (f" **{d.note}.**" if d.note else "")]
     else:
-        out.append("No task has trials in both arms: nothing to compare.")
-    if c.power:
-        out.append(c.power)
-    if c.metric == "resolved":
-        out.append("Resolved: " + ", ".join(f"{src} for {n} trials" for src, n in sorted(c.resolved_from.items()))
-                   + " (grader = exit 0 and applied; verify = hangar's after-turn verify when no grader ran).")
-    if c.reused:
-        out.append(f"Reused from the trial cache: {len(c.reused)} of {sum(s['n'] for s in c.arms.values())} trials, "
-                   f"{min(c.reused):.0f}-{max(c.reused):.0f} days old.")
-    out.append("Excluded: " + (", ".join(f"{why} {n}" for why, n in sorted(c.excluded.items())) or "none") + ".")
-    if c.saturated:
-        out.append(f"Saturated (same outcome in every trial of both arms, no information): {', '.join(c.saturated)}.")
-    return "\n".join(out)
+        notes = ["No task has trials in both arms: nothing to compare."]
+    notes += [c.power] if c.power else []
+    notes += ["Resolved: " + ", ".join(f"{src} for {n} trials" for src, n in sorted(c.resolved_from.items()))
+              + " (grader = exit 0 and applied; verify = hangar's after-turn verify when no grader ran)."
+              ] if c.metric == "resolved" else []
+    notes += [f"Reused from the trial cache: {len(c.reused)} of {sum(s['n'] for s in c.arms.values())} trials, "
+              f"{min(c.reused):.0f} to {max(c.reused):.0f} days old."] if c.reused else []
+    notes += [exclusions(c)] if full else []
+    notes += [f"Saturated (same outcome in every trial of both arms, no information): {', '.join(c.saturated)}."
+              ] if c.saturated else []
+    return "\n".join([*out, "", "\n\n".join(notes)])
+
+
+def exclusions(c: Comparison, also: Comparison | None = None) -> str:
+    """`Excluded: cancelled 1, drift 1.`, and with `also` (a process metric) the extra reasons it adds."""
+    extra = {k: v for k, v in also.excluded.items() if k not in c.excluded} if also else {}
+    return ("Excluded: " + (", ".join(f"{why} {n}" for why, n in sorted(c.excluded.items())) or "none")
+            + (f"; from the process and cost tables also {', '.join(f'{w} {n}' for w, n in sorted(extra.items()))}"
+               if extra else "") + ".")
 
 
 def plain(md: str) -> str:

@@ -57,7 +57,7 @@ def test_an_unchanged_suite_submits_nothing_and_reports_every_trial_reused(tmp_p
     run_set = out.split("flightdeck stats compare ")[1].split()[0]
     cmp = run(app, ["stats", "compare", run_set, "--a", "control", "--b", "codex", "--data", data])
     assert cmp.exit_code == 0, cmp.output
-    assert "Reused from the trial cache: 4 of 4 trials, 0-0 days old." in cmp.output
+    assert "Reused from the trial cache: 4 of 4 trials, 0 to 0 days old." in cmp.output
 
 
 def test_changing_one_skill_reruns_only_that_variant(tmp_path: Path, digests: Hangar) -> None:

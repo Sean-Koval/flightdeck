@@ -5,7 +5,7 @@ says so.
 
 | Term | Meaning | Source |
 | --- | --- | --- |
-| **verdict** | What a report says about an experiment, in one of five words: *better*, *non-inferior*, *worse*, *No decision* (the interval spans the margin, or too few paired tasks) or *No verdict* (no valid `decision.yaml`). The treatment arm against the control arm on one metric, with the paired difference and its interval beside it. See [reports.md](reports.md#pre-registration) | flightdeck report |
+| **verdict** | What a report says about an experiment, in one of five words: *better*, *non-inferior*, *worse*, *No decision* (the interval spans the margin, or too few paired tasks) or *No verdict* (no valid `decision.yaml`). The report's headline: the treatment arm against the control arm on one metric, with the paired difference and its interval beside it. See [reports.md](reports.md#pre-registration) | flightdeck report |
 | **decision.yaml** | The pre-registered rule a verdict follows: `metric`, `direction`, `margin`, `min_tasks`. Committed before the first trial finishes; the commit time, not the file's, is what counts. Written, edited or committed later: *No verdict* | [reports.md](reports.md#pre-registration) |
 | **variant** / **arm** | One configuration under comparison in an experiment (a harness, model, skill set or instruction). Every trial belongs to one. A comparison has two arms | `hangar.experiment/v1` |
 | **control** / **treat** | The two default arms: *control* is what runs today, *treat* is the change under judgement. The verdict is always *treat against control* (`--a` and `--b` rename them) | `flightdeck stats compare` |
