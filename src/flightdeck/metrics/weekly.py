@@ -104,7 +104,7 @@ def slack(doc: dict) -> dict:
                        {"type": "section", "text": {"type": "mrkdwn", "text": text}}]}
 
 
-app = typer.Typer(help="Team metrics over the data plane (docs/metrics.md).", no_args_is_help=True)
+app = typer.Typer(help="Weekly team metrics over the data plane.", no_args_is_help=True)
 
 
 @app.command("weekly")

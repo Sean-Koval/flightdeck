@@ -16,6 +16,7 @@ import typer
 
 from flightdeck import judges
 from flightdeck.dataplane.flatten import SECRET
+from flightdeck.stats import compare as stats
 from flightdeck.stats.compare import Comparison, compare, exclusion, exclusions, fmt, load_trials, plain, ratio, render
 
 LIMIT = 65_536  # GitHub's comment size limit
@@ -35,9 +36,8 @@ def committed_at(path: Path) -> float | None:
     """The commit time of the last commit that changed `path`, or None when it isn't committed as it now is."""
     git = lambda *a: subprocess.run(["git", "-C", str(path.parent), *a], capture_output=True, text=True)  # noqa: E731
     log = git("log", "-1", "--format=%ct", "--", path.name)
-    if log.returncode or not log.stdout.strip() or git("diff", "--quiet", "HEAD", "--", path.name).returncode:
-        return None
-    return float(log.stdout)
+    changed = git("diff", "--quiet", "HEAD", "--", path.name).returncode
+    return None if log.returncode or not log.stdout.strip() or changed else float(log.stdout)
 
 
 def verdict(decision: dict[str, Any], c: Comparison) -> str:
@@ -53,9 +53,8 @@ def verdict(decision: dict[str, Any], c: Comparison) -> str:
     nums = (f"{fmt(name, est, True)} (95% CI {lo * scale:+.{p}f} to {hi * scale:+.{p}f}, margin "
             f"{margin * scale or 0.0:+.{p}f})").replace("-", "−")
     word = "better than" if lo > 0 else "non-inferior to" if lo > margin else "worse than" if hi < margin else ""
-    if word:
-        return f"{c.b} is {word} {c.a} on {name}: {nums}."
-    return f"No decision: the interval on {name} spans the margin, {nums}."
+    return f"{c.b} is {word} {c.a} on {name}: {nums}."\
+        if word else f"No decision: the interval on {name} spans the margin, {nums}."
 
 
 PINS = (("harness", ("harness", "harness_version")), ("model", ("model_id",)), ("environment", ("environment",)),
@@ -64,7 +63,7 @@ PINS = (("harness", ("harness", "harness_version")), ("model", ("model_id",)), (
         ("hangar version", ("manifest_digest",)))
 
 
-def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", decision: Path | None = None,
+def render_report(con: Any, exp_id: str, a: str = "control", b: str = "candidate", decision: Path | None = None,
                   details: bool = False, hangar: str | None = None, seed: int = 0) -> str:
     """The report, from Parquet alone: the verdict as its headline, then what differs between the arms, the outcome,
     process and cost tables, the behavior specs and the exclusions; the pins collapsed at the end. Per-task rows and
@@ -94,9 +93,10 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "treat", d
 
     pins = [(label, pin(label, cols, a), pin(label, cols, b)) for label, cols in PINS]
     differ = [label for label, x, y in pins if x != y]
-    tasks = {t["task_id"] for t in trials}
+    tasks, about = {t["task_id"] for t in trials}, {t["variant"]: t["variant_description"] for t in trials}
+    arms = " against ".join(f"{x} ({about[x]})" if about.get(x) else x for x in (b, a))  # as hangar describes them
     out = [marker(exp_id), f"## {head}", "",
-           f"`{exp_id}`: {b} against {a}, {len(tasks)} tasks, {len(trials)} trials, seed {seed}. The arms differ in "
+           f"`{exp_id}`: {arms}, {len(tasks)} tasks, {len(trials)} trials, seed {seed}. The arms differ in "
            + (", ".join(differ) if differ else "no recorded pin") + " (pins at the end)."]
     if rule:
         metric = rule.get("metric", "resolved")
@@ -197,7 +197,7 @@ def post(text: str, target: str, token: str, full: str | None = None, gist: bool
     return gh("POST", f"{api}/{m[2]}/comments", token, {"body": text})["html_url"]
 
 
-app = typer.Typer(help="Markdown reports, posted where the change is reviewed.", no_args_is_help=True)
+app = typer.Typer(help="The verdict as a report, posted on the pull request.", no_args_is_help=True)
 POST = typer.Option(None, "--post", help="owner/repo#n: post as a PR or issue comment (token: GITHUB_TOKEN).")
 DECISION = typer.Option(None, help="Pre-registered decision.yaml; the verdict needs it.")
 DETAILS = typer.Option(False, help="Per-task rows and trial links (keep off for public repos).")
@@ -215,10 +215,9 @@ def _post(text: str, target: str, full: str | None, gist: bool) -> None:
 
 
 @app.command("experiment")
-def report_experiment(experiment: str, a: str = typer.Option("control", "--a", "--baseline"),
-                      b: str = typer.Option("treat", "--b"), decision: Path = DECISION, details: bool = DETAILS,
-                      hangar: str = HANGAR, out: Path = OUT, post_to: str = POST, seed: int = 0,
-                      data: str = DATA, full_url: str = FULL, gist: bool = GIST) -> None:
+def report_experiment(experiment: str, a: str = stats.BASELINE, b: str = stats.CANDIDATE, decision: Path = DECISION,
+                      details: bool = DETAILS, hangar: str = HANGAR, out: Path = OUT, post_to: str = POST,
+                      seed: int = 0, data: str = DATA, full_url: str = FULL, gist: bool = GIST) -> None:
     """Render an experiment's report from the data plane: print it as a readout, write it (markdown), post it."""
     from flightdeck.dataplane.duck import connect
 

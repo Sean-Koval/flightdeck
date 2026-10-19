@@ -6,6 +6,11 @@ hangar's sandbox pools are off. Hangar writes each finished run once to a GCS ou
 one experiment's results right away, the same flatteners run over `hangar experiment export` and REST exports
 ([ingest](#ingest)).
 
+<div class="af-figure" markdown>
+--8<-- "docs/assets/flow-data-plane.svg"
+<figcaption>Two ways in (the nightly compactor, ingest on demand), one set of tables out</figcaption>
+</div>
+
 Code: `src/flightdeck/dataplane/` (`schema.py` the tables, `flatten.py` the flatteners, `duck.py` the views,
 `compact.py` the compactor, `github.py` the `prs` table).
 

@@ -10,7 +10,7 @@ import typer
 
 from flightdeck.specs import lang
 
-spec_app = typer.Typer(help="Behavior specs over hangar.trace/v1: lint them, test them on an export.",
+spec_app = typer.Typer(help="Behavior specs over traces: lint them, test them on an export.",
                        no_args_is_help=True)
 
 
@@ -49,7 +49,7 @@ def test(
     raise typer.Exit(int(worst))
 
 
-check_app = typer.Typer(help="Nightly specs and ADR checks over the data plane; check-edit labels.",
+check_app = typer.Typer(help="Run the behavior specs and ADR checks over the data plane; label edits to them.",
                         no_args_is_help=True)
 
 
