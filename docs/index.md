@@ -6,7 +6,7 @@ hide:
 
 <div class="af-hero af-hero--visual" markdown>
 <div markdown>
-<span class="af-eyebrow">Agent factory · Judge plane</span>
+<span class="af-eyebrow">Agent factory · Judge</span>
 
 # Did that harness change actually help?
 
