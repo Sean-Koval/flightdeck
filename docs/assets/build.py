@@ -16,7 +16,8 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
   the `.png` screenshots of them;
 - `suite.svg`: where flightdeck sits in the suite, and `flow-data-plane.svg`, `flow-experiment.svg`,
   `flow-holdout.svg` and `paired-by-task.svg` for the guides, drawn with agent-factory's diagram conventions
-  (Airframe tokens with Night fallbacks, so they follow the theme when inlined with `--8<--`).
+  (Airframe tokens with Night fallbacks, so they follow the theme when inlined with `--8<--`), with theme-v12's
+  sentence-case sans labels and radii (`radius-card` boxes, `radius-control` steps).
 
 The terminals follow Airframe's Terminal component and the diagram's fallbacks are Airframe's Night values, both read
 from the vendored `docs/stylesheets/airframe-tokens.json` (`scripts/sync-airframe.sh`), since an SVG shown as an image
@@ -158,8 +159,9 @@ def terminal(lines: list[tuple[float, str, str]], total: float | None, title: st
     css = [f".t{{font:13px {MONO};fill:{t['terminal-fg']};white-space:pre}}.p{{fill:{t['brand']}}}"
            f".c{{fill:{t['code-keyword']}}}.x{{fill:{t['terminal-err']}}}"
            f".b{{font:500 10.5px {MONO};letter-spacing:.08em;fill:{t['terminal-dim']}}}.b1{{fill:{t['terminal-fg']}}}"]
-    body = [f'<rect width="{w}" height="{h}" rx="4" fill="{t["terminal-bg"]}"/>',
-            f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="4" fill="none" stroke="{t["terminal-fg"]}" '
+    r = t["radius-card"].removesuffix("px")  # Airframe's Terminal is a card
+    body = [f'<rect width="{w}" height="{h}" rx="{r}" fill="{t["terminal-bg"]}"/>',
+            f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="{r}" fill="none" stroke="{t["terminal-fg"]}" '
             f'stroke-opacity=".08"/><path d="M0 {BAR + .5}H{w}" stroke="{t["terminal-fg"]}" stroke-opacity=".09"/>',
             TERM_ICON.format(x=14, y=BAR / 2 - 7).replace('<g ', f'<g stroke="{t["terminal-dim"]}" ', 1)]
     x = 14 + 14 + 14  # icon, gap
@@ -239,14 +241,17 @@ def comment_page(report: str, theme: str, top: bool) -> str:
 # Drawn with agent-factory's conventions (`scripts/diagrams.py` there): every color an Airframe token with its Night
 # fallback, so a diagram inlined in a docs page follows the theme and the same file on its own renders dark. Authored
 # at 720 px, the width a docs column shows them at, with 13 px body and 11 px labels, so nothing is read scaled down.
+# Labels are sentence-case sans (`label-s`; mono is for codes and numbers only), boxes take `radius-card` and steps
+# `radius-control`, and flightdeck's box is marked by its place and a `line-strong` edge, never by the brand yellow.
 V = {k: f"var(--af-{t}, {NIGHT[t]})" for k, t in {
     "canvas": "canvas", "raised": "raised", "surface": "surface", "line": "line-strong", "fg": "fg",
-    "muted": "fg-muted", "subtle": "fg-subtle", "brand": "brand-line", "rule": "line"}.items()}
+    "muted": "fg-muted", "subtle": "fg-subtle", "rule": "line"}.items()}
+R_CARD, R_CONTROL = (NIGHT[r].removesuffix("px") for r in ("radius-card", "radius-control"))
 SANS, HEAD = "'Red Hat Text','Helvetica Neue',Arial,sans-serif", "Archivo,'Helvetica Neue',Arial,sans-serif"
 D_STYLE = (f".fd-d .n{{font:700 15px {HEAD};font-stretch:125%;fill:{V['fg']}}}"
            f".fd-d .s{{font:700 13px {HEAD};font-stretch:125%;fill:{V['fg']}}}"
            f".fd-d .b{{font:400 13px {SANS};fill:{V['muted']}}}.fd-d .e{{font:400 11px {SANS};fill:{V['subtle']}}}"
-           f".fd-d .l{{font:500 11px {MONO};letter-spacing:.08em;fill:{V['subtle']}}}"
+           f".fd-d .l{{font:500 11px {SANS};fill:{V['subtle']}}}"
            f".fd-d .k{{font:500 11px {MONO};fill:{V['fg']}}}"
            f".fd-d .edge{{fill:none;stroke:{V['subtle']};stroke-width:1.25}}"
            f".fd-d .plan{{fill:none;stroke:{V['subtle']};stroke-width:1.25;stroke-dasharray:5 4}}")
@@ -254,18 +259,19 @@ D_STYLE = (f".fd-d .n{{font:700 15px {HEAD};font-stretch:125%;fill:{V['fg']}}}"
 
 class Diagram:
     """One SVG: `box` (eyebrow, name, body lines), `step` (a small named row), `edge` (an arrow with a label) and
-    `text`, then `svg(label)`; `kind` is `raised` (default), `hub` (brand outline: flightdeck) or `plan` (dashed)."""
+    `text`, then `svg(label)`; `kind` is `raised` (default), `hub` (a `line-strong` edge: flightdeck) or `plan`
+    (dashed)."""
 
     def __init__(self, name: str, w: int, h: int, title: str) -> None:
         self.id, self.w, self.h = name, w, h
         self.out = [f'<rect width="{w}" height="{h}" fill="{V["canvas"]}"/>',
-                    f'<text class="l" x="24" y="30">{esc(title.upper())}</text>']
+                    f'<text class="l" x="24" y="30">{esc(title)}</text>']
 
     def box(self, x: int, y: int, w: int, h: int, eyebrow: str, name: str, lines: tuple[str, ...] = (),
             kind: str = "raised") -> None:
-        stroke = {"hub": f' stroke="{V["brand"]}" stroke-width="1.5"', "plan": f' stroke="{V["line"]}" '
+        stroke = {"hub": f' stroke="{V["line"]}"', "plan": f' stroke="{V["line"]}" '
                   'stroke-dasharray="4 4" fill-opacity="0"'}.get(kind, f' stroke="{V["rule"]}"')
-        self.out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="3" fill="{V["raised"]}"{stroke}/>')
+        self.out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{R_CARD}" fill="{V["raised"]}"{stroke}/>')
         if eyebrow:
             self.out.append(f'<text class="l" x="{x + 14}" y="{y + 22}">{esc(eyebrow)}</text>')
         self.out.append(f'<text class="n" x="{x + 14}" y="{y + (44 if eyebrow else 26)}">{esc(name)}</text>')
@@ -273,7 +279,7 @@ class Diagram:
         self.out += [f'<text class="b" x="{x + 14}" y="{top + 18 * i}">{esc(t)}</text>' for i, t in enumerate(lines)]
 
     def step(self, x: int, y: int, w: int, name: str, sub: str = "", h: int = 40) -> None:
-        self.out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="3" fill="{V["surface"]}" '
+        self.out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{R_CONTROL}" fill="{V["surface"]}" '
                         f'stroke="{V["line"]}"/><text class="s" x="{x + 12}" y="{y + (24 if not sub else 18)}">'
                         f'{esc(name)}</text>')
         if sub:
@@ -305,10 +311,10 @@ def suite() -> str:
     d = Diagram("suite", 720, 420, "Where flightdeck sits · run / judge / decide")
     y, h, bw = 56, 276, 160
     xs = (24, 280, 536)
-    d.box(xs[0], y, bw, h, "RUN", "hangar", ("runs coding agents", "in sandboxes;", "records manifests,",
+    d.box(xs[0], y, bw, h, "Run", "hangar", ("runs coding agents", "in sandboxes;", "records manifests,",
                                              "traces and the", "experiment index.", "Runs the trials it",
                                              "is asked for, pinned;", "does no analysis."))
-    d.box(xs[1], y, bw, h, "JUDGE", "flightdeck", (), "hub")
+    d.box(xs[1], y, bw, h, "Judge", "flightdeck", (), "hub")
     for i, (name, sub) in enumerate((("ingest", "REST or an export"), ("data plane", "Parquet · DuckDB"),
                                      ("stats · check", "paired by task · specs"), ("report", "a pre-registered rule"))):
         d.step(xs[1] + 12, y + 60 + 50 * i, bw - 24, name, sub)
@@ -316,13 +322,13 @@ def suite() -> str:
             d.edge(f"M{xs[1] + bw // 2} {y + 60 + 50 * i - 10} V{y + 60 + 50 * i - 2}")
     pr = ("one comment, updated", "in place: verdict,", "pins, outcome, cost,", "behavior specs.",
           "A reviewer decides;", "the approver is", "never the author.")
-    d.box(xs[2], y, bw, h, "DECIDE", "the pull request", pr)
+    d.box(xs[2], y, bw, h, "Decide", "the pull request", pr)
     d.edge(f"M{xs[0] + bw} {y + 110} H{xs[1] - 4}", "runs, traces,|the index", 232, y + 88)
     d.edge(f"M{xs[1]} {y + 200} H{xs[0] + bw + 4}", "trials to run:|tasks × arms × n", 232, y + 222)
     d.edge(f"M{xs[1] + bw} {y + 110} H{xs[2] - 4}", "the report", 488, y + 100)
     d.box(24, 358, 672, 40, "", "", (), "plan")
-    d.text(38, 383, "GOVERN · PLANNED", "l")
-    d.text(172, 383, "Tower: policy decisions, approvals, receipts", "s")
+    d.text(38, 383, "Govern · planned", "l")
+    d.text(140, 383, "Tower: policy decisions, approvals, receipts", "s")
     d.edge(f"M{xs[2] + bw // 2} {y + h} V354", "promotion approval", xs[2] + bw // 2 - 8, y + h + 16, "plan", "end")
     return d.svg("Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower, planned, "
                  "governs promotions")
@@ -379,7 +385,7 @@ def flow_holdout() -> str:
         if i < 4:
             d.edge(f"M{x + 120} 70 H{x + 134}")
     d.box(24, 160, 672, 52, "", "", (), "plan")
-    d.text(38, 182, "NIGHTLY", "l")
+    d.text(38, 182, "Nightly", "l")
     d.text(38, 200, "canary-scan reads the last days' traces for the set's canary strings; a hit voids the set.", "b")
     return d.svg("A sealed holdout: briefed to blind writers, written, sealed with canaries and hashes, run once on "
                  "the candidate and scored once by an approver who is not the author; a nightly canary scan voids a "
@@ -393,10 +399,10 @@ def paired_by_task() -> str:
             ("t02", "○ ○ ○", "○ ○ ○", "saturated: no information"), ("t03", "○ ● ○", "● ● ○", "discordant: +1 of 3"),
             ("t04", "○ ○ ●", "● ● ●", "discordant: +2 of 3"),
             ("t05", "● ○ ●", "○ ● ●", "concordant: the same rate"), ("…", "", "", "every task runs in both arms"))
-    d.text(24, 62, "TASK", "l")
-    d.text(120, 62, "CONTROL", "l")
-    d.text(260, 62, "CANDIDATE", "l")
-    d.text(420, 62, "WHAT THE PAIR SAYS", "l")
+    d.text(24, 62, "Task", "l")
+    d.text(120, 62, "Control", "l")
+    d.text(260, 62, "Candidate", "l")
+    d.text(420, 62, "What the pair says", "l")
     d.out.append(f'<path d="M24 70 H696" stroke="{V["rule"]}"/>')
     for i, (task, a, b, note) in enumerate(rows):
         y = 94 + 24 * i
