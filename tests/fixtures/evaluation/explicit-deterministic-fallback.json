@@ -1,0 +1,86 @@
+{
+  "schema": "flightdeck.evaluation/v1",
+  "schema_revision": 1,
+  "evaluation_id": "explicit-deterministic-fallback",
+  "subject": {
+    "run_id": "synthetic-run-1",
+    "source": "local",
+    "scope": "run",
+    "attempt": 1
+  },
+  "input": {
+    "artifact": {
+      "locator": "artifact:synthetic/input.json",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "format": "hangar.trace/v1",
+    "completeness": {
+      "source": "complete",
+      "input": "complete",
+      "redaction": "none"
+    }
+  },
+  "requested_evaluator": {
+    "id": "synthetic.process_judge",
+    "version": "1.0.0",
+    "kind": "process_judge",
+    "implementation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "config_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "model_id": "synthetic-model-1"
+  },
+  "actual_evaluator": {
+    "id": "synthetic.deterministic_test",
+    "version": "1.0.0",
+    "kind": "deterministic_test",
+    "implementation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "config_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "specification": {
+    "id": "synthetic.tests",
+    "version": "1.0.0",
+    "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "digest_method": "artifact_bytes_sha256"
+  },
+  "execution": {
+    "status": "fallback",
+    "reason": "requested_evaluator_unavailable"
+  },
+  "coverage": {
+    "scope": "run",
+    "selection_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "eligible_steps": 0,
+    "attempted_steps": 0,
+    "determinate_steps": 0,
+    "status": "not_applicable"
+  },
+  "assessments": {
+    "outcome": {
+      "status": "pass",
+      "evidence": [
+        {
+          "locator": "artifact:synthetic/evidence.json",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "score": {
+        "value": 1,
+        "metric": {
+          "id": "synthetic.binary",
+          "scale": "binary",
+          "unit": "indicator",
+          "direction": "higher"
+        }
+      }
+    },
+    "process": {
+      "status": "not_applicable",
+      "reason": "outcome_only_evaluator",
+      "evidence": []
+    }
+  },
+  "steps": [],
+  "calibration": null,
+  "extensions": {
+    "example.note": "Synthetic structural example, not a runtime evaluation."
+  }
+}
