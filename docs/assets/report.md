@@ -1,7 +1,7 @@
 <!-- flightdeck:report:job-expdemo -->
 ## candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)
 
-`job-expdemo`: candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).
+FDK-EXP-0531 (`job-expdemo`): candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).
 
 Rule, pre-registered in `decision.yaml`: resolved, higher is better, margin −5.0 pp, at least 10 paired tasks.
 

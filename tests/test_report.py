@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 from flightdeck.cli import app
 from flightdeck.dataplane.duck import connect
 from flightdeck.dataplane.schema import write_partitioned
+from flightdeck.ported import tails
 from flightdeck.report import markdown
 from flightdeck.stats.compare import Comparison
 from flightdeck.stats.core import Interval
@@ -24,8 +25,8 @@ def test_report_renders_from_parquet_alone_with_a_preregistered_verdict(plane: s
     text = report(plane, decision=export_dir / "decision.yaml")
     assert text.startswith(f"<!-- flightdeck:report:{EXP} -->\n## candidate is better than control on resolved: "
                            "+21.2 pp (95% CI +1.5 to +43.9, margin −5.0)\n")  # the verdict is the headline
-    order = [f"`{EXP}`: candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. "
-             "The arms differ in config_digest",
+    order = [f"{tails.tail(EXP)} (`{EXP}`): candidate (the review skill) against control (no skills), 12 tasks, "
+             "73 trials, seed 0. The arms differ in config_digest",
              "Rule, pre-registered in `decision.yaml`: resolved, higher is better, margin −5.0 pp, at least 10",
              "### Outcome", "### Process", "Tool calls", "Wall time", "### Cost", "### Behavior specs",
              "### Exclusions and drift", "Excluded: cancelled 1, drift 1, infra_error 1, not finished 1, "
@@ -35,6 +36,7 @@ def test_report_renders_from_parquet_alone_with_a_preregistered_verdict(plane: s
              "environment_digest not recorded; grader `bash tests/test.sh`; hangar version `0.1.0`. Base SHAs: 12 "
              "across 12 tasks."]
     assert [text.index(s) for s in order] == sorted(text.index(s) for s in order)
+    assert tails.tail(EXP) == "FDK-EXP-0531"  # a person reads the tail number first, the real ID beside it
     assert text.count("seed 0") == 1 and text.count("Excluded:") == 1 and "…" not in text  # once; no cut digests
     assert "Per task" not in text and "t05/candidate/2" not in text  # per-task details only behind --details
 

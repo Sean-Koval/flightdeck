@@ -77,7 +77,7 @@ To plan and submit trials, see [Running experiments](runners.md). The
 [team-harness repo](https://github.com/Sean-Koval/team-harness/tree/main/flightdeck) has a suite, a pre-registered
 `decision.yaml` and behavior specs to start from; add a task before its `--dry-run` works.
 
-Flightdeck holds no sandbox code and no credentials. It reads hangar's three versioned interfaces and the Parquet
+flightdeck holds no sandbox code and no credentials. It reads hangar's three versioned interfaces and the Parquet
 data plane ([ADR-0001](decisions/0001-boundary-with-hangar.md), [Contracts](contracts.md)).
 
 ## See also

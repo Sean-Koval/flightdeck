@@ -41,7 +41,7 @@ their order too.
 
 ### 2. Judge
 
-Flightdeck holds no model credentials ([ADR-0001](decisions/0001-boundary-with-hangar.md)), so the judge runs
+flightdeck holds no model credentials ([ADR-0001](decisions/0001-boundary-with-hangar.md)), so the judge runs
 elsewhere, on an API key with a spend cap. That is a hangar job, or an operator's script. It writes one line per run:
 `{"run_id", "label", "rationale"}`. Judge calls on tainted runs are allowed, and labelled by the run's own flag.
 

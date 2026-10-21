@@ -9,11 +9,14 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
   `ingest -> stats compare -> report` (`check run` feeds the report's Behavior specs section but is not shown), opens
   on the finished session with the verdict, holds it for `HOLD` seconds, then replays the typing; the loop is under
   20 s and 80 columns wide, so it reads at the hero's width; `demo-still.svg`: its finished frame, for the README;
+  `demo-phone.svg`: the key lines (the paired difference, the power line, the verdict) as a still 44 columns wide,
+  which the README and the docs home show on screens under 600 px so the text stays 13 px;
 - `stats-compare.svg`: the `stats compare` output as a still terminal;
 - `report.md` and `report-comment[-full]-{dark,light}.html`: the report, and the report rendered as a GitHub
   pull-request comment in GitHub's dark and light palettes, on a 760 px page so it reads inside a docs column: the top
   (the verdict and the Outcome table, for the README and the docs home) and the whole comment (for Reports), then
-  the `.png` screenshots of them;
+  the `.png` screenshots of them, shown at their native 816 px; `report-comment-phone-{dark,light}`: the comment's top
+  (verdict, experiment, rule) in GitHub's narrow layout, 358 px wide, for screens under 600 px;
 - `suite.svg`: where flightdeck sits in the suite, and `flow-data-plane.svg`, `flow-experiment.svg`,
   `flow-holdout.svg` and `paired-by-task.svg` for the guides, drawn with agent-factory's diagram conventions
   (Airframe tokens with Night fallbacks, so they follow the theme when inlined with `--8<--`), with theme-v12's
@@ -58,6 +61,7 @@ COMMANDS = [  # (command, shown in the recording); the paths are the quickstart'
      "    --decision demo/export/decision.yaml --out demo/report.md", True),  # two lines, as the quickstart shows it
 ]
 COLS, ROWS = 80, 30  # terminal size; output lines wrap at COLS
+PHONE_COLS = 44  # the phone still's width: 44 columns read at 13 px in a 360 px column
 HOLD = 5.0  # seconds the finished session (with the verdict) shows before the typing replays
 FONTS = ("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900"
          "&family=DM+Mono:wght@400;500&family=Red+Hat+Text:wght@400..700&display=swap")
@@ -90,12 +94,12 @@ def session(tmp: Path) -> list[tuple[str, str]]:
     return out
 
 
-def wrap(text: str) -> list[str]:
+def wrap(text: str, cols: int = COLS) -> list[str]:
     lines = []
     for line in text.splitlines() or [""]:
-        while len(line) > COLS:
-            cut = line.rfind(" ", 0, COLS)
-            cut = cut if cut > COLS // 2 else COLS
+        while len(line) > cols:
+            cut = line.rfind(" ", 0, cols)
+            cut = cut if cut > cols // 2 else cols
             lines.append(line[:cut])
             line = "  " + line[cut:].lstrip()
         lines.append(line)
@@ -146,14 +150,15 @@ TERM_ICON = ('<g fill="none" stroke-width="1.5" stroke-linecap="square" stroke-l
              '<path d="M6 8l2.5 2L6 12M10.5 12.5H14"/></g>')  # Airframe's `terminal` icon, 20px grid drawn at 14px
 
 
-def terminal(lines: list[tuple[float, str, str]], total: float | None, title: str) -> str:
+def terminal(lines: list[tuple[float, str, str]], total: float | None, title: str, cols: int = COLS) -> str:
     """A terminal window on Airframe's Terminal contract: always dark, DM Mono on `terminal-bg`, a bar with the product
     and scope in mono capitals, output in `terminal-fg`, the prompt and cursor in `brand`, and color on one kind of line
     only (`terminal-err` for the failed role). The bar reads `title` as `product|scope|scope`. With `total` (the
     replay's length), the finished session shows first and holds `HOLD` seconds, then lines appear at their times and
-    commands type out, looping every `HOLD + total` seconds; without it, a still of every line."""
+    commands type out, looping every `HOLD + total` seconds; without it, a still of every line. `cols` sets the
+    width."""
     t = NIGHT
-    w, h = round(COLS * CW + 2 * PAD), round(BAR + PAD + len(lines) * LH + PAD / 2)
+    w, h = round(cols * CW + 2 * PAD), round(BAR + PAD + len(lines) * LH + PAD / 2)
     loop = HOLD + (total or 0)
     pc = lambda sec: f"{100 * sec / loop:.3f}%"  # noqa: E731  a moment in the loop as a keyframe percentage
     css = [f".t{{font:13px {MONO};fill:{t['terminal-fg']};white-space:pre}}.p{{fill:{t['brand']}}}"
@@ -197,6 +202,20 @@ def terminal(lines: list[tuple[float, str, str]], total: float | None, title: st
             f'aria-label="{esc(label)}"><style>{"".join(css)}</style>{"".join(body)}</svg>\n')
 
 
+def phone(steps: list[tuple[str, str]]) -> list[tuple[float, str, str]]:
+    """The key lines for a phone, wrapped at `PHONE_COLS` so they keep the 13 px text at a phone's column width: the
+    paired difference and the power line from `stats compare`, then `report` and its verdict."""
+    stats, report = (next(s for s in steps if s[0].startswith(p)) for p in ("flightdeck stats", "flightdeck report"))
+    keep = [p for p in stats[1].split("\n\n") if p.startswith(("Paired difference", "At "))]
+    lines: list[tuple[float, str, str]] = []
+    for cmd, output in ((stats[0], "\n\n".join(keep)), (report[0], report[1])):
+        parts = [x for part in cmd.split(" \\\n") for x in wrap(part.strip(), PHONE_COLS - 4)]
+        lines += [(0, "cmd" if i == 0 else "cmd2", x.strip() + (" \\" if i < len(parts) - 1 else ""))
+                  for i, x in enumerate(parts)]
+        lines += [(0, "out", x) for x in wrap(output, PHONE_COLS)] + [(0, "out", "")]
+    return lines[:-1] + [(0, "cmd", "")]
+
+
 # ---------------------------------------------------------------------------------------------------- the PR comment
 # GitHub's own palettes (primer, 2025): the report is read as a comment on github.com, so the picture shows that frame.
 GH = {"light": {"bg": "#ffffff", "fg": "#1f2328", "muted": "#59636e", "line": "#d1d9e0", "well": "#f6f8fa",
@@ -222,18 +241,22 @@ background:linear-gradient(var(--fade),var(--bg))}
 """
 
 
-def comment_page(report: str, theme: str, top: bool) -> str:
+def comment_page(report: str, theme: str, top: bool, phone: bool = False) -> str:
     """The report as GitHub renders a PR comment (GFM tables, the hidden marker stays hidden) in that GitHub theme:
     with `top`, only the verdict and the Outcome table, fading out; otherwise the whole comment. A 760 px page (GitHub's
-    is 880) so the text still reads once a 686 px docs column scales it."""
+    is 880), shown at its native 816 px. With `phone`, the comment as GitHub's narrow layout shows it (no avatar
+    column) on a 358 px page, cut after the rule, for screens under 600 px."""
     from markdown_it import MarkdownIt
 
-    body = MarkdownIt("commonmark", {"html": True}).enable("table").render(report.split("\n### Process")[0] if top
-                                                                           else report)
-    root = ";".join(f"--{k}:{v}" for k, v in GH[theme].items()) + ";--w:760px"
-    return (f'<!doctype html><html><head><meta charset="utf-8"><style>:root{{{root}}}{GH_CSS}</style></head><body>'
-            '<div class="page"><div class="row"><div class="avatar">fd</div><div class="comment"><div class="head">'
-            f'<b>dev-a</b> commented</div><div class="md{" fade" if top else ""}">{body}</div></div></div></div>'
+    text = report.split("\n### Outcome")[0] if phone else report.split("\n### Process")[0] if top else report
+    body = MarkdownIt("commonmark", {"html": True}).enable("table").render(text)
+    root = ";".join(f"--{k}:{v}" for k, v in GH[theme].items()) + (";--w:334px" if phone else ";--w:760px")
+    avatar = "" if phone else '<div class="avatar">fd</div>'
+    narrow = ".page{padding:12px}.md h2{font-size:1.25em}" if phone else ""
+    return (f'<!doctype html><html><head><meta charset="utf-8"><style>:root{{{root}}}{GH_CSS}{narrow}</style></head>'
+            f'<body><div class="page"><div class="row">{avatar}<div class="comment"><div class="head">'
+            f'<b>dev-a</b> commented</div><div class="md{" fade" if top and not phone else ""}">{body}</div></div>'
+            "</div></div>"
             "</body></html>\n")
 
 
@@ -306,8 +329,10 @@ class Diagram:
 
 
 def suite() -> str:
-    """Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower (planned) governs. Three
-    boxes in a row, Tower a one-line strip under them, the roles on the eyebrows (no product hues)."""
+    """Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower governs. Three boxes in a
+    row, Tower a one-line strip under them, the roles on the eyebrows (no product hues). Tower is built (policy
+    decisions, approvals, signed receipts); only flightdeck's promotion approval through it is planned, so that edge
+    alone is dashed and says so."""
     d = Diagram("suite", 720, 420, "Where flightdeck sits · run / judge / decide")
     y, h, bw = 56, 276, 160
     xs = (24, 280, 536)
@@ -326,12 +351,14 @@ def suite() -> str:
     d.edge(f"M{xs[0] + bw} {y + 110} H{xs[1] - 4}", "runs, traces,|the index", 232, y + 88)
     d.edge(f"M{xs[1]} {y + 200} H{xs[0] + bw + 4}", "trials to run:|tasks × arms × n", 232, y + 222)
     d.edge(f"M{xs[1] + bw} {y + 110} H{xs[2] - 4}", "the report", 488, y + 100)
-    d.box(24, 358, 672, 40, "", "", (), "plan")
-    d.text(38, 383, "Govern · planned", "l")
-    d.text(140, 383, "Tower: policy decisions, approvals, receipts", "s")
-    d.edge(f"M{xs[2] + bw // 2} {y + h} V354", "promotion approval", xs[2] + bw // 2 - 8, y + h + 16, "plan", "end")
-    return d.svg("Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower, planned, "
-                 "governs promotions")
+    d.box(24, 358, 672, 40, "", "", ())
+    d.text(38, 383, "Govern", "l")
+    d.text(96, 383, "Tower: policy decisions, approvals, signed receipts", "s")
+    d.edge(f"M{xs[2] + bw // 2} {y + h} V354", "promotion approval · planned", xs[2] + bw // 2 - 8, y + h + 16, "plan",
+           "end")
+    return d.svg("Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower governs "
+                 "risky actions with policy decisions, approvals and signed receipts; promotion approval through "
+                 "Tower is planned")
 
 
 def flow_data_plane() -> str:
@@ -451,16 +478,18 @@ def main() -> None:
         "demo.cast": cast(steps),
         "demo.svg": terminal(lines, total, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
         "demo-still.svg": terminal(lines, None, "flightdeck|fixture experiment|12 tasks × 2 variants × 3 trials"),
+        "demo-phone.svg": terminal(phone(steps), None, "flightdeck|fixture experiment", PHONE_COLS),
         "stats-compare.svg": terminal([(0, "cmd", stats[0])] + [(0, "out", x) for x in wrap(stats[1])], None,
                                       "flightdeck|stats compare"),
         "report.md": report,
         **{f"report-comment{k}-{t}.html": comment_page(report, t, not k) for k in ("", "-full")
            for t in ("dark", "light")},
+        **{f"report-comment-phone-{t}.html": comment_page(report, t, True, True) for t in ("dark", "light")},
         "suite.svg": suite(), "flow-data-plane.svg": flow_data_plane(), "flow-experiment.svg": flow_experiment(),
         "flow-holdout.svg": flow_holdout(), "paired-by-task.svg": paired_by_task(),
     }
-    pages = {f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page") for k in ("", "-full")
-             for t in ("dark", "light")}
+    pages = {f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page")
+             for k in ("", "-full", "-phone") for t in ("dark", "light")}
     files["sources.sha256"] = "".join(f"{hashlib.sha256(p.encode()).hexdigest()}  {n}\n"
                                       for n, (p, _) in sorted(pages.items()))
     for name, text in files.items():

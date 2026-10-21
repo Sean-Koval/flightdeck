@@ -1,6 +1,6 @@
 # Weekly team metrics
 
-The team's weekly scorecard, defined once here and computed by one SQL file over the data plane. Hangar's standup
+The team's weekly scorecard, defined once here and computed by one SQL file over the data plane. hangar's standup
 line and Slack digest read the rendered numbers, never their own.
 
 This page is the definition; hangar's standup line and Slack digest (hangar#168) cite it and read `latest.json`. The
@@ -131,7 +131,7 @@ The decision recorded for #6: facts hangar knows come from hangar, facts only Gi
 | PR opened, first review, merged (with green-to-merge), closed, abandoned (with reason) | hangar's outbox job events | `job_events` |
 | All merged PRs on the team's repos, reverts | GitHub REST, nightly (`flightdeck ingest github`) | `prs` |
 
-The issue's alternative, hangar emitting review and revert job events, is half taken. Hangar already emits
+The issue's alternative, hangar emitting review and revert job events, is half taken. hangar already emits
 `review.first` and has reserved a `revert` event. When hangar emits `revert`, the revert view switches to it, and the
 `prs` table remains only for agent share.
 

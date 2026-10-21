@@ -1,6 +1,6 @@
 # Running experiments
 
-Flightdeck decides what to run; hangar runs it. A runner hands flightdeck's plan to hangar and brings the results back
+flightdeck decides what to run; hangar runs it. A runner hands flightdeck's plan to hangar and brings the results back
 into the data plane.
 
 <div class="af-figure" markdown>
@@ -28,14 +28,14 @@ touching them.
 Uses hangar's batch experiments (hangar spec 0014 §4). `POST /api/experiments` submits tasks × variants × a fixed trial
 count; `GET /api/experiments/{id}` returns the `hangar.experiment/v1` index.
 
-`HANGAR_URL` names hangar and `HANGAR_TOKEN` is the bearer token. Flightdeck checks nothing about credentials: hangar
+`HANGAR_URL` names hangar and `HANGAR_TOKEN` is the bearer token. flightdeck checks nothing about credentials: hangar
 refuses subscription logins for experiments and owns API keys and their spend caps.
 
-Hangar caps one experiment at 100 tasks, 8 variants, 20 trials per task and variant, and 200 trials in all
+hangar caps one experiment at 100 tasks, 8 variants, 20 trials per task and variant, and 200 trials in all
 (`HANGAR_EXPERIMENT_MAX_TRIALS`). A larger plan becomes several experiments named `<suite>-<suite_run>-<i>`. Their
 ids joined by `+` are the run-set id, and the plan's `budget_usd` is split between them by task count.
 
-Hangar does the interleaving, isolation and pinning. Experiments queue as eval-class work (after 20:00, within API
+hangar does the interleaving, isolation and pinning. Experiments queue as eval-class work (after 20:00, within API
 headroom), so `status` can say `queued` for hours. A trial whose agent asks a question is cancelled, since nobody is
 there to answer; it counts as `cancelled`, not as a failure.
 
@@ -83,7 +83,7 @@ to `src/flightdeck/ported/modelpolicy.py` and checked against hangar's own test 
 `claude-opus-4-5-20251101`, `gpt-6.1-sol`, `gpt-4o-2024-08-06`, `gemini-3.8-flash`,
 `openrouter/anthropic/claude-opus-5.5`. `run`, `status` and `ingest` share the rule.
 
-Flightdeck has no provider model list, so it decides by shape only. An id hangar accepts because its provider lists it
+flightdeck has no provider model list, so it decides by shape only. An id hangar accepts because its provider lists it
 (`claude-opus-5`) needs `--allow-model ID`. `hangar env list` shows what a policy resolves to today.
 
 ### Harness versions
@@ -109,7 +109,7 @@ data plane's `runs` (`--data` / `FLIGHTDECK_DATA_URI`), else `--assume` (default
 author's remaining sub-cap. The refusal names the cap and its file. Spend so far is this calendar month's experiment
 `cost_usd` in `runs`: the team's, and the author's where `person` is the author.
 
-The gate is advisory and early. Hangar's own budgets (per trial, per experiment, daily) still enforce.
+The gate is advisory and early. hangar's own budgets (per trial, per experiment, daily) still enforce.
 
 `budgets.yaml` is team configuration and lives in the private data repository, not here. `run` finds it through
 `--budgets`, `FLIGHTDECK_BUDGETS`, else `./budgets.yaml` when present:

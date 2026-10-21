@@ -1,6 +1,6 @@
 # Data plane
 
-Flightdeck reads hangar's runs from Parquet files, never from a live hangar, so reports work while hangar's sandbox
+flightdeck reads hangar's runs from Parquet files, never from a live hangar, so reports work while hangar's sandbox
 pools are off. The contract is `flightdeck.parquet/v1`.
 
 <div class="af-figure" markdown>
@@ -8,7 +8,7 @@ pools are off. The contract is `flightdeck.parquet/v1`.
 <figcaption>Two ways in (the nightly compactor, ingest on demand), one set of tables out</figcaption>
 </div>
 
-Hangar writes each finished run once to a GCS outbox (`hangar.run/v1`, hangar `docs/api/outbox.md`). The nightly
+hangar writes each finished run once to a GCS outbox (`hangar.run/v1`, hangar `docs/api/outbox.md`). The nightly
 [compactor](#compactor) turns it into these tables, and DuckDB queries them (ADR-0001 point 3). For one experiment's
 results right away, the same flatteners run over `hangar experiment export` and REST exports ([ingest](#ingest)).
 
@@ -54,7 +54,7 @@ Tapes stay objects under hangar's `v1/tapes/`; they are not compacted.
 
 ### What flightdeck writes itself
 
-Flightdeck stamps `runs.task_digest` (the task directory's digest, [Tasks](tasks.md#digests)) and
+flightdeck stamps `runs.task_digest` (the task directory's digest, [Tasks](tasks.md#digests)) and
 `runs.variant_digest` (the variant as planned: its hangar overlay and environment) on the trials it submitted, when it
 collects them. They key the [trial cache](runners.md#cache).
 
@@ -83,7 +83,7 @@ OTLP/JSON per opentelemetry-proto 1.11.1: `intValue` is a decimal string, lists 
 `kvlistValue` becomes a dict. Unknown attributes are kept in `attrs`, never an error, since hangar adds fields within
 v1. A different `hangar.trace.schema`, manifest or experiment schema is refused.
 
-Hangar redacts every export. The flatteners also mask anything that still looks like a credential (private keys,
+hangar redacts every export. The flatteners also mask anything that still looks like a credential (private keys,
 GitHub, Anthropic/OpenAI, AWS and Slack tokens) as `***`, and clip event text to 2,000 characters.
 
 ## Ingest
@@ -119,7 +119,7 @@ Pins that break hangar's model rule are warned about, as `experiment status` rep
 running has `outcome` null, and statistics leave it out.
 
 Drifted trials (`trials[].drift`) are kept, with `drift` set; `flightdeck stats compare` excludes them unless
-`--include-drift`. Hangar's #127 anti-forgery fields land in `runs.task_invalid`, `runs.contaminated` and
+`--include-drift`. hangar's #127 anti-forgery fields land in `runs.task_invalid`, `runs.contaminated` and
 `runs.grade_trust`.
 
 ### Idempotent
@@ -139,7 +139,7 @@ export or `raw/` directory.
 
 ### Tokens
 
-Hangar scopes every record to its owner (spec 0014 §1). A member token sees its own experiments, jobs and sessions;
+hangar scopes every record to its owner (spec 0014 §1). A member token sees its own experiments, jobs and sessions;
 an admin token sees everyone's; a `jobs` token sees what it submitted. A 404 means missing *or not yours*, and is
 reported that way.
 
@@ -165,7 +165,7 @@ fsspec URL. `gs://` needs the `gcs` extra.
 
 ### Complete runs only
 
-It reads `v1/runs/{date}/{session_id}.{run_id}/` directories that have a `run.json`. Hangar uploads that file after
+It reads `v1/runs/{date}/{session_id}.{run_id}/` directories that have a `run.json`. hangar uploads that file after
 the run's other objects, so a directory without one is still arriving and waits for a later night.
 
 A run's rows come from `run.json` (the `runs` row, laid over the trace's turn row), `trace.otlp.json` (spans,
@@ -208,7 +208,7 @@ Within the lookback window the next night does this on its own, so a deletion is
 **Deploy:**
 `sh deploy/compactor/setup.sh --project <p> --runs-bucket <hangar's run_bucket> --data-bucket <team>-flightdeck`
 ([its README](https://github.com/Sean-Koval/flightdeck/tree/main/deploy/compactor#deploy); `--dry-run` first).
-Hangar's GKE terraform makes the outbox bucket (output `run_bucket`), and its `deploy/gke/up.sh` turns the outbox on.
+hangar's GKE terraform makes the outbox bucket (output `run_bucket`), and its `deploy/gke/up.sh` turns the outbox on.
 
 **Check a night:** the job's log prints rows per table per date, or `unchanged`.
 `flightdeck query --data gs://<team>-flightdeck/parquet/v1 "select dt, count(*) from runs group by dt"` reads what it
@@ -217,7 +217,7 @@ wrote.
 ## `flightdeck.weekly/v1`
 
 [`flightdeck metrics weekly`](metrics.md) writes `<reports>/weekly/<week>.json`, `<week>.md` and `latest.json`, with
-`FLIGHTDECK_REPORTS_URI` = `gs://<team>-flightdeck/reports`. Hangar's standup line and digest read `latest.json` and
+`FLIGHTDECK_REPORTS_URI` = `gs://<team>-flightdeck/reports`. hangar's standup line and digest read `latest.json` and
 never recompute.
 
 JSON Schema:
@@ -242,7 +242,7 @@ A table without files is an empty view of its schema. Timestamps are shown in UT
 
 For `gs://`, install the `gcs` extra (`uv sync --extra gcs`, or `pip install 'flightdeck[gcs]'`). DuckDB then reads
 through gcsfs with your Google application-default credentials (`gcloud auth application-default login`). Without it,
-DuckDB's `httpfs` is loaded and the caller supplies a DuckDB GCS secret (HMAC keys). Flightdeck holds no credentials
+DuckDB's `httpfs` is loaded and the caller supplies a DuckDB GCS secret (HMAC keys). flightdeck holds no credentials
 either way.
 
 ```sh

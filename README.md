@@ -5,16 +5,19 @@
 
 # flightdeck
 
-**Did that harness change actually help our coding agents, or did we just get lucky on a few runs?** Flightdeck
-answers that from the runs [hangar](https://github.com/Sean-Koval/hangar) already records, as a verdict posted on the
+**Did that harness change actually help the coding agents, or was it luck on a few runs?** flightdeck answers
+that from the runs [hangar](https://github.com/Sean-Koval/hangar) already records, as a verdict posted on the
 pull request where the change is reviewed.
 
-> **The verdict** is one of five words: *better*, *non-inferior*, *worse*, *No decision* or *No verdict*. It says how
+> **The verdict** is one of five words: "better", "non-inferior", "worse", "No decision" or "No verdict". It says how
 > the candidate arm did against the control arm on one metric, with the paired difference and its 95% interval:
-> *candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)*. The rule that picks
+> "candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)". The rule that picks
 > the word is committed before the first trial, so nobody moves the goalposts.
 
-<img alt="The finished terminal session on the fixture experiment: flightdeck ingests the export, compares the two arms paired by task and writes a report, ending on the verdict, candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)." src="docs/assets/demo-still.svg" width="660" height="537">
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/assets/demo-phone.svg" width="379" height="401">
+  <img alt="The finished terminal session on the fixture experiment: flightdeck ingests the export, compares the two arms paired by task and writes a report, ending on the verdict, candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)." src="docs/assets/demo-still.svg" width="660" height="537">
+</picture>
 
 ## Six commands
 
@@ -34,7 +37,7 @@ uv run flightdeck report experiment job-expdemo --data demo/plane \
 The last line printed is the verdict above. Against a real hangar, ingest with
 `HANGAR_TOKEN=... flightdeck ingest experiment <id> --hangar https://<your hangar>` and post with `--post owner/repo#n`.
 
-## Read on
+## Read next
 
 - [Docs](https://sean-koval.github.io/flightdeck/): what flightdeck is and isn't, where it sits in the
   [agent factory](https://sean-koval.github.io/agent-factory/), and what is shipped.

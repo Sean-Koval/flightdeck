@@ -27,7 +27,7 @@ How they're checked:
 - **Outbox objects** (`run.json`, job events) aren't validated at compaction; the compactor keeps what it understands.
   The test fixtures that stand in for them are checked against the vendored `run.schema.json`.
 
-Flightdeck also reads GitHub REST for closed pull requests (`ingest github` → `prs`) and ADRs from git
+flightdeck also reads GitHub REST for closed pull requests (`ingest github` → `prs`) and ADRs from git
 (`check run --adrs`).
 
 ### The vendored schemas
@@ -115,8 +115,8 @@ The seam between hangar and flightdeck is a trial run against an immutable **pin
 content-addressed. So a baseline pinned today re-runs identically next month (hangar
 [`docs/api/trials.md`](https://github.com/Sean-Koval/hangar/blob/main/docs/api/trials.md), `hangar.pinset/v1`).
 
-Flightdeck owns the sampling: which tasks, how many trials, against which pin sets, when to stop. Hangar runs each
-trial as pinned. Flightdeck still submits batch experiments, whose variants hangar records as pin sets; submitting
+flightdeck owns the sampling: which tasks, how many trials, against which pin sets, when to stop. hangar runs each
+trial as pinned. flightdeck still submits batch experiments, whose variants hangar records as pin sets; submitting
 trials against pin sets directly is [#25](https://github.com/Sean-Koval/flightdeck/issues/25).
 
 | Field | What it pins | In hangar today | In flightdeck's data plane |
@@ -128,7 +128,7 @@ trials against pin sets directly is [#25](https://github.com/Sean-Koval/flightde
 | `grader_digest` | The grader's command, files, mode, network and timeout | In pin sets; not in the experiment index or the outbox's `grade.json` | `grades.grader_digest`: null today. The trial cache uses `task_digest`, which covers the tests and the grader command, in its place |
 | `knowledge_snapshot` | What a retrieval tool could read | Optional, once a retrieval tool exists; the manifest schema has no `knowledge` section yet | `manifests.knowledge_snapshot`: null today |
 
-Hangar's pin set also records the harness and its CLI version, the lock reference, the environment, the approvals
+hangar's pin set also records the harness and its CLI version, the lock reference, the environment, the approvals
 policy and the egress policy's digest.
 
 Until every trial carries `harness_digest` and `environment_digest`, flightdeck's reports and cache fall back to

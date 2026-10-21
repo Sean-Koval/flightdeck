@@ -6,7 +6,7 @@ Each arm is scored once.
 The knowledge plan builds no team retrieval service unless the gold set shows the baselines **losing by at least
 15 points** on correctness or citation validity. The baselines are repo search and Claude Projects.
 
-Flightdeck seals the set, scores each arm once, and keeps it as the regression gate for any retrieval tool a harness
+flightdeck seals the set, scores each arm once, and keeps it as the regression gate for any retrieval tool a harness
 later pins. Code: `src/flightdeck/tasks/knowledge.py`, `flightdeck knowledge ...`.
 
 ## The suite

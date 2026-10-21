@@ -55,7 +55,7 @@ flightdeck ingest experiment [OPTIONS] EXP_ID
 | Argument or option | Type | Default | Environment | Description |
 | --- | --- | --- | --- | --- |
 | `EXP_ID` | text | required |  |  |
-| `--hangar` | text |  | `HANGAR_URL` | Hangar base URL; token from HANGAR_TOKEN. |
+| `--hangar` | text |  | `HANGAR_URL` | hangar base URL; token from HANGAR_TOKEN. |
 | `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
 
 ### `flightdeck ingest job`
@@ -69,7 +69,7 @@ flightdeck ingest job [OPTIONS] JOB_ID
 | Argument or option | Type | Default | Environment | Description |
 | --- | --- | --- | --- | --- |
 | `JOB_ID` | text | required |  |  |
-| `--hangar` | text |  | `HANGAR_URL` | Hangar base URL; token from HANGAR_TOKEN. |
+| `--hangar` | text |  | `HANGAR_URL` | hangar base URL; token from HANGAR_TOKEN. |
 | `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
 
 ### `flightdeck ingest session`
@@ -84,7 +84,7 @@ flightdeck ingest session [OPTIONS] NAME
 | --- | --- | --- | --- | --- |
 | `NAME` | text | required |  |  |
 | `--turn` | integer |  |  | Only this turn. |
-| `--hangar` | text |  | `HANGAR_URL` | Hangar base URL; token from HANGAR_TOKEN. |
+| `--hangar` | text |  | `HANGAR_URL` | hangar base URL; token from HANGAR_TOKEN. |
 | `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
 
 ### `flightdeck ingest github`
@@ -143,7 +143,7 @@ flightdeck report experiment [OPTIONS] EXPERIMENT
 | `--candidate`, `--b` | text | `candidate` |  | The arm with the change under judgement. |
 | `--decision` | path |  |  | Pre-registered decision.yaml; the verdict needs it. |
 | `--details` / `--no-details` | flag | off |  | Per-task rows and trial links (keep off for public repos). |
-| `--hangar` | text |  | `HANGAR_URL` | Hangar base URL for trial links. |
+| `--hangar` | text |  | `HANGAR_URL` | hangar base URL for trial links. |
 | `--out` | path |  |  | Also write the report here. |
 | `--post` | text |  |  | owner/repo#n: post as a PR or issue comment (token: GITHUB_TOKEN). |
 | `--seed` | integer | `0` |  |  |

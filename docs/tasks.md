@@ -3,9 +3,9 @@
 A task is graded work: an instruction for the agent, the environment it works in, and hidden tests that decide the
 reward.
 
-Flightdeck's format is [Harbor](https://github.com/harbor-framework/harbor)'s task directory. So public Harbor
+flightdeck's format is [Harbor](https://github.com/harbor-framework/harbor)'s task directory. So public Harbor
 datasets (Terminal-Bench and others in Harbor's registry) load without a converter, and flightdeck's tasks run on
-Harbor. Hangar's spec 0008 chose this format for graded work; flightdeck owns it. Code: `src/flightdeck/tasks/`.
+Harbor. hangar's spec 0008 chose this format for graded work; flightdeck owns it. Code: `src/flightdeck/tasks/`.
 
 ## Layout
 
@@ -83,17 +83,17 @@ it, so a changed hidden test is always a deliberate, reviewed edit.
 ## On hangar
 
 `to_hangar(tasks)` builds the `tasks` and `grader` of a `hangar.experiment/v1` spec (hangar
-`src/hangar/experiments.py`, `Task` and `Grader`). Hangar runs one grader per experiment. So every task's tests go
+`src/hangar/experiments.py`, `Task` and `Grader`). hangar runs one grader per experiment. So every task's tests go
 into its `Grader.files` as `<id>/tests/...`, and the command is
 `cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && <command>`. Each trial runs its own task's command from that task's
 pristine copy.
 
-Hangar's limits are checked before submitting. Task ids match `^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$` (a longer Harbor
+hangar's limits are checked before submitting. Task ids match `^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$` (a longer Harbor
 id gets a stable short form). Instructions run up to 64,000 characters. Grader files are at most 64 and 1 MB in all
 (`MAX_GRADER_FILES`), text only; a reference patch is up to 1 MB. Tasks whose grader commands differ go in separate
 experiments.
 
-Hangar runs the grader in a sealed sandbox (no credential, egress `none`), writes the files outside the repo and adds
+hangar runs the grader in a sealed sandbox (no credential, egress `none`), writes the files outside the repo and adds
 a canary comment to each. A `test.sh` command is recorded as `trust: low`, since hangar can only vouch for its own
 `hangar-grade pytest` runner. The safe pattern below is what keeps such a grade honest.
 
@@ -115,7 +115,7 @@ A trial's patch can try to forge its grade. It can write the reward file, or add
    richer detail goes to stdout and `$HANGAR_GRADE_OUT`. Exit non-zero when the reward is 0, since hangar reads the
    exit code.
 
-Code under test still runs inside the test process and can lie through it. Hangar's base-must-fail check (a
+Code under test still runs inside the test process and can lie through it. hangar's base-must-fail check (a
 `solution/reference.patch` must pass, the base must fail), canaries and `touched_tests` are the detectors for that.
 
 ## The semver smoke task
@@ -128,7 +128,7 @@ matching. It has 116 hidden unittest cases in 13 categories, generated from node
 writes `reward.json` and prints `RESULT {passed, total, by_category, failed}`. `solution/semver.py` is a reference
 that scores 116 of 116. Every hangar trial so far scored 116 of 116, so it tests the plumbing, not the agents.
 
-To run it on hangar, set `[flightdeck.source] repo` and `base_sha` to an empty repository's first commit. Hangar
+To run it on hangar, set `[flightdeck.source] repo` and `base_sha` to an empty repository's first commit. hangar
 applies and grades a trial's patch only on a repo.
 
 ## The csv-validator fixture

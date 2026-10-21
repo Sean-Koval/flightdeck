@@ -16,6 +16,7 @@ import typer
 
 from flightdeck import judges
 from flightdeck.dataplane.flatten import SECRET
+from flightdeck.ported.tails import label
 from flightdeck.stats import compare as stats
 from flightdeck.stats.compare import Comparison, compare, exclusion, exclusions, fmt, load_trials, plain, ratio, render
 
@@ -96,7 +97,7 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "candidate
     tasks, about = {t["task_id"] for t in trials}, {t["variant"]: t["variant_description"] for t in trials}
     arms = " against ".join(f"{x} ({about[x]})" if about.get(x) else x for x in (b, a))  # as hangar describes them
     out = [marker(exp_id), f"## {head}", "",
-           f"`{exp_id}`: {arms}, {len(tasks)} tasks, {len(trials)} trials, seed {seed}. The arms differ in "
+           f"{label(exp_id)}: {arms}, {len(tasks)} tasks, {len(trials)} trials, seed {seed}. The arms differ in "
            + (", ".join(differ) if differ else "no recorded pin") + " (pins at the end)."]
     if rule:
         metric = rule.get("metric", "resolved")
@@ -201,7 +202,7 @@ app = typer.Typer(help="The verdict as a report, posted on the pull request.", n
 POST = typer.Option(None, "--post", help="owner/repo#n: post as a PR or issue comment (token: GITHUB_TOKEN).")
 DECISION = typer.Option(None, help="Pre-registered decision.yaml; the verdict needs it.")
 DETAILS = typer.Option(False, help="Per-task rows and trial links (keep off for public repos).")
-HANGAR = typer.Option(None, envvar="HANGAR_URL", help="Hangar base URL for trial links.")
+HANGAR = typer.Option(None, envvar="HANGAR_URL", help="hangar base URL for trial links.")
 OUT = typer.Option(None, help="Also write the report here.")
 FULL = typer.Option(None, "--full-url", help="Where the full report is (https), linked when a comment is clipped.")
 GIST = typer.Option(False, "--gist", help="Link a clipped comment to a secret gist of the full report.")
