@@ -37,6 +37,10 @@ the `flightdeck.parquet/v1` column tables in `docs/contracts.md` (from `src/flig
 changing a command, an option, a help text or a column, run `uv run python scripts/docs_reference.py` and commit the
 result; `tests/test_docs_reference.py` fails when they are stale.
 
+Docs follow the suite's editorial rule: a page answers one question, paragraphs are at most 60 words, sentences at most
+25 and pages at most 700. `tests/test_editorial.py` ratchets it against `tests/editorial_baseline.json`: no page may get
+longer, and no new page may go over. `python tests/test_editorial.py` prints the report.
+
 ## The line budget
 
 v0 is deliberately small: a fixed number of non-blank, non-comment lines under `src/flightdeck/` (`LIMIT` in the script).
@@ -63,7 +67,7 @@ before anything else, a UI included, gets built.
 
 ## Running the smoke tasks locally
 
-The local backend runs tasks in Docker on your machine, with no hangar and no model calls ([docs/runners.md](docs/runners.md#local)).
+The local backend runs tasks in Docker on your machine, with no hangar and no model calls ([docs/local.md](docs/local.md)).
 With Docker running:
 
 ```sh

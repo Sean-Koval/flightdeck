@@ -99,8 +99,8 @@ a canary comment to each. A `test.sh` command is recorded as `trust: low`, since
 
 ## Writing a safe test.sh
 
-A trial's patch can try to forge its grade. It can write the reward file, or add a `conftest.py`, pytest settings,
-`sitecustomize.py` or a `.pth` file that runs before the hidden tests (hangar spec 0014 §6). The template does this:
+A trial's patch can try to forge its grade. It can write the reward file. Or it adds a `conftest.py`, pytest settings,
+`sitecustomize.py` or a `.pth` file, run before the hidden tests (hangar spec 0014 §6). The template does this:
 
 1. Find things by environment. The agent's tree is `$FLIGHTDECK_WORKDIR`, else `$HANGAR_REPO`, else the current
    directory (Harbor). The hidden tests are the script's own directory. The reward goes to
@@ -146,7 +146,7 @@ tests, commit. `solve.sh` does the same for Harbor's oracle.
 
 It lives under `tasks/fixtures/`, not `tasks/smoke/`, so the hangar smoke suite doesn't grow. It needs
 `[flightdeck.source] repo` and `base_sha` before it can run on hangar. `tasks/fixtures/local.yaml` runs it and the
-semver task on the [local backend](runners.md#local).
+semver task on the [local backend](local.md).
 
 It was converted by hand; `flightdeck task import-aidlc` (below) now does the same for any ai-dlc suite.
 

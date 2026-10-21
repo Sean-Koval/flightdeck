@@ -1,4 +1,4 @@
-"""The trial-result cache and the drift sentinel (docs/runners.md#cache).
+"""The trial-result cache and the drift sentinel (docs/cache.md).
 
 Tokens cost far more than compute, so a trial whose inputs haven't changed is reused, not re-run. A stored trial
 stands in for a planned one when its key matches: the task (`task_digest`, which covers the grader's tests and

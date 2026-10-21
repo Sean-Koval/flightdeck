@@ -1,4 +1,4 @@
-"""`--backend local`: trials in local Docker containers, for fixtures and CI only (docs/runners.md#local).
+"""`--backend local`: trials in local Docker containers, for fixtures and CI only (docs/local.md).
 
 ai-dlc's attempt runner (`flightdeck.ported.aidlc`) does the isolation. This module maps flightdeck's model onto it: a
 task directory in (its environment built to an image id, its tests kept on the controller and run on the collected

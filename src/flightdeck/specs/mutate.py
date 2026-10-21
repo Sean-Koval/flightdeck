@@ -1,4 +1,4 @@
-"""`flightdeck mutate plan|run|score`: mutation scoring of behavior suites (docs/behavior-specs.md#mutation-scoring).
+"""`flightdeck mutate plan|run|score`: mutation scoring of behavior suites (docs/mutation-scoring.md).
 
 A suite that still passes when part of the harness is removed is decoration. `plan` derives mutants from a base
 variant's hangar overlay (drop a skill, drop an instructions block, auto approvals, plus a no-op control), `run`

@@ -1,4 +1,4 @@
-"""The trial-result cache and the drift sentinel (#24, docs/runners.md#cache)."""
+"""The trial-result cache and the drift sentinel (#24, docs/cache.md)."""
 
 from __future__ import annotations
 

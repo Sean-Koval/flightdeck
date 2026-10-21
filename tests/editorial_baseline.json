@@ -1,0 +1,66 @@
+{
+  "README.md": {
+    "long_paragraphs": 1,
+    "long_sentences": 1
+  },
+  "docs/concepts.md": {
+    "words": 1210
+  },
+  "docs/contracts.md": {
+    "long_paragraphs": 1,
+    "long_sentences": 5,
+    "words": 1492
+  },
+  "docs/data-plane.md": {
+    "words": 1690
+  },
+  "docs/decisions/0001-boundary-with-hangar.md": {
+    "long_paragraphs": 2,
+    "long_sentences": 1
+  },
+  "docs/decisions/0002-public-code-private-data.md": {
+    "long_paragraphs": 1
+  },
+  "docs/decisions/0003-line-budget.md": {
+    "long_paragraphs": 1,
+    "long_sentences": 3
+  },
+  "docs/decisions/0004-local-runner-budget.md": {
+    "long_paragraphs": 1,
+    "long_sentences": 5
+  },
+  "docs/decisions/0005-post-v0-budget.md": {
+    "long_sentences": 2,
+    "words": 980
+  },
+  "docs/decisions/0006-holdout-custody.md": {
+    "long_sentences": 3
+  },
+  "docs/holdouts.md": {
+    "long_sentences": 1
+  },
+  "docs/index.md": {
+    "long_paragraphs": 1,
+    "long_sentences": 1
+  },
+  "docs/judges.md": {
+    "long_sentences": 1
+  },
+  "docs/knowledge-evals.md": {
+    "long_sentences": 1
+  },
+  "docs/metrics.md": {
+    "long_sentences": 1,
+    "words": 923
+  },
+  "docs/reports.md": {
+    "long_sentences": 1,
+    "words": 752
+  },
+  "docs/statistics.md": {
+    "words": 1356
+  },
+  "docs/tasks.md": {
+    "words": 1302
+  }
+}
