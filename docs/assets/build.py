@@ -268,7 +268,8 @@ def comment_page(report: str, theme: str, top: bool, phone: bool = False) -> str
 # `radius-control`, and flightdeck's box is marked by its place and a `line-strong` edge, never by the brand yellow.
 V = {k: f"var(--af-{t}, {NIGHT[t]})" for k, t in {
     "canvas": "canvas", "raised": "raised", "surface": "surface", "line": "line-strong", "fg": "fg",
-    "muted": "fg-muted", "subtle": "fg-subtle", "rule": "line"}.items()}
+    "muted": "fg-muted", "subtle": "fg-subtle", "rule": "line", "hangar": "product-hangar",
+    "flightdeck": "product-flightdeck", "tower": "product-tower"}.items()}
 R_CARD, R_CONTROL = (NIGHT[r].removesuffix("px") for r in ("radius-card", "radius-control"))
 SANS, HEAD = "'Red Hat Text','Helvetica Neue',Arial,sans-serif", "Archivo,'Helvetica Neue',Arial,sans-serif"
 D_STYLE = (f".fd-d .n{{font:700 15px {HEAD};font-stretch:125%;fill:{V['fg']}}}"
@@ -283,7 +284,7 @@ D_STYLE = (f".fd-d .n{{font:700 15px {HEAD};font-stretch:125%;fill:{V['fg']}}}"
 class Diagram:
     """One SVG: `box` (eyebrow, name, body lines), `step` (a small named row), `edge` (an arrow with a label) and
     `text`, then `svg(label)`; `kind` is `raised` (default), `hub` (a `line-strong` edge: flightdeck) or `plan`
-    (dashed)."""
+    (dashed); `hue` names a product whose 2px marker tops the box."""
 
     def __init__(self, name: str, w: int, h: int, title: str) -> None:
         self.id, self.w, self.h = name, w, h
@@ -291,10 +292,13 @@ class Diagram:
                     f'<text class="l" x="24" y="30">{esc(title)}</text>']
 
     def box(self, x: int, y: int, w: int, h: int, eyebrow: str, name: str, lines: tuple[str, ...] = (),
-            kind: str = "raised") -> None:
+            kind: str = "raised", hue: str = "") -> None:
         stroke = {"hub": f' stroke="{V["line"]}"', "plan": f' stroke="{V["line"]}" '
                   'stroke-dasharray="4 4" fill-opacity="0"'}.get(kind, f' stroke="{V["rule"]}"')
         self.out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{R_CARD}" fill="{V["raised"]}"{stroke}/>')
+        if hue:  # the product's hue: a 2px marker inset from the corners, as agent-factory's diagrams draw it
+            self.out.append(f'<rect x="{x + int(R_CARD)}" y="{y}" width="{w - 2 * int(R_CARD)}" height="2" '
+                            f'fill="{V[hue]}"/>')
         if eyebrow:
             self.out.append(f'<text class="l" x="{x + 14}" y="{y + 22}">{esc(eyebrow)}</text>')
         self.out.append(f'<text class="n" x="{x + 14}" y="{y + (44 if eyebrow else 26)}">{esc(name)}</text>')
@@ -330,7 +334,8 @@ class Diagram:
 
 def suite() -> str:
     """Where flightdeck sits: hangar runs, flightdeck judges, the pull request decides; Tower governs. Three boxes in a
-    row, Tower a one-line strip under them, the roles on the eyebrows (no product hues). Tower is built (policy
+    row, Tower a one-line strip under them, the roles on the eyebrows and each product's hue as a 2px marker
+    (theme-v14: hangar teal, Tower azure). Tower is built (policy
     decisions, approvals, signed receipts); only flightdeck's promotion approval through it is planned, so that edge
     alone is dashed and says so."""
     d = Diagram("suite", 720, 420, "Where flightdeck sits · run / judge / decide")
@@ -338,8 +343,8 @@ def suite() -> str:
     xs = (24, 280, 536)
     d.box(xs[0], y, bw, h, "Run", "hangar", ("runs coding agents", "in sandboxes;", "records manifests,",
                                              "traces and the", "experiment index.", "Runs the trials it",
-                                             "is asked for, pinned;", "does no analysis."))
-    d.box(xs[1], y, bw, h, "Judge", "flightdeck", (), "hub")
+                                             "is asked for, pinned;", "does no analysis."), hue="hangar")
+    d.box(xs[1], y, bw, h, "Judge", "flightdeck", (), "hub", "flightdeck")
     for i, (name, sub) in enumerate((("ingest", "REST or an export"), ("data plane", "Parquet · DuckDB"),
                                      ("stats · check", "paired by task · specs"), ("report", "a pre-registered rule"))):
         d.step(xs[1] + 12, y + 60 + 50 * i, bw - 24, name, sub)
@@ -351,7 +356,7 @@ def suite() -> str:
     d.edge(f"M{xs[0] + bw} {y + 110} H{xs[1] - 4}", "runs, traces,|the index", 232, y + 88)
     d.edge(f"M{xs[1]} {y + 200} H{xs[0] + bw + 4}", "trials to run:|tasks × arms × n", 232, y + 222)
     d.edge(f"M{xs[1] + bw} {y + 110} H{xs[2] - 4}", "the report", 488, y + 100)
-    d.box(24, 358, 672, 40, "", "", ())
+    d.box(24, 358, 672, 40, "", "", (), hue="tower")
     d.text(38, 383, "Govern", "l")
     d.text(96, 383, "Tower: policy decisions, approvals, signed receipts", "s")
     d.edge(f"M{xs[2] + bw // 2} {y + h} V354", "promotion approval · planned", xs[2] + bw // 2 - 8, y + h + 16, "plan",
