@@ -16,6 +16,7 @@ FILES="
 airframe.css            docs/stylesheets/airframe.css
 airframe-docs.css       docs/stylesheets/airframe-docs.css
 airframe-suite.html     overrides/partials/airframe-suite.html
+airframe-footer.html    overrides/partials/airframe-footer.html
 airframe-tokens.json    docs/stylesheets/airframe-tokens.json
 "
 
