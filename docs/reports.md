@@ -1,9 +1,9 @@
 # Reports
 
-A decision about a harness change gets made where the change is reviewed: usually a pull request. Flightdeck's report
+A decision about a harness change gets made where the change is reviewed: usually a pull request. flightdeck's report
 is a markdown comment there, not a dashboard.
 
-Hangar's canary lock-bump PRs are the typical place. Code: `src/flightdeck/report/markdown.py`.
+hangar's canary lock-bump PRs are the typical place. Code: `src/flightdeck/report/markdown.py`.
 
 ```sh
 flightdeck report experiment <id> [options]
@@ -15,30 +15,31 @@ powered off. Its options:
 
 - `--baseline control`, `--candidate candidate`: the two arms. The verdict is always the candidate against the
   baseline.
-- `--decision decision.yaml`: the pre-registered rule. Without it the report says *No verdict*.
+- `--decision decision.yaml`: the pre-registered rule. Without it the report says No verdict.
 - `--out report.md`: write the report as markdown and print the verdict. Without it the report prints as a terminal
   readout.
 - `--post owner/repo#n`: post it as one comment, updated in place (`GITHUB_TOKEN`). `--full-url URL` or `--gist` say
   where the full text lives when a comment is clipped.
 - `--details`: per-task rows and trial links; keep it off for public repositories. `--hangar URL`: the trial links.
 
-<figure class="af-figure" markdown>
-![The whole flightdeck report as a pull-request comment: the verdict as its headline, the experiment and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-dark.png#only-dark){ width=816 height=1638 }
-![The whole flightdeck report as a pull-request comment: the verdict as its headline, the experiment and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-light.png#only-light){ width=816 height=1638 }
-<figcaption>A whole report on a pull request (fixture experiment)</figcaption>
+<figure class="af-figure fd-native" style="--fd-native: 816px" markdown>
+[![The whole flightdeck report as a pull-request comment: the verdict as its headline, experiment FDK-EXP-0531 with its real ID and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-dark.png#only-dark){ width=816 height=1659 }](assets/report-comment-full-dark.png)
+[![The whole flightdeck report as a pull-request comment: the verdict as its headline, experiment FDK-EXP-0531 with its real ID and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-light.png#only-light){ width=816 height=1659 }](assets/report-comment-full-light.png)
+<figcaption>The whole report as a pull-request comment: verdict, Outcome, Process and Cost, behavior specs, exclusions, pins</figcaption>
 </figure>
 
 ## Anatomy
 
 ### 1. The verdict is the headline
 
-In plain words from the pre-registered rule (below), with the numbers beside it: *candidate is non-inferior to control
-on resolved: −2.0 pp (95% CI −4.0 to +1.0, margin −5.0)*, or *No decision: underpowered*. Without a valid
-`decision.yaml` the headline is **No verdict**, and the numbers follow anyway.
+In plain words from the pre-registered rule (below), with the numbers beside it: "candidate is non-inferior to control
+on resolved: −2.0 pp (95% CI −4.0 to +1.0, margin −5.0)", or "No decision: underpowered". Without a valid
+`decision.yaml` the headline is *No verdict*, and the numbers follow anyway.
 
 ### 2. One line on the experiment
 
-The arms, as hangar's experiment described them; how many tasks and trials; the seed; and which pins differ between
+The experiment's tail number first, `FDK-EXP-0531`, with the real ID, which the CLI takes, beside it. Then the arms, as hangar's
+experiment described them; how many tasks and trials; the seed; and which pins differ between
 the arms. Then the rule as pre-registered: metric, direction, margin, minimum tasks.
 
 ### 3. Outcome, Process and Cost
@@ -91,13 +92,13 @@ Choose the margin with the [power table](statistics.md#what-flightdeck-can-tell-
 
 The report prints a verdict only when two things hold. The file is committed as it is, and the last commit that
 changed it is older than the first finished trial. The git commit time counts, not the file's modification time, which any copy or
-checkout resets. An uncommitted or locally edited `decision.yaml` gives **No verdict**.
+checkout resets. An uncommitted or locally edited `decision.yaml` gives *No verdict*.
 
 ### The rule
 
-Fewer than `min_tasks` paired tasks, or an underpowered interval, is *No decision: underpowered*. An interval wholly
-above zero is *better*; wholly above the margin is *non-inferior*; wholly below it is *worse*. Anything else is
-*No decision*.
+Fewer than `min_tasks` paired tasks, or an underpowered interval, is No decision: underpowered. An interval wholly
+above zero is better; wholly above the margin is non-inferior; wholly below it is worse. Anything else is
+No decision.
 
 ## Posting
 

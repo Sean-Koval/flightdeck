@@ -68,7 +68,7 @@ Commit `manifest.json` on its own: adding or changing entries is its own commit.
 When a candidate needs its number, decrypt the set. Submit it as an experiment pinned to the candidate
 (`flightdeck experiment run`, one variant), and collect it into the data plane.
 
-Sealed tasks never run on the local backend; it refuses them. Hangar's grader must run with egress `none`, or a patch
+Sealed tasks never run on the local backend; it refuses them. hangar's grader must run with egress `none`, or a patch
 can exfiltrate the hidden tests.
 
 ### 4. Score once
@@ -110,7 +110,7 @@ gcloud storage cp gs://<team>-flightdeck/sealed/reg-2.tar.age - \
   | age -d -i <(gcloud secrets versions access latest --secret flightdeck-holdout-key) | tar -C holdouts/sealed -x
 ```
 
-Flightdeck holds no key and no credential ([ADR-0001](decisions/0001-boundary-with-hangar.md)); the operator runs
+flightdeck holds no key and no credential ([ADR-0001](decisions/0001-boundary-with-hangar.md)); the operator runs
 these. **Losing the key loses every sealed set.** Keep a second copy of the private key offline, printed, in the team
 safe. Test a restore when a set is sealed.
 

@@ -21,7 +21,7 @@ The 95% interval on resolved is about 19 points wide at 50 tasks × 3 trials, 24
 non-inferiority verdict at a 5-point margin, the whole interval has to sit above −5 points.
 
 When nothing really changed, that happens about 1 time in 5 at 50 tasks: 19% of 20,000 simulated experiments, 16%
-*non-inferior* and 3% *better*. The other 4 times the report says *No decision*. At that size it is the honest answer,
+non-inferior and 3% better. The other 4 times the report says No decision. At that size it is the honest answer,
 not a failure.
 
 Seeing 5-point changes, or a 5-point margin, takes about 400 tasks × 3 trials per arm. That is 2,400 trials, about
@@ -44,7 +44,7 @@ trace-mined skill micro-evals ([#33](https://github.com/Sean-Koval/flightdeck/is
 
 ### Where the numbers come from
 
-Flightdeck's own code, on one model of tasks. Each task's base rate is drawn from Beta(1.2, 1.2), with 3 trials per
+flightdeck's own code, on one model of tasks. Each task's base rate is drawn from Beta(1.2, 1.2), with 3 trials per
 task and arm, and no real change for the interval widths.
 
 `simulate_power` gives detection: a one-sided z test at α = 0.025, the same bar as a 95% interval whose lower bound
@@ -89,7 +89,7 @@ budget can't see them. `tests/test_stats.py::test_power_reproduces_the_r1_table`
 | `cohen_kappa(pairs)` | Cohen's κ for two raters' binary labels | Rater agreement on the knowledge gold set; judges' calibration ([#27](https://github.com/Sean-Koval/flightdeck/issues/27)) |
 
 Every result is an `Interval` carrying its estimate, bounds, level, number of tasks and trials, the seed, and a note.
-Fewer than 10 paired tasks is labelled *underpowered: do not decide on this*. No p-value is reported without its
+Fewer than 10 paired tasks is labelled "underpowered: do not decide on this". No p-value is reported without its
 interval and n.
 
 ## `flightdeck stats compare`
@@ -116,8 +116,8 @@ this many tasks and trials, cached per n.
 First match wins:
 
 - `not finished`: pending or running.
-- `infra_error`: hangar's `outcome_class = infra_error`, or `excluded`. Hangar retries it as the next attempt under
-  the same key. Flightdeck never infers it from a failure reason; a null class is unknown, not infrastructure.
+- `infra_error`: hangar's `outcome_class = infra_error`, or `excluded`. hangar retries it as the next attempt under
+  the same key. flightdeck never infers it from a failure reason; a null class is unknown, not infrastructure.
 - `cancelled`, or `outcome_class = cancelled`.
 - `human`: a person stepped in.
 - `task_invalid`: the task failed hangar's base check.

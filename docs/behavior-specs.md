@@ -143,7 +143,7 @@ optionally for one day.
 Each matcher is written once and yields both a Python predicate and a SQL expression. `tests/test_specs.py` checks
 that both evaluators agree on 50 random synthetic exports for every operator and scope.
 
-### Hangar's reference predicates
+### hangar's reference predicates
 
 [`specs/examples/hangar-reference.yaml`](https://github.com/Sean-Koval/flightdeck/blob/main/specs/examples/hangar-reference.yaml)
 writes hangar's four in this language. They are: tests before the commit, no edits outside `src/`, asked before
@@ -240,7 +240,7 @@ ratio, an offline change-point). It alerts only when the rate rose and the two W
 
 The alert names the `harness_digest` and `knowledge_snapshot` values first seen on the change day and links example
 runs. With `--alerts-repo` it opens or comments on one issue per check, labelled `flightdeck:violation`, through the
-operator's `gh` login. Flightdeck holds no credentials.
+operator's `gh` login. flightdeck holds no credentials.
 
 Violations go to the Friday review. A check that fails on most runs is wrong, or badly compiled into the harness.
 Mute it only by editing the ADR, which needs two people.

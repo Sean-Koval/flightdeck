@@ -150,7 +150,7 @@ def write_unit(tables: Tables, out: str, unit: str) -> dict[str, int]:
 
 app = typer.Typer(help="Pull hangar runs and experiments into the data plane.", no_args_is_help=True)
 OUT = typer.Option(DEFAULT_OUT, "--out", envvar="FLIGHTDECK_DATA_URI", help="Data plane directory.")
-HANGAR = typer.Option(None, "--hangar", envvar="HANGAR_URL", help="Hangar base URL; token from HANGAR_TOKEN.")
+HANGAR = typer.Option(None, "--hangar", envvar="HANGAR_URL", help="hangar base URL; token from HANGAR_TOKEN.")
 TURN = typer.Option(None, help="Only this turn.")
 
 

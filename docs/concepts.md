@@ -5,22 +5,22 @@ a word differently, the entry says so.
 
 | Term | Meaning | Source |
 | --- | --- | --- |
-| **verdict** | What a report says about an experiment, in one of five words: *better*, *non-inferior*, *worse*, *No decision* (the interval spans the margin, or too few paired tasks) or *No verdict* (no valid `decision.yaml`). The report's headline: the candidate arm against the control arm on one metric, with the paired difference and its interval beside it. See [reports.md](reports.md#pre-registration) | flightdeck report |
-| **decision.yaml** | The pre-registered rule a verdict follows: `metric`, `direction`, `margin`, `min_tasks`. Committed before the first trial finishes; the commit time, not the file's, is what counts. Written, edited or committed later: *No verdict* | [reports.md](reports.md#pre-registration) |
+| **verdict** | What a report says about an experiment, in one of five words: "better", "non-inferior", "worse", "No decision" (the interval spans the margin, or too few paired tasks) or "No verdict" (no valid `decision.yaml`). The report's headline: the candidate arm against the control arm on one metric, with the paired difference and its interval beside it. See [reports.md](reports.md#pre-registration) | flightdeck report |
+| **decision.yaml** | The pre-registered rule a verdict follows: `metric`, `direction`, `margin`, `min_tasks`. Committed before the first trial finishes; the commit time, not the file's, is what counts. Written, edited or committed later: No verdict | [reports.md](reports.md#pre-registration) |
 | **variant** / **arm** | One configuration under comparison in an experiment (a harness, model, skill set or instruction). Every trial belongs to one. A comparison has two arms | `hangar.experiment/v1` |
 | **control** / **candidate** | The two default arms: *control* is what runs today, *candidate* is the change under judgement. The verdict is always *candidate against control* (`--baseline` and `--candidate` rename them); the report names each arm as hangar's experiment described it | `flightdeck stats compare` |
-| **margin** | The pre-registered non-inferiority margin, in the metric's units (a proportion for resolved: `-0.05` is 5 points worse). An interval wholly above it is *non-inferior*; wholly below it is *worse* | `decision.yaml` |
+| **margin** | The pre-registered non-inferiority margin, in the metric's units (a proportion for resolved: `-0.05` is 5 points worse). An interval wholly above it is non-inferior; wholly below it is worse | `decision.yaml` |
 | **pp** | Percentage points: the difference between two rates. Resolved going from 40% to 55% is +15 pp (not +37%) | reports, `stats compare` |
-| **CI** | The 95% confidence interval around a paired difference, from a task bootstrap. A verdict reads the interval, never the point estimate alone: *better* means the whole interval is above zero | [statistics.md](statistics.md) |
-| **runtime** | The agent CLI or loop (Claude Code, Codex, pi, Antigravity) at a version. Hangar calls this the *harness* in its manifest (`harness.name`, `harness.version`) | hangar `harnesses.lock.yaml`, manifest `harness` |
+| **CI** | The 95% confidence interval around a paired difference, from a task bootstrap. A verdict reads the interval, never the point estimate alone: "better" means the whole interval is above zero | [statistics.md](statistics.md) |
+| **runtime** | The agent CLI or loop (Claude Code, Codex, pi, Antigravity) at a version. hangar calls this the *harness* in its manifest (`harness.name`, `harness.version`) | hangar `harnesses.lock.yaml`, manifest `harness` |
 | **harness** | A git directory of native files (`AGENTS.md`, skills, one plugin, per-runtime fragments) plus a `harness.lock` pinning each component's digest, the CLI version and the concrete model. Identity: `harness_digest = sha256(canonical lock)`. Not portable across runtimes; its components are. Note: hangar's manifest `harness` section names the runtime, and its `config_digest` mixes harness and environment | team plan; hangar manifest |
 | **environment** | Image, services, egress, resources and credential policy a sandbox gets (`environment_digest`). Not part of the harness | hangar manifest `environment`, `egress`, `resources` |
 | **session** | A hangar conversation over time, with its sandbox and checkpoints | hangar `docs/sessions.md` |
-| **turn** / **run** | One agent invocation: `hangar.run.id`, one `invoke_agent` span with `hangar.kind = turn`. Flightdeck's `runs` table has one row per turn or per trial | `hangar.trace/v1` |
+| **turn** / **run** | One agent invocation: `hangar.run.id`, one `invoke_agent` span with `hangar.kind = turn`. flightdeck's `runs` table has one row per turn or per trial | `hangar.trace/v1` |
 | **job** | A hangar unit of delivered work: turns, verify, git, PR. Its `source` says where it came from (api, jira, github, ..., experiment) | hangar jobs |
 | **work item** | The ticket or issue a job serves (Jira, GitHub) | |
 | **trial** | One job run for `(task, variant, n)` under pinned conditions, keyed `<task>/<variant>/<n>` | `hangar.experiment/v1` |
-| **experiment** | A batch of trials across tasks and variants. Hangar runs it; flightdeck designs and judges it | hangar spec 0014 §4 |
+| **experiment** | A batch of trials across tasks and variants. hangar runs it; flightdeck designs and judges it | hangar spec 0014 §4 |
 | **pin set** | The immutable `{harness_digest, environment_digest, model_id, base_sha, grader_digest, knowledge_snapshot?}` a trial runs against | team plan |
 | **task** | A Harbor task directory: `task.toml` (flightdeck's keys under `[flightdeck]`), `instruction.md`, `environment/`, hidden `tests/`, optional `solution/`. Identity: `task_digest`. See [tasks.md](tasks.md) | hangar spec 0008; Harbor |
 | **suite** | A versioned list of tasks and specs | |

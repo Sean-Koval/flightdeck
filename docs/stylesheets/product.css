@@ -1,1 +1,17 @@
 :root, [data-md-color-scheme] { --af-product: var(--af-product-flightdeck); }
+
+/* A <picture> swaps in a phone crop under 600 px (the terminal's key lines, the comment's top) so text stays legible;
+   it takes the hero's and the figure's image rules. */
+.af-hero__visual > picture, .md-typeset figure.af-figure > picture { display: block; }
+.af-hero__visual > picture > img { display: block; width: 100%; height: auto; border-radius: var(--af-radius-card); box-shadow: 0 0 0 1px var(--af-line); }
+.md-typeset figure.af-figure > picture > img { width: 100%; height: auto; }  /* display stays the scheme's (#only-dark) */
+/* A diagram inlined with --8<-- lands in a paragraph; it fills the column like a figure's image. */
+.md-typeset figure.af-figure > p > svg { width: 100%; height: auto; display: block; }
+/* A capture shown at its native size, never scaled up: the figure is as wide as the capture (`--fd-native`, set on
+   the figure; the PR comment is GitHub's 816 px comment) and the column, whichever is narrower. */
+.md-typeset figure.af-figure.fd-native { max-width: min(100%, var(--fd-native, 100%)); }
+.md-typeset figure.af-figure.fd-native > a { display: block; }
+.md-typeset figure.af-figure.fd-native > a > img { width: 100%; height: auto; display: block; }
+@media (forced-colors: active) {
+  .af-hero__visual > picture > img { box-shadow: none; outline: 1px solid CanvasText; }
+}

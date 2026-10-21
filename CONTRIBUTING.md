@@ -58,7 +58,7 @@ flightdeck counts. If a change needs more room, cut something or argue for a hig
 | `flightdeck.runners` | The experiment submission client: suite plans to `hangar.experiment/v1` specs, a cost gate, `flightdeck experiment run\|status\|collect`. See [Running experiments](docs/runners.md) |
 | `flightdeck.ported` | Code moved in and kept close to its source, outside the line budget: hangar's model-concreteness rule and trace classifier; ai-dlc's local runner, evaluation contracts and suite checks |
 
-v0 is pre-release. Flightdeck has to change one real team decision ([#20](https://github.com/Sean-Koval/flightdeck/issues/20))
+v0 is pre-release. flightdeck has to change one real team decision ([#20](https://github.com/Sean-Koval/flightdeck/issues/20))
 before anything else, a UI included, gets built.
 
 ## Running the smoke tasks locally
