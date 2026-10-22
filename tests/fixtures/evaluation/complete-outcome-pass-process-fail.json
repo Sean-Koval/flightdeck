@@ -1,0 +1,145 @@
+{
+  "schema": "flightdeck.evaluation/v1",
+  "schema_revision": 1,
+  "evaluation_id": "complete-outcome-pass-process-fail",
+  "subject": {
+    "run_id": "synthetic-run-1",
+    "source": "local",
+    "scope": "run",
+    "attempt": 1
+  },
+  "input": {
+    "artifact": {
+      "locator": "artifact:synthetic/input.json",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "format": "hangar.trace/v1",
+    "completeness": {
+      "source": "complete",
+      "input": "complete",
+      "redaction": "none"
+    }
+  },
+  "requested_evaluator": {
+    "id": "synthetic.process_judge",
+    "version": "1.0.0",
+    "kind": "process_judge",
+    "implementation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "config_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "model_id": "synthetic-model-1"
+  },
+  "actual_evaluator": {
+    "id": "synthetic.process_judge",
+    "version": "1.0.0",
+    "kind": "process_judge",
+    "implementation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "config_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "model_id": "synthetic-model-1"
+  },
+  "specification": {
+    "id": "synthetic.rubric",
+    "version": "1.0.0",
+    "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "digest_method": "artifact_bytes_sha256"
+  },
+  "execution": {
+    "status": "completed"
+  },
+  "coverage": {
+    "scope": "run",
+    "selection_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "eligible_steps": 2,
+    "attempted_steps": 2,
+    "determinate_steps": 2,
+    "status": "complete"
+  },
+  "assessments": {
+    "outcome": {
+      "status": "pass",
+      "evidence": [
+        {
+          "locator": "artifact:synthetic/evidence.json",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "score": {
+        "value": 1,
+        "metric": {
+          "id": "synthetic.binary",
+          "scale": "binary",
+          "unit": "indicator",
+          "direction": "higher"
+        }
+      }
+    },
+    "process": {
+      "status": "fail",
+      "evidence": [
+        {
+          "locator": "artifact:synthetic/evidence.json",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "score": {
+        "value": 0,
+        "metric": {
+          "id": "synthetic.binary",
+          "scale": "binary",
+          "unit": "indicator",
+          "direction": "higher"
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "step_id": "step-1",
+      "assessment": {
+        "status": "pass",
+        "evidence": [
+          {
+            "locator": "artifact:synthetic/step-1.json",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "score": {
+          "value": 1,
+          "metric": {
+            "id": "synthetic.binary",
+            "scale": "binary",
+            "unit": "indicator",
+            "direction": "higher"
+          }
+        }
+      }
+    },
+    {
+      "step_id": "step-2",
+      "assessment": {
+        "status": "fail",
+        "evidence": [
+          {
+            "locator": "artifact:synthetic/step-2.json",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "score": {
+          "value": 0,
+          "metric": {
+            "id": "synthetic.binary",
+            "scale": "binary",
+            "unit": "indicator",
+            "direction": "higher"
+          }
+        }
+      }
+    }
+  ],
+  "calibration": {
+    "locator": "artifact:synthetic/calibration.json",
+    "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "extensions": {
+    "example.note": "Synthetic structural example, not a runtime evaluation."
+  }
+}

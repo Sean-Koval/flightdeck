@@ -1,0 +1,51 @@
+{
+  "schema": "flightdeck.evaluation/v1",
+  "schema_revision": 1,
+  "evaluation_id": "infrastructure-error-no-score",
+  "subject": {
+    "run_id": "synthetic-run-1",
+    "source": "local",
+    "scope": "run",
+    "attempt": 1
+  },
+  "input": null,
+  "requested_evaluator": {
+    "id": "synthetic.process_judge",
+    "version": "1.0.0",
+    "kind": "process_judge",
+    "implementation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "config_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "model_id": "synthetic-model-1"
+  },
+  "actual_evaluator": null,
+  "specification": null,
+  "execution": {
+    "status": "error",
+    "reason": "infrastructure_failure"
+  },
+  "coverage": {
+    "scope": "run",
+    "selection_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "eligible_steps": null,
+    "attempted_steps": 0,
+    "determinate_steps": 0,
+    "status": "unknown"
+  },
+  "assessments": {
+    "outcome": {
+      "status": "error",
+      "reason": "infrastructure_failure",
+      "evidence": []
+    },
+    "process": {
+      "status": "error",
+      "reason": "infrastructure_failure",
+      "evidence": []
+    }
+  },
+  "steps": [],
+  "calibration": null,
+  "extensions": {
+    "example.note": "Synthetic structural example, not a runtime evaluation."
+  }
+}

@@ -1,0 +1,1070 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:flightdeck:evaluation:v1:revision:1",
+  "title": "Flightdeck evaluation evidence artifact, v1 revision 1",
+  "description": "Structural artifact only, not a runtime ingestion API. Does not establish evidence authenticity, cross-field arithmetic, calibration, privacy, training eligibility, or promotion authorization.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_revision",
+    "evaluation_id",
+    "subject",
+    "input",
+    "requested_evaluator",
+    "actual_evaluator",
+    "specification",
+    "execution",
+    "coverage",
+    "assessments",
+    "steps",
+    "calibration"
+  ],
+  "properties": {
+    "schema": {
+      "const": "flightdeck.evaluation/v1"
+    },
+    "schema_revision": {
+      "const": 1
+    },
+    "evaluation_id": {
+      "$ref": "#/$defs/token"
+    },
+    "subject": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "source",
+        "scope",
+        "attempt"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "source": {
+          "enum": [
+            "job",
+            "session",
+            "experiment",
+            "shadow",
+            "local"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "run",
+            "turn",
+            "job",
+            "session"
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "input": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/input"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requested_evaluator": {
+      "$ref": "#/$defs/evaluator"
+    },
+    "actual_evaluator": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/evaluator"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "specification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/specification"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "execution": {
+      "$ref": "#/$defs/execution"
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
+    },
+    "assessments": {
+      "type": "object",
+      "required": [
+        "outcome",
+        "process"
+      ],
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/assessment"
+        },
+        "process": {
+          "$ref": "#/$defs/assessment"
+        }
+      },
+      "additionalProperties": false
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      },
+      "uniqueItems": true
+    },
+    "calibration": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/artifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*\\.[A-Za-z0-9][A-Za-z0-9._-]*$",
+        "not": {
+          "pattern": "\\s"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": {
+              "input": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "input"
+            ]
+          },
+          {
+            "properties": {
+              "actual_evaluator": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "actual_evaluator"
+            ]
+          },
+          {
+            "properties": {
+              "specification": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "specification"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/nondeterminate_result"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "status": {
+                "const": "error"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/nondeterminate_result"
+          },
+          {
+            "properties": {
+              "coverage": {
+                "properties": {
+                  "determinate_steps": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "completed",
+                  "fallback"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actual_evaluator": {
+            "$ref": "#/$defs/evaluator"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "partial",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "coverage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "assessments": {
+            "properties": {
+              "process": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "fail",
+                      "abstain",
+                      "error",
+                      "not_applicable"
+                    ]
+                  }
+                },
+                "not": {
+                  "required": [
+                    "score"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "coverage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "completeness": {
+                "properties": {
+                  "input": {
+                    "const": "complete"
+                  },
+                  "redaction": {
+                    "const": "none"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "coverage": {
+                  "properties": {
+                    "scope": {
+                      "const": "run"
+                    }
+                  },
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "input": {
+                  "properties": {
+                    "completeness": {
+                      "properties": {
+                        "source": {
+                          "const": "complete"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "status": {
+                "const": "not_applicable"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "coverage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "steps": {
+            "maxItems": 0
+          },
+          "assessments": {
+            "properties": {
+              "process": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "not_applicable"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "token": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+      "not": {
+        "pattern": "\\s"
+      }
+    },
+    "nonempty": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "not": {
+        "pattern": "\\s"
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "required": [
+        "locator",
+        "digest"
+      ],
+      "properties": {
+        "locator": {
+          "type": "string",
+          "pattern": "^artifact:[A-Za-z0-9][A-Za-z0-9._/-]*$",
+          "not": {
+            "pattern": "\\s"
+          }
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "selector": {
+          "type": "object",
+          "required": [],
+          "properties": {
+            "trace_id": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "span_id": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "step_id": {
+              "$ref": "#/$defs/nonempty"
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "artifact",
+        "format",
+        "completeness"
+      ],
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/artifact"
+        },
+        "format": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "completeness": {
+          "type": "object",
+          "required": [
+            "source",
+            "input",
+            "redaction"
+          ],
+          "properties": {
+            "source": {
+              "enum": [
+                "complete",
+                "partial",
+                "unknown"
+              ]
+            },
+            "input": {
+              "enum": [
+                "complete",
+                "partial",
+                "unknown"
+              ]
+            },
+            "redaction": {
+              "enum": [
+                "none",
+                "present",
+                "unknown"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluator": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "implementation_digest",
+        "config_digest"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/token"
+        },
+        "version": {
+          "$ref": "#/$defs/token"
+        },
+        "kind": {
+          "$ref": "#/$defs/token"
+        },
+        "implementation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "config_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "model_id": {
+          "$ref": "#/$defs/nonempty"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "process_judge",
+                  "learned_policy"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "model_id"
+            ]
+          }
+        }
+      ]
+    },
+    "specification": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "digest",
+        "digest_method"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/token"
+        },
+        "version": {
+          "$ref": "#/$defs/token"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "digest_method": {
+          "const": "artifact_bytes_sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "fallback",
+            "error"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/token"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "completed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "reason"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "scope",
+        "selection_digest",
+        "eligible_steps",
+        "attempted_steps",
+        "determinate_steps",
+        "status"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "run",
+            "selection"
+          ]
+        },
+        "selection_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "eligible_steps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "attempted_steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "determinate_steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "unknown",
+            "not_applicable"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "complete",
+                  "partial"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "eligible_steps": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "eligible_steps": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "not_applicable"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "eligible_steps": {
+                "const": 0
+              },
+              "attempted_steps": {
+                "const": 0
+              },
+              "determinate_steps": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ],
+      "description": "Complete means determinate_steps == attempted_steps == eligible_steps > 0 and exactly one determinate entry per eligible selected step. Cross-field equality, membership, and actual completeness require a future semantic validator and are NOT guaranteed by this schema."
+    },
+    "assessment": {
+      "type": "object",
+      "required": [
+        "status",
+        "evidence"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "scored",
+            "abstain",
+            "error",
+            "not_applicable"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "score": {
+          "$ref": "#/$defs/score"
+        },
+        "reason": {
+          "$ref": "#/$defs/token"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "scored"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "scored"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "score"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "abstain",
+                  "error",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ],
+            "not": {
+              "required": [
+                "score"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "pass"
+              },
+              "score": {
+                "properties": {
+                  "metric": {
+                    "properties": {
+                      "scale": {
+                        "const": "binary"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "status",
+              "score"
+            ]
+          },
+          "then": {
+            "properties": {
+              "score": {
+                "properties": {
+                  "value": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "fail"
+              },
+              "score": {
+                "properties": {
+                  "metric": {
+                    "properties": {
+                      "scale": {
+                        "const": "binary"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "status",
+              "score"
+            ]
+          },
+          "then": {
+            "properties": {
+              "score": {
+                "properties": {
+                  "value": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "score": {
+      "type": "object",
+      "required": [
+        "value",
+        "metric"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "metric": {
+          "type": "object",
+          "required": [
+            "id",
+            "scale",
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/token"
+            },
+            "scale": {
+              "enum": [
+                "binary",
+                "ordinal",
+                "continuous"
+              ]
+            },
+            "unit": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "direction": {
+              "enum": [
+                "higher",
+                "lower",
+                "none"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "metric": {
+                "properties": {
+                  "scale": {
+                    "const": "binary"
+                  }
+                },
+                "required": [
+                  "scale"
+                ]
+              }
+            },
+            "required": [
+              "metric"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "enum": [
+                  0,
+                  1
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "required": [
+        "step_id",
+        "assessment"
+      ],
+      "properties": {
+        "step_id": {
+          "$ref": "#/$defs/token"
+        },
+        "assessment": {
+          "$ref": "#/$defs/assessment"
+        }
+      },
+      "additionalProperties": false
+    },
+    "nondeterminate_result": {
+      "properties": {
+        "assessments": {
+          "properties": {
+            "outcome": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "abstain",
+                    "error",
+                    "not_applicable"
+                  ]
+                }
+              }
+            },
+            "process": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "abstain",
+                    "error",
+                    "not_applicable"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "steps": {
+          "items": {
+            "properties": {
+              "assessment": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "abstain",
+                      "error",
+                      "not_applicable"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
