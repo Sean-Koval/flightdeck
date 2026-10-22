@@ -47,8 +47,8 @@ trace-mined skill micro-evals ([#33](https://github.com/Sean-Koval/flightdeck/is
 flightdeck's own code, on one model of tasks. Each task's base rate is drawn from Beta(1.2, 1.2), with 3 trials per
 task and arm, and no real change for the interval widths.
 
-`simulate_power` gives detection: a one-sided z test at α = 0.025, the same bar as a 95% interval whose lower bound
-is above zero, at 80% power. `paired_bootstrap` with the report's verdict rule gives the intervals.
+`simulate_power` gives detection at 80% power: a one-sided z test at α = 0.025. Its bar is a 95% interval
+above zero. `paired_bootstrap` with the report's verdict rule gives the intervals.
 
 Every `stats compare` prints the smallest change its own experiment can detect.
 
@@ -101,8 +101,8 @@ flightdeck stats compare <experiment> [--baseline control] [--candidate candidat
 
 Code: `src/flightdeck/stats/compare.py`.
 
-Per variant it prints the trials and the resolve rate with its Wilson interval (or the metric's mean), and dollars
-per resolved task with its task-bootstrap interval. Then the paired difference, candidate minus baseline, with its 95%
+Per variant it prints the trials and the resolve rate with its Wilson interval (or the metric's mean). Dollars
+per resolved task follow, with their task-bootstrap interval. Then the paired difference, candidate minus baseline, with its 95%
 task-bootstrap interval and the numbers of tasks and trials.
 
 After that: concordant and discordant tasks (resolved), a power line, the resolved definition used, the exclusions
@@ -136,8 +136,8 @@ it used.
 
 ### Exclusions
 
-Always listed with counts: `infra_error`, cancelled trials, drift (a trial whose configuration differs from its
-variant's), truncated traces (process metrics only), tainted runs (promotion only), unknown cost ($ metrics only).
+Always listed with counts: `infra_error`, cancelled trials, drift (a trial configured unlike its variant) and
+truncated traces (process metrics only). Then tainted runs (promotion only) and unknown cost ($ metrics only).
 
 ### Saturated tasks
 
@@ -149,12 +149,12 @@ Every resampling takes one, and reports print it.
 
 ### Reused trials
 
-Trials from the [trial cache](runners.md#cache) count like new ones and are deduplicated by `run_id`, so a trial never
+Trials from the [trial cache](cache.md) count like new ones and are deduplicated by `run_id`, so a trial never
 counts twice in one analysis. The comparison says how many were reused and how old they are.
 
 ## Mutation scores
 
-`flightdeck mutate score` ([behavior specs](behavior-specs.md#mutation-scoring)) counts a mutant **killed** when
+`flightdeck mutate score` ([mutation scoring](mutation-scoring.md)) counts a mutant **killed** when
 either:
 
 - **the outcome moved**: the paired task bootstrap of resolved (mutant − base, tasks resampled, seed 0) has a 95%

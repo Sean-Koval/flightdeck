@@ -30,11 +30,11 @@ GUIDES = {"compact": ("Data plane: compactor", "data-plane.md#compactor"),
           "ingest": ("Data plane: ingest", "data-plane.md#ingest"),
           "stats": ("Statistics", "statistics.md#flightdeck-stats-compare"), "report": ("Reports", "reports.md"),
           "spec": ("Behavior specs", "behavior-specs.md"),
-          "check": ("Behavior specs: nightly runner", "behavior-specs.md#adr-checks-and-the-nightly-runner"),
-          "mutate": ("Behavior specs: mutation scoring", "behavior-specs.md#mutation-scoring"),
+          "check": ("ADR checks and the nightly runner", "adr-checks.md"),
+          "mutate": ("Mutation scoring", "mutation-scoring.md"),
           "task": ("Tasks", "tasks.md"), "holdout": ("Holdouts", "holdouts.md"),
           "knowledge": ("Knowledge evals", "knowledge-evals.md"), "experiment": ("Running experiments", "runners.md"),
-          "cache": ("Running experiments: cache", "runners.md#cache"), "metrics": ("Weekly metrics", "metrics.md"),
+          "cache": ("The trial cache", "cache.md"), "metrics": ("Weekly metrics", "metrics.md"),
           "judge": ("Judges", "judges.md")}
 
 

@@ -30,7 +30,7 @@ The controller stays on the host. The attempt's project lives in a per-attempt v
 so a separate collector can read it after the agent's container is stopped, and nothing
 from the host is mounted into the attempt. There is no host fallback.
 
-Changes from ai-dlc, for flightdeck's task model (docs/runners.md#local):
+Changes from ai-dlc, for flightdeck's task model (docs/local.md):
 - The project is the task image's working directory (`planned["workdir"]`): with no host fixture the stager copies it
   from the image into the volume (dropping any `.git`), and the volume is mounted at that path in the agent's
   container. A host fixture directory is still staged as before. The collector reads the volume root.

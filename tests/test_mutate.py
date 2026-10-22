@@ -1,4 +1,4 @@
-"""Mutation scoring (#16, docs/behavior-specs.md#mutation-scoring): plan mutants, score kills, report survivors."""
+"""Mutation scoring (#16, docs/mutation-scoring.md): plan mutants, score kills, report survivors."""
 
 from __future__ import annotations
 

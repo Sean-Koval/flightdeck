@@ -57,7 +57,7 @@ jobs:
           python-version: "3.12"
       - run: python scripts/loc_budget.py
 
-  # The local backend (docs/runners.md#local) on the semver smoke task and ai-dlc's csv-validator fixture with the
+  # The local backend (docs/local.md) on the semver smoke task and ai-dlc's csv-validator fixture with the
   # deterministic driver: real Docker, no model calls, no secrets. The trials' evidence is kept as an artifact.
   local-runner:
     runs-on: ubuntu-24.04

@@ -38,14 +38,13 @@ flightdeck also reads GitHub REST for closed pull requests (`ingest github` → 
 `SOURCE.json`). They lag hangar's main. Since then hangar has added, within v1:
 
 - `hangar.experiment/v1`: a variant's `harness_lock`, `harness_revision`, `harness_digest`, `pin_set` and
-  `model_source` (and `harness_lock` as a `model_concrete_basis`), a task's `task_digest`, a trial's `pin_set` and
-  `cached`, and the spec's `pin_sets`, `task_digests`, `cache_record` and `source`;
+  `model_source` (and `harness_lock` as a `model_concrete_basis`). Then a task's `task_digest`, a trial's `pin_set`
+  and `cached`; the spec's `pin_sets`, `task_digests`, `cache_record` and `source`.
 - `hangar.run/v1`: the `pr.ready` job event, and `counted` and `agent_run_id` on test runs;
 - `hangar.manifest/v1`: nothing.
 
-flightdeck also reads one optional field hangar does not write yet: a `description` on each of `pins.variants`
-(one line saying what the arm is, such as *the review skill*). The report names the arms with it; without it the
-arms are their names. The fixture carries it, and an experiment index may add it by hand.
+flightdeck also reads an optional field hangar does not write yet: `description` on each of `pins.variants`. It
+says in a line what the arm is (*the review skill*). The report names the arms with it, or else by name. The fixture carries it, and an experiment index may add it by hand.
 
 So the index of an experiment whose variants run from harness locks fails the vendored check:
 `model_concrete_basis: harness_lock` isn't in its enum. Ingest warns and goes on, and the new fields stay in the raw
@@ -104,10 +103,10 @@ Every table also has `run_id`, `source` and `dt` (`flightdeck.parquet/v1`; `dt` 
 | --- | --- | --- | --- | --- |
 | A suite (`suite.yaml`, any name) | `experiment run`, `mutate plan`, `cache sentinel` | `suite`, `tasks` (task directories or directories of them, relative to the file), `variants` (hangar's overlay: `environment`, `harness[@version]`, `model`, `approvals`, `skills`, `skills_remove`, `instructions`, `instructions_append`), `n`, `environment`, `budget_usd`, `trial_budget_usd`, `parallel` | Beside its tasks | [Running experiments](runners.md#commands) |
 | `decision.yaml` | `report experiment --decision` | `metric` (`resolved`, `cost_usd`, `tool_calls`, `wall_s`), `direction` (`higher` or `lower`), `margin` (in the metric's units), `min_tasks` (default 10), optional `rubric` | Committed before the first trial finishes | [Reports](reports.md#pre-registration) |
-| `budgets.yaml` | `experiment run`'s cost gate (`--budgets`, `FLIGHTDECK_BUDGETS`, else `./budgets.yaml`) | `month_usd`, `authors: {<login>: <usd>}` | The private data repository | [Running experiments](runners.md#the-cost-gate) |
+| `budgets.yaml` | `experiment run`'s cost gate (`--budgets`, `FLIGHTDECK_BUDGETS`, else `./budgets.yaml`) | `month_usd`, `authors: {<login>: <usd>}` | The private data repository | [Pins and the cost gate](pins.md#the-cost-gate) |
 | `task.toml`, `[flightdeck]` | Every command that loads a task | `tags`, `sealed`, `environment`, `mined_after`, `mined_from`; `[flightdeck.source]` `repo`, `base_sha`, `base_branch`, `issue`, `verify`; `[flightdeck.grader]` `command`, `files_digest` | Each task directory (Harbor's keys stay where Harbor puts them) | [Tasks](tasks.md#layout) |
 | A rubric (YAML) | `judge label` / `calibrate` / `score` / `estimate`, and `decision.yaml`'s `rubric` | `id`, `version`, `question`, `scale` (`binary`, or `ordinal` with `levels`), `criteria`, `examples`, `judge: {model, prompt}` (a concrete model id) | The private data repository | [Judges](judges.md#a-rubric-version) |
-| An ADR with `checks:` | `check run --adrs` | `checks:` in its front matter with `status: accepted`, or in a fenced `yaml` block under a `Status: Accepted` line; each check is a spec without the header (`id`, `scope`, `applies_when`, `harness`, `assert`) | The team's repositories, `docs/decisions/` | [Behavior specs](behavior-specs.md#adr-checks-and-the-nightly-runner) |
+| An ADR with `checks:` | `check run --adrs` | `checks:` in its front matter with `status: accepted`, or in a fenced `yaml` block under a `Status: Accepted` line; each check is a spec without the header (`id`, `scope`, `applies_when`, `harness`, `assert`) | The team's repositories, `docs/decisions/` | [ADR checks](adr-checks.md) |
 
 ## The pin set
 
@@ -133,7 +132,7 @@ policy and the egress policy's digest.
 
 Until every trial carries `harness_digest` and `environment_digest`, flightdeck's reports and cache fall back to
 `config_digest`, which mixes the two halves. The cache adds the manifest's `environment.build.id`. See the report's
-Pins table ([Reports](reports.md#anatomy)) and the cache key ([Running experiments](runners.md#cache)).
+Pins table ([Reports](reports.md#anatomy)) and the cache key ([The trial cache](cache.md)).
 
 ## See also
 

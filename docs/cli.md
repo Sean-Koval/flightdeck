@@ -11,11 +11,11 @@ Every command, argument and option of `flightdeck`, generated from the code by `
 | **Run experiments** | | | |
 | [`experiment`](#flightdeck-experiment) | Trials on hangar: submit a suite, follow it, collect it. | [`run`](#flightdeck-experiment-run), [`status`](#flightdeck-experiment-status), [`collect`](#flightdeck-experiment-collect) | [Running experiments](runners.md) |
 | [`task`](#flightdeck-task) | Harbor-compatible task directories: write, check, digest. | [`new`](#flightdeck-task-new), [`check`](#flightdeck-task-check), [`digest`](#flightdeck-task-digest), [`import-aidlc`](#flightdeck-task-import-aidlc) | [Tasks](tasks.md) |
-| [`cache`](#flightdeck-cache) | The trial-result cache: drop entries, check the drift sentinel. | [`drop`](#flightdeck-cache-drop), [`sentinel`](#flightdeck-cache-sentinel) | [Running experiments: cache](runners.md#cache) |
+| [`cache`](#flightdeck-cache) | The trial-result cache: drop entries, check the drift sentinel. | [`drop`](#flightdeck-cache-drop), [`sentinel`](#flightdeck-cache-sentinel) | [The trial cache](cache.md) |
 | **Behavior** | | | |
 | [`spec`](#flightdeck-spec) | Behavior specs over traces: lint them, test them on an export. | [`lint`](#flightdeck-spec-lint), [`test`](#flightdeck-spec-test) | [Behavior specs](behavior-specs.md) |
-| [`check`](#flightdeck-check) | Run the behavior specs and ADR checks over the data plane; label edits to them. | [`run`](#flightdeck-check-run), [`diff`](#flightdeck-check-diff) | [Behavior specs: nightly runner](behavior-specs.md#adr-checks-and-the-nightly-runner) |
-| [`mutate`](#flightdeck-mutate) | Mutation scoring: mutate the harness, check the suite catches each mutant. | [`plan`](#flightdeck-mutate-plan), [`run`](#flightdeck-mutate-run), [`score`](#flightdeck-mutate-score) | [Behavior specs: mutation scoring](behavior-specs.md#mutation-scoring) |
+| [`check`](#flightdeck-check) | Run the behavior specs and ADR checks over the data plane; label edits to them. | [`run`](#flightdeck-check-run), [`diff`](#flightdeck-check-diff) | [ADR checks and the nightly runner](adr-checks.md) |
+| [`mutate`](#flightdeck-mutate) | Mutation scoring: mutate the harness, check the suite catches each mutant. | [`plan`](#flightdeck-mutate-plan), [`run`](#flightdeck-mutate-run), [`score`](#flightdeck-mutate-score) | [Mutation scoring](mutation-scoring.md) |
 | **Sealed sets** | | | |
 | [`holdout`](#flightdeck-holdout) | Sealed holdouts: briefs, seal, canary scan, score once. | [`brief`](#flightdeck-holdout-brief), [`seal`](#flightdeck-holdout-seal), [`score`](#flightdeck-holdout-score), [`canary-scan`](#flightdeck-holdout-canary-scan) | [Holdouts](holdouts.md) |
 | [`knowledge`](#flightdeck-knowledge) | The knowledge gold set: seal it, score arms on correctness and citations. | [`seal`](#flightdeck-knowledge-seal), [`score`](#flightdeck-knowledge-score) | [Knowledge evals](knowledge-evals.md) |
@@ -275,7 +275,7 @@ flightdeck task import-aidlc [OPTIONS] SUITE
 
 ## `flightdeck cache`
 
-The trial-result cache: drop entries, check the drift sentinel. Guide: [Running experiments: cache](runners.md#cache).
+The trial-result cache: drop entries, check the drift sentinel. Guide: [The trial cache](cache.md).
 
 ### `flightdeck cache drop`
 
@@ -339,7 +339,7 @@ flightdeck spec test [OPTIONS] SPEC
 
 ## `flightdeck check`
 
-Run the behavior specs and ADR checks over the data plane; label edits to them. Guide: [Behavior specs: nightly runner](behavior-specs.md#adr-checks-and-the-nightly-runner).
+Run the behavior specs and ADR checks over the data plane; label edits to them. Guide: [ADR checks and the nightly runner](adr-checks.md).
 
 ### `flightdeck check run`
 
@@ -374,7 +374,7 @@ flightdeck check diff OLD NEW
 
 ## `flightdeck mutate`
 
-Mutation scoring: mutate the harness, check the suite catches each mutant. Guide: [Behavior specs: mutation scoring](behavior-specs.md#mutation-scoring).
+Mutation scoring: mutate the harness, check the suite catches each mutant. Guide: [Mutation scoring](mutation-scoring.md).
 
 ### `flightdeck mutate plan`
 

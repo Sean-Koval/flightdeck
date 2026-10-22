@@ -50,7 +50,7 @@ def run(
     cache: bool = typer.Option(False, "--cache", help="Reuse matching trials from --data; submit only the rest."),
 ) -> None:
     """Gate a suite's plan on model pins and projected cost, then submit it (or print it with --dry-run)."""
-    if kind == "local":  # runs now, spends no hangar budget; docs/runners.md#local
+    if kind == "local":  # runs now, spends no hangar budget; docs/local.md
         try:
             run_set = backend(data, kind).submit(h.load_plan(suite))
         except (RunnerError, TaskError) as e:
@@ -61,7 +61,7 @@ def run(
         plan = h.load_plan(suite)
         h.check_models(plan, frozenset(allow_model or ()))
         hits, todo = {}, [plan]
-        if cache:  # docs/runners.md#cache
+        if cache:  # docs/cache.md
             from flightdeck.dataplane.duck import connect
             from flightdeck.runners import cache as c
 

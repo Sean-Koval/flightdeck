@@ -28,7 +28,7 @@ Within v1, columns are only added; removing or renaming one is v2. Rows are wide
 attributes (job, session, environment, person) are copied onto every span row.
 
 Every row has `run_id`, `source` and `dt`. `source` is `job`, `session`, `experiment`, `shadow`, or `local` for the
-[local backend](runners.md#local).
+[local backend](local.md).
 
 ## Tables
 
@@ -54,9 +54,8 @@ Tapes stay objects under hangar's `v1/tapes/`; they are not compacted.
 
 ### What flightdeck writes itself
 
-flightdeck stamps `runs.task_digest` (the task directory's digest, [Tasks](tasks.md#digests)) and
-`runs.variant_digest` (the variant as planned: its hangar overlay and environment) on the trials it submitted, when it
-collects them. They key the [trial cache](runners.md#cache).
+On collecting its trials, flightdeck stamps `runs.task_digest`, the task directory's digest ([Tasks](tasks.md#digests)).
+It also stamps `runs.variant_digest`: the variant as planned, its hangar overlay and environment. They key the [trial cache](cache.md).
 
 `trial_reuse` is flightdeck's too: one row per trial the cache reused for a run set. `run_id` is the reused trial's,
 `experiment_id` the run set's, with `age_days`.
@@ -84,7 +83,7 @@ OTLP/JSON per opentelemetry-proto 1.11.1: `intValue` is a decimal string, lists 
 v1. A different `hangar.trace.schema`, manifest or experiment schema is refused.
 
 hangar redacts every export. The flatteners also mask anything that still looks like a credential (private keys,
-GitHub, Anthropic/OpenAI, AWS and Slack tokens) as `***`, and clip event text to 2,000 characters.
+GitHub, Anthropic/OpenAI, AWS and Slack tokens) as `***`. They clip event text to 2,000 characters.
 
 ## Ingest
 

@@ -1,4 +1,4 @@
-"""The local Docker backend (docs/runners.md#local): ai-dlc's isolated attempt, flightdeck's tasks in, data-plane rows
+"""The local Docker backend (docs/local.md): ai-dlc's isolated attempt, flightdeck's tasks in, data-plane rows
 out. The Docker boundary is faked except in the tests at the end, which skip without Docker."""
 
 import io

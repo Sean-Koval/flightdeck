@@ -75,11 +75,20 @@ nav:
       - Concepts: concepts.md
   - Guides:
       - Tasks: tasks.md
-      - Running experiments: runners.md
+      - Running experiments:
+          - runners.md
+          - Pins and the cost gate: pins.md
+          - The trial cache: cache.md
+          - Local runs: local.md
       - Holdouts: holdouts.md
       - Knowledge evals: knowledge-evals.md
       - Judges: judges.md
-      - Behavior specs: behavior-specs.md
+      - Behavior specs:
+          - behavior-specs.md
+          - Matchers and operators: spec-matchers.md
+          - Trusted tests and anti-gaming: spec-trust.md
+          - ADR checks and the nightly runner: adr-checks.md
+          - Mutation scoring: mutation-scoring.md
       - Reports: reports.md
   - Reference:
       - CLI: cli.md

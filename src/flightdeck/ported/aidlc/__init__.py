@@ -1,4 +1,4 @@
-"""ai-dlc's local Docker evaluation runner, ported for flightdeck's local backend (#18; docs/runners.md#local).
+"""ai-dlc's local Docker evaluation runner, ported for flightdeck's local backend (#18; docs/local.md).
 
 From ai-dlc's handoff commit f5be4f4206a8469f17d4b54296e41e06a2d1a41e (tag eval-handoff-2026-10): the attempt
 lifecycle (`attempt.py`), drivers (`drivers.py`), the controller's Git observer (`git_observer.py`), run budgets
