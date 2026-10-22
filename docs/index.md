@@ -19,7 +19,7 @@ hide:
 <source media="(max-width: 600px)" srcset="assets/demo-phone.svg" width="379" height="401">
 <img src="assets/demo.svg" alt="A terminal session on the fixture experiment: flightdeck ingests the export, compares the variants paired by task and writes a report, printing its verdict, candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0). It opens on the finished session and then replays the typing." width="660" height="537">
 </picture>
-<figcaption>The fixture experiment in a terminal: compare the arms, write the report, read the verdict</figcaption>
+<figcaption>The fixture experiment in a terminal: compare the arms, write the report, read the verdict. Watch it end as a pull-request comment (18 s): <a href="assets/clip.mp4">Night</a>, <a href="assets/clip-light.mp4">Day</a>.</figcaption>
 </figure>
 </div>
 

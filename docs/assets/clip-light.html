@@ -1,0 +1,392 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=DM+Mono:wght@400;500&family=Red+Hat+Text:wght@400..700&display=swap"><style>/*
+  Airframe theme-v15 tokens. Generated from airframe/tokens.json by scripts/airframe.py; do not edit.
+  Change a value in airframe/tokens.json, run `python3 scripts/airframe.py build`, and add a
+  theme/CHANGELOG.md entry. Tool repos vendor this file unmodified (scripts/sync-airframe.sh).
+
+  Contract: every token is --af-<name>; Night is `dark` (the default), Day is `light`, set with
+  data-theme on <html> or any element (the docs sites use data-md-color-scheme). Component
+  classes live in airframe-components.css. The brand yellow is never a status.
+*/
+
+:root,
+[data-theme="dark"],
+[data-md-color-scheme="slate"] {
+  color-scheme: dark;
+  --af-canvas: #000000;
+  --af-surface: #0A0A0A;
+  --af-raised: #141414;
+  --af-overlay: #1C1C1C;
+  --af-lifted: #1C1C1C;
+  --af-edge-hi: rgba(255,255,255,0.045);
+  --af-line-subtle: #1F1F1F;
+  --af-line: #2A2A2A;
+  --af-line-strong: #6B6B6B;
+  --af-rule: #424242;
+  --af-fg: #FFFFFF;
+  --af-fg-muted: #A6A6A6;
+  --af-fg-subtle: #8A8A8A;
+  --af-fg-dim: #5C5C5C;
+  --af-selected: #1F1F1F;
+  --af-brand: #FFC400;
+  --af-brand-hover: #FFD23F;
+  --af-brand-wash: rgba(255,196,0,0.10);
+  --af-on-brand: #111213;
+  --af-brand-text: #FFC400;
+  --af-brand-line: #FFC400;
+  --af-focus: #FFC400;
+  --af-status-running: #C7C7C7;
+  --af-status-queued: #8A8A8A;
+  --af-status-approval: #FF8A3D;
+  --af-status-failed: #FF4D4D;
+  --af-status-denied: #D93036;
+  --af-on-status-denied: #FFFFFF;
+  --af-status-off: #6B6B6B;
+  --af-lamp-caution: #FF8A3D;
+  --af-lamp-warning: #FF4D4D;
+  --af-on-lamp: #000000;
+  --af-terminal-bg: #0A0A0A;
+  --af-terminal-fg: #E6E7E3;
+  --af-terminal-dim: #8E9297;
+  --af-terminal-ok: #C7C7C7;
+  --af-terminal-err: #FF4D4D;
+  --af-code-keyword: #FFFFFF;
+  --af-code-function: #D9D9D9;
+  --af-code-string: #A6A6A6;
+  --af-code-number: #CCCCCC;
+  --af-code-comment: #808080;
+  --af-span-model: #C7C7C7;
+  --af-span-tool: #999999;
+  --af-span-sandbox: #616161;
+  --af-stage-plan: #383838;
+  --af-stage-edit: #6B6B6B;
+  --af-stage-test: #A3A3A3;
+  --af-rail: #2A2A2A;
+  --af-rail-done: #D6D6D6;
+  --af-rail-glow: rgba(255,255,255,0.25);
+  --af-readout-cell: #161616;
+  --af-display-window: #0A0A0A;
+  --af-dot-field: #262626;
+  --af-product-hangar: #24C1C9;
+  --af-product-flightdeck: #D98CD2;
+  --af-product-tower: #67B0F9;
+  --af-product-aidlc: #69C27E;
+  --af-product-spaceport: #B199F4;
+  --af-chart-1: #FFFFFF;
+  --af-chart-2: #BFBFBF;
+  --af-chart-3: #8C8C8C;
+  --af-chart-4: #666666;
+  --af-chart-5: #FF8A3D;
+  --af-chart-6: #333333;
+  --af-shadow-1: 0 1px 2px rgba(0,0,0,0.5);
+  --af-shadow-2: 0 20px 60px rgba(0,0,0,0.6);
+  --af-shadow-overlay: 0 12px 32px rgba(0,0,0,0.6);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --af-canvas: #F4F4F2;
+    --af-surface: #EDEDEB;
+    --af-raised: #FFFFFF;
+    --af-overlay: #FFFFFF;
+    --af-lifted: #FFFFFF;
+    --af-edge-hi: #FFFFFF;
+    --af-line-subtle: #E6E6E3;
+    --af-line: #DCDCD9;
+    --af-line-strong: #858583;
+    --af-rule: #BDBDBA;
+    --af-fg: #0A0A0A;
+    --af-fg-muted: #474746;
+    --af-fg-subtle: #666664;
+    --af-fg-dim: #9C9C99;
+    --af-selected: #E6E6E3;
+    --af-brand-wash: rgba(255,196,0,0.18);
+    --af-brand-text: #7A5F00;
+    --af-brand-line: #7A5F00;
+    --af-focus: #7A5F00;
+    --af-status-running: #3A3A3A;
+    --af-status-queued: #666664;
+    --af-status-approval: #B04E00;
+    --af-status-failed: #C42B2B;
+    --af-status-denied: #C42B2B;
+    --af-status-off: #858583;
+    --af-span-model: #383838;
+    --af-span-tool: #666664;
+    --af-span-sandbox: #9E9E9E;
+    --af-stage-plan: #C7C7C7;
+    --af-stage-edit: #949494;
+    --af-stage-test: #5C5C5C;
+    --af-rail: #E3E3E0;
+    --af-rail-done: #2A2A2A;
+    --af-rail-glow: rgba(0,0,0,0.12);
+    --af-readout-cell: #EBEBEA;
+    --af-display-window: #FAFAF9;
+    --af-dot-field: #DCDCD9;
+    --af-product-hangar: #00787D;
+    --af-product-flightdeck: #914A8C;
+    --af-product-tower: #1F6CB0;
+    --af-product-aidlc: #1D7D3E;
+    --af-product-spaceport: #6F57AB;
+    --af-chart-1: #000000;
+    --af-chart-2: #4D4D4D;
+    --af-chart-3: #737373;
+    --af-chart-4: #8A8A8A;
+    --af-chart-5: #B04E00;
+    --af-chart-6: #D6D6D3;
+    --af-shadow-1: 0 1px 2px rgba(0,0,0,0.06);
+    --af-shadow-2: 0 16px 48px rgba(0,0,0,0.14);
+    --af-shadow-overlay: 0 12px 32px rgba(0,0,0,0.12);
+  }
+}
+
+[data-theme="light"],
+[data-md-color-scheme="default"] {
+  color-scheme: light;
+  --af-canvas: #F4F4F2;
+  --af-surface: #EDEDEB;
+  --af-raised: #FFFFFF;
+  --af-overlay: #FFFFFF;
+  --af-lifted: #FFFFFF;
+  --af-edge-hi: #FFFFFF;
+  --af-line-subtle: #E6E6E3;
+  --af-line: #DCDCD9;
+  --af-line-strong: #858583;
+  --af-rule: #BDBDBA;
+  --af-fg: #0A0A0A;
+  --af-fg-muted: #474746;
+  --af-fg-subtle: #666664;
+  --af-fg-dim: #9C9C99;
+  --af-selected: #E6E6E3;
+  --af-brand-wash: rgba(255,196,0,0.18);
+  --af-brand-text: #7A5F00;
+  --af-brand-line: #7A5F00;
+  --af-focus: #7A5F00;
+  --af-status-running: #3A3A3A;
+  --af-status-queued: #666664;
+  --af-status-approval: #B04E00;
+  --af-status-failed: #C42B2B;
+  --af-status-denied: #C42B2B;
+  --af-status-off: #858583;
+  --af-span-model: #383838;
+  --af-span-tool: #666664;
+  --af-span-sandbox: #9E9E9E;
+  --af-stage-plan: #C7C7C7;
+  --af-stage-edit: #949494;
+  --af-stage-test: #5C5C5C;
+  --af-rail: #E3E3E0;
+  --af-rail-done: #2A2A2A;
+  --af-rail-glow: rgba(0,0,0,0.12);
+  --af-readout-cell: #EBEBEA;
+  --af-display-window: #FAFAF9;
+  --af-dot-field: #DCDCD9;
+  --af-product-hangar: #00787D;
+  --af-product-flightdeck: #914A8C;
+  --af-product-tower: #1F6CB0;
+  --af-product-aidlc: #1D7D3E;
+  --af-product-spaceport: #6F57AB;
+  --af-chart-1: #000000;
+  --af-chart-2: #4D4D4D;
+  --af-chart-3: #737373;
+  --af-chart-4: #8A8A8A;
+  --af-chart-5: #B04E00;
+  --af-chart-6: #D6D6D3;
+  --af-shadow-1: 0 1px 2px rgba(0,0,0,0.06);
+  --af-shadow-2: 0 16px 48px rgba(0,0,0,0.14);
+  --af-shadow-overlay: 0 12px 32px rgba(0,0,0,0.12);
+}
+
+:root {
+  --af-display-stretch: 125%;
+  --af-display-weight: 700;
+  --af-display-track: -0.01em;
+  --af-label-track: 0.08em;
+  --af-space-2: 2px;
+  --af-space-4: 4px;
+  --af-space-8: 8px;
+  --af-space-12: 12px;
+  --af-space-16: 16px;
+  --af-space-20: 20px;
+  --af-space-24: 24px;
+  --af-space-28: 28px;
+  --af-space-32: 32px;
+  --af-space-40: 40px;
+  --af-space-48: 48px;
+  --af-space-64: 64px;
+  --af-space-104: 104px;
+  --af-space-160: 160px;
+  --af-radius-none: 0px;
+  --af-radius-control: 8px;
+  --af-radius-card: 12px;
+  --af-radius-sheet: 18px;
+  --af-radius-round: 50%;
+  --af-container-max: 1280px;
+  --af-header-h: 56px;
+  --af-row-h: 32px;
+  --af-row-h-compact: 28px;
+  --af-lane-h: 30px;
+  --af-span-h: 28px;
+  --af-rail-h: 2px;
+  --af-icon-stroke: 1.5;
+  --af-icon-size: 16px;
+  --af-dur-fast: 120ms;
+  --af-dur: 200ms;
+  --af-dur-open: 300ms;
+  --af-ease: cubic-bezier(.2,0,0,1);
+  --af-ease-open: cubic-bezier(.32,.72,0,1);
+  --af-font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --af-font-sans: "Red Hat Text", "Helvetica Neue", Arial, sans-serif;
+  --af-font-mono: "DM Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+/* theme-v1 names, kept as aliases (re-declared in every theme scope so they follow it) */
+:root,
+[data-theme],
+[data-md-color-scheme] {
+  --af-st-run: var(--af-status-running);
+  --af-st-queue: var(--af-status-queued);
+  --af-st-appr: var(--af-status-approval);
+  --af-st-fail: var(--af-status-failed);
+  --af-st-deny: var(--af-status-denied);
+  --af-st-off: var(--af-status-off);
+  --af-p-hangar: var(--af-product-hangar);
+  --af-p-flightdeck: var(--af-product-flightdeck);
+  --af-p-workspace: var(--af-product-tower);
+  --af-p-tower: var(--af-product-tower);
+  --af-product-workspace: var(--af-product-tower);
+  --af-p-aidlc: var(--af-product-aidlc);
+  --af-p-spaceport: var(--af-product-spaceport);
+  --af-term-bg: var(--af-terminal-bg);
+  --af-term-fg: var(--af-terminal-fg);
+  --af-code-k: var(--af-code-keyword);
+  --af-code-f: var(--af-code-function);
+  --af-code-s: var(--af-code-string);
+  --af-code-n: var(--af-code-number);
+  --af-code-c: var(--af-code-comment);
+  --af-dot: var(--af-dot-field);
+  --af-f-display: var(--af-font-display);
+  --af-f-sans: var(--af-font-sans);
+  --af-f-mono: var(--af-font-mono);
+  --af-r-ctl: var(--af-radius-control);
+  --af-r-card: var(--af-radius-card);
+  --af-r-chip: var(--af-radius-control);
+  --af-pad: var(--af-space-16);
+  --af-gap: var(--af-space-12);
+}
+
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",
+"Noto Sans",Helvetica,Arial,sans-serif}.page{width:var(--w);padding:24px 28px}.row{display:flex;gap:14px}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--well);border:1px solid var(--line);
+box-sizing:border-box;flex:none;color:var(--muted);text-align:center;
+font:600 14px/38px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.comment{flex:1;border:1px solid var(--line);border-radius:6px;overflow:hidden}.head{background:var(--well);
+border-bottom:1px solid var(--line);padding:8px 16px;color:var(--muted);font-size:14px}.head b{color:var(--fg)}
+.md{padding:16px}.md h2{font-size:1.5em;border-bottom:1px solid var(--line);padding-bottom:.3em;margin:0 0 16px;
+font-weight:600}.md h3{font-size:1.25em;margin:24px 0 12px;font-weight:600}.md p{margin:0 0 12px}
+.md code{font:85% ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);
+padding:.2em .4em;border-radius:6px}.md table{border-collapse:collapse;margin:0 0 14px;display:block;
+width:max-content;max-width:100%;overflow:auto}.md th,.md td{border:1px solid var(--line);padding:6px 13px}
+.md th{font-weight:600}.md tr:nth-child(2n){background:var(--well)}.fade{position:relative}
+.fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;
+background:linear-gradient(var(--fade),var(--bg))}
+
+html,body{margin:0;height:100%;background:var(--af-canvas);overflow:hidden}
+.stage{position:relative;width:100vw;height:100vh}
+.scene{position:absolute;inset:0;padding:20px 20px 84px;box-sizing:border-box;transition:opacity .45s,transform .45s}
+.scene.off{opacity:0;transform:translateY(12px)}
+.term{background:var(--af-terminal-bg);color:var(--af-terminal-fg);border-radius:var(--af-radius-card);
+border:1px solid color-mix(in srgb,var(--af-terminal-fg) 8%,transparent);font:14px/19px var(--af-font-mono);
+overflow:hidden}
+.term .bar{display:flex;gap:14px;align-items:center;padding:0 14px;height:34px;border-bottom:1px solid
+color-mix(in srgb,var(--af-terminal-fg) 9%,transparent);font:500 10.5px var(--af-font-mono);letter-spacing:.08em;
+text-transform:uppercase;color:var(--af-terminal-dim)}.term .bar b{color:var(--af-terminal-fg);font-weight:500}
+.term pre{margin:0;padding:16px 18px;font:inherit;white-space:pre}
+.term .p{color:var(--af-brand)}.term .c,.term .v{color:var(--af-code-keyword)}.term .hide{visibility:hidden}
+.gh{height:100%;overflow:hidden;border-radius:var(--af-radius-card);border:1px solid var(--af-line)}
+.gh .page{width:auto;padding:16px}.gh .avatar{display:none}
+.cap{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px;align-items:baseline;
+width:max-content;max-width:calc(100vw - 48px);box-sizing:border-box;padding:9px 14px;background:var(--af-raised);
+color:var(--af-fg);border:1px solid var(--af-line-strong);border-left:3px solid var(--af-brand);
+border-radius:var(--af-radius-control);box-shadow:var(--af-shadow-overlay);font:500 15px/1.35 var(--af-font-sans);
+z-index:2}.cap b{font:500 12px var(--af-font-mono);color:var(--af-brand-text);letter-spacing:.08em}
+</style></head><body><div class="stage"><div class="scene s1"><div class="term"><div class="bar"><b>flightdeck</b><span>fixture experiment</span></div><pre><span class="l" data-i="0" data-k="cmd"><span class="p">$ </span><span class="c" data-t="flightdeck stats compare job-expdemo --data demo/plane"></span></span>
+<span class="l " data-i="1" data-k="out">VARIANT    TRIALS        RESOLVED  95% WILSON    $ PER RESOLVED (95%)</span>
+<span class="l " data-i="2" data-k="out">control        32  10 of 32 (31%)  18% to 49%  $1.33 ($0.80 to $2.79)</span>
+<span class="l " data-i="3" data-k="out">candidate      31  16 of 31 (52%)  35% to 68%  $0.64 ($0.45 to $1.07)</span>
+<span class="l " data-i="4" data-k="out"></span>
+<span class="l " data-i="5" data-k="out">Paired difference candidate − control: +21.2 pp (95% CI +1.5 pp to</span>
+<span class="l " data-i="6" data-k="out">  +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8</span>
+<span class="l " data-i="7" data-k="out">  discordant tasks).</span>
+<span class="l " data-i="8" data-k="out"></span>
+<span class="l" data-i="9" data-k="cmd"><span class="p">$ </span><span class="c" data-t="flightdeck report experiment job-expdemo --data demo/plane \"></span></span>
+<span class="l" data-i="10" data-k="cmd"><span class="p">> </span><span class="c" data-t="--decision demo/export/decision.yaml --out demo/report.md"></span></span>
+<span class="l v" data-i="11" data-k="out">candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to</span>
+<span class="l " data-i="12" data-k="out">  +43.9, margin −5.0)</span>
+<span class="l " data-i="13" data-k="out">wrote demo/report.md (73 lines)</span>
+<span class="l " data-i="14" data-k="out"></span>
+<span class="l" data-i="15" data-k="cmd"><span class="p">$ </span><span class="c" data-t="">▌</span></span></pre></div></div><div class="scene s2 off"><div class="gh" style="--bg:#ffffff;--fg:#1f2328;--muted:#59636e;--line:#d1d9e0;--well:#f6f8fa;--code:#818b981f;--fade:rgba(255,255,255,0);--w:auto"><div class="page"><div class="row"><div class="comment"><div class="head"><b>flightdeck</b> commented</div><div class="md"><!-- flightdeck:report:job-expdemo -->
+<h2>candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)</h2>
+<p>FDK-EXP-0531 (<code>job-expdemo</code>): candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).</p>
+<p>Rule, pre-registered in <code>decision.yaml</code>: resolved, higher is better, margin −5.0 pp, at least 10 paired tasks.</p>
+<h3>Outcome</h3>
+<table>
+<thead>
+<tr>
+<th>variant</th>
+<th>trials</th>
+<th>resolved</th>
+<th>95% Wilson</th>
+<th>$ per resolved (95%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>control</td>
+<td>32</td>
+<td>10 of 32 (31%)</td>
+<td>18% to 49%</td>
+<td>$1.33 ($0.80 to $2.79)</td>
+</tr>
+<tr>
+<td>candidate</td>
+<td>31</td>
+<td>16 of 31 (52%)</td>
+<td>35% to 68%</td>
+<td>$0.64 ($0.45 to $1.07)</td>
+</tr>
+</tbody>
+</table>
+<p>Paired difference candidate − control: <strong>+21.2 pp</strong> (95% CI +1.5 pp to +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8 discordant tasks).</p>
+<p>At 11 paired tasks × 3 trials the minimum detectable lift at 80% power is about 35 pp (simulated).</p>
+<p>Resolved: grader for 63 trials (grader = exit 0 and applied; verify = hangar's after-turn verify when no grader ran).</p>
+<p>Saturated (same outcome in every trial of both arms, no information): t01, t02.</p>
+</div></div></div></div></div></div></div><div class="cap"><b></b><span></span></div><script>
+const lines = [...document.querySelectorAll('.term .l')], cap = document.querySelector('.cap');
+const say = (n, t) => { cap.querySelector('b').textContent = n; cap.querySelector('span').textContent = t; };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+lines.forEach((l) => l.classList.add('hide'));
+async function type(l, ms) { const c = l.querySelector('.c'), t = c.dataset.t; l.classList.remove('hide');
+  for (let k = 0; k <= t.length; k++) { c.textContent = t.slice(0, k); if (ms) await wait(ms); } }
+async function play() {
+  let i = 0;
+  const block = async (typing) => {  // a command (and its continuation), then its output up to the blank line
+    while (i < lines.length && lines[i].dataset.k === 'cmd' && lines[i].querySelector('.c').dataset.t) {
+      await type(lines[i], typing); i++;
+      if (lines[i] && lines[i].dataset.k === 'cmd' && !lines[i].querySelector('.c').dataset.t) break; }
+    await wait(350);
+    while (i < lines.length && lines[i].dataset.k === 'out') { lines[i].classList.remove('hide'); i++; await wait(45); }
+  };
+  say('1', 'flightdeck compares the two arms, paired by task');
+  await block(0);  // the first command is already typed in the first frame
+  window.clipStarted = true;
+  await wait(3800);
+  say('2', 'The report ends in a verdict, by a rule fixed in advance');
+  await block(28);
+  lines[i].classList.remove('hide');
+  await wait(3600);
+  say('3', 'The same report, posted on the pull request as one comment');
+  document.querySelector('.s1').classList.add('off'); document.querySelector('.s2').classList.remove('off');
+  await wait(6400);
+  window.clipDone = true;
+}
+document.fonts.ready.then(play);
+</script></body></html>
