@@ -13,6 +13,7 @@ lines, following the report-label and theme-v14 updates. This slice leaves that 
 
 The report and ADR required by [#20](https://github.com/Sean-Koval/flightdeck/issues/20) remain a prerequisite for
 new feature work, not just runtime expansion. An artifact-only design is not an automatic exemption from that gate.
+
 On October 21, 2026, the owner approved the bounded schema, synthetic fixtures, deterministic tests, and written
 architecture decision scope. That authorizes this preparatory exception only;
 it does not satisfy #20, raise the cap, accept this ADR for merge, or authorize runtime adoption.
