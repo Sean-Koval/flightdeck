@@ -289,41 +289,56 @@ width:max-content;max-width:100%;overflow:auto}.md th,.md td{border:1px solid va
 .fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:90px;
 background:linear-gradient(var(--fade),var(--bg))}
 
-html,body{margin:0;height:100%;background:var(--af-canvas);overflow:hidden}
-.stage{position:relative;width:100vw;height:100vh}
-.scene{position:absolute;inset:0;padding:20px 20px 84px;box-sizing:border-box;transition:opacity .45s,transform .45s}
+html,body{margin:0;background:var(--af-canvas);overflow:hidden}
+.stage{position:relative;margin:20px 20px 0}
+.scene{position:absolute;inset:0;transition:opacity .45s,transform .45s}
 .scene.off{opacity:0;transform:translateY(12px)}
 .term{background:var(--af-terminal-bg);color:var(--af-terminal-fg);border-radius:var(--af-radius-card);
 border:1px solid color-mix(in srgb,var(--af-terminal-fg) 8%,transparent);font:14px/19px var(--af-font-mono);
 overflow:hidden}
-.term .bar{display:flex;gap:14px;align-items:center;padding:0 14px;height:34px;border-bottom:1px solid
-color-mix(in srgb,var(--af-terminal-fg) 9%,transparent);font:500 10.5px var(--af-font-mono);letter-spacing:.08em;
-text-transform:uppercase;color:var(--af-terminal-dim)}.term .bar b{color:var(--af-terminal-fg);font-weight:500}
+.term .bar{display:flex;gap:6px;align-items:center;padding:0 14px;height:34px;border-bottom:1px solid
+color-mix(in srgb,var(--af-terminal-fg) 9%,transparent);font:500 12.5px var(--af-font-sans);
+color:var(--af-terminal-dim)}
+.term .bar b{color:var(--af-terminal-fg);font-weight:500}
 .term pre{margin:0;padding:16px 18px;font:inherit;white-space:pre}
-.term .p{color:var(--af-brand)}.term .c,.term .v{color:var(--af-code-keyword)}.term .hide{visibility:hidden}
-.gh{height:100%;overflow:hidden;border-radius:var(--af-radius-card);border:1px solid var(--af-line)}
+.term .p{color:var(--af-brand)}.term .c,.term .v{color:var(--af-code-keyword)}
+.term .hide{visibility:hidden}
+.gh{height:100%;overflow:hidden;border-radius:var(--af-radius-card);border:1px solid var(--af-line);
+box-sizing:border-box}
 .gh .page{width:auto;padding:16px}.gh .avatar{display:none}
-.cap{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px;align-items:baseline;
-width:max-content;max-width:calc(100vw - 48px);box-sizing:border-box;padding:9px 14px;background:var(--af-raised);
-color:var(--af-fg);border:1px solid var(--af-line-strong);border-left:3px solid var(--af-brand);
-border-radius:var(--af-radius-control);box-shadow:var(--af-shadow-overlay);font:500 15px/1.35 var(--af-font-sans);
-z-index:2}.cap b{font:500 12px var(--af-font-mono);color:var(--af-brand-text);letter-spacing:.08em}
-</style></head><body><div class="stage"><div class="scene s1"><div class="term"><div class="bar"><b>flightdeck</b><span>fixture experiment</span></div><pre><span class="l" data-i="0" data-k="cmd"><span class="p">$ </span><span class="c" data-t="flightdeck stats compare job-expdemo --data demo/plane"></span></span>
-<span class="l " data-i="1" data-k="out">VARIANT    TRIALS        RESOLVED  95% WILSON    $ PER RESOLVED (95%)</span>
-<span class="l " data-i="2" data-k="out">control        32  10 of 32 (31%)  18% to 49%  $1.33 ($0.80 to $2.79)</span>
-<span class="l " data-i="3" data-k="out">candidate      31  16 of 31 (52%)  35% to 68%  $0.64 ($0.45 to $1.07)</span>
-<span class="l " data-i="4" data-k="out"></span>
-<span class="l " data-i="5" data-k="out">Paired difference candidate − control: +21.2 pp (95% CI +1.5 pp to</span>
-<span class="l " data-i="6" data-k="out">  +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8</span>
-<span class="l " data-i="7" data-k="out">  discordant tasks).</span>
-<span class="l " data-i="8" data-k="out"></span>
-<span class="l" data-i="9" data-k="cmd"><span class="p">$ </span><span class="c" data-t="flightdeck report experiment job-expdemo --data demo/plane \"></span></span>
-<span class="l" data-i="10" data-k="cmd"><span class="p">> </span><span class="c" data-t="--decision demo/export/decision.yaml --out demo/report.md"></span></span>
-<span class="l v" data-i="11" data-k="out">candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to</span>
-<span class="l " data-i="12" data-k="out">  +43.9, margin −5.0)</span>
-<span class="l " data-i="13" data-k="out">wrote demo/report.md (73 lines)</span>
-<span class="l " data-i="14" data-k="out"></span>
-<span class="l" data-i="15" data-k="cmd"><span class="p">$ </span><span class="c" data-t="">▌</span></span></pre></div></div><div class="scene s2 off"><div class="gh" style="--bg:#0d1117;--fg:#f0f6fc;--muted:#9198a1;--line:#3d444d;--well:#151b23;--code:#656c7633;--fade:rgba(13,17,23,0);--w:auto"><div class="page"><div class="row"><div class="comment"><div class="head"><b>flightdeck</b> commented</div><div class="md"><!-- flightdeck:report:job-expdemo -->
+.cap{display:flex;gap:10px;align-items:baseline;padding:14px 20px 18px;color:var(--af-fg);
+font:500 15px/1.35 var(--af-font-sans)}
+.cap b{font:500 12px var(--af-font-mono);color:var(--af-brand-text);letter-spacing:.08em}
+</style></head><body><div class="stage"><div class="scene s1"><div class="term"><div class="bar"><b>flightdeck</b><span>·</span><span>Fixture experiment</span></div><pre><span class="l" data-i="0" data-k="cmd"><span class="p">$ </span><span class="c" data-t="flightdeck stats compare job-expdemo --data demo/plane"></span></span>
+<span class="l " data-i="1" data-k="out">resolved: candidate vs control, experiment job-expdemo, seed 0</span>
+<span class="l " data-i="2" data-k="out"></span>
+<span class="l " data-i="3" data-k="out">VARIANT    TRIALS        RESOLVED  95% WILSON    $ PER RESOLVED (95%)</span>
+<span class="l " data-i="4" data-k="out">control        32  10 of 32 (31%)  18% to 49%  $1.33 ($0.80 to $2.79)</span>
+<span class="l " data-i="5" data-k="out">candidate      31  16 of 31 (52%)  35% to 68%  $0.64 ($0.45 to $1.07)</span>
+<span class="l " data-i="6" data-k="out"></span>
+<span class="l " data-i="7" data-k="out">Paired difference candidate − control: +21.2 pp (95% CI +1.5 pp to</span>
+<span class="l " data-i="8" data-k="out">  +43.9 pp; task bootstrap, 11 tasks, 63 trials; 3 concordant, 8</span>
+<span class="l " data-i="9" data-k="out">  discordant tasks).</span>
+<span class="l " data-i="10" data-k="out"></span>
+<span class="l " data-i="11" data-k="out">At 11 paired tasks × 3 trials the minimum detectable lift at 80% power</span>
+<span class="l " data-i="12" data-k="out">  is about 35 pp (simulated).</span>
+<span class="l " data-i="13" data-k="out"></span>
+<span class="l " data-i="14" data-k="out">Resolved: grader for 63 trials (grader = exit 0 and applied; verify =</span>
+<span class="l " data-i="15" data-k="out">  hangar&#x27;s after-turn verify when no grader ran).</span>
+<span class="l " data-i="16" data-k="out"></span>
+<span class="l " data-i="17" data-k="out">Excluded: cancelled 1, drift 1, infra_error 1, not finished 1,</span>
+<span class="l " data-i="18" data-k="out">  task_invalid 6.</span>
+<span class="l " data-i="19" data-k="out"></span>
+<span class="l " data-i="20" data-k="out">Saturated (same outcome in every trial of both arms, no information):</span>
+<span class="l " data-i="21" data-k="out">  t01, t02.</span>
+<span class="l " data-i="22" data-k="out"></span>
+<span class="l" data-i="23" data-k="cmd"><span class="p">$ </span><span class="c" data-t="flightdeck report experiment job-expdemo --data demo/plane \"></span></span>
+<span class="l" data-i="24" data-k="cmd"><span class="p">> </span><span class="c" data-t="--decision demo/export/decision.yaml --out demo/report.md"></span></span>
+<span class="l v" data-i="25" data-k="out">candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to</span>
+<span class="l " data-i="26" data-k="out">  +43.9, margin −5.0)</span>
+<span class="l " data-i="27" data-k="out">wrote demo/report.md (73 lines)</span>
+<span class="l " data-i="28" data-k="out"></span>
+<span class="l" data-i="29" data-k="cmd"><span class="p">$ </span><span class="c" data-t="">▌</span></span></pre></div></div><div class="scene s2 off"><div class="gh" style="--bg:#0d1117;--fg:#f0f6fc;--muted:#9198a1;--line:#3d444d;--well:#151b23;--code:#656c7633;--fade:rgba(13,17,23,0);--w:auto"><div class="page"><div class="row"><div class="comment"><div class="head"><b>flightdeck</b> commented</div><div class="md"><!-- flightdeck:report:job-expdemo -->
 <h2>candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)</h2>
 <p>FDK-EXP-0531 (<code>job-expdemo</code>): candidate (the review skill) against control (no skills), 12 tasks, 73 trials, seed 0. The arms differ in config_digest (pins at the end).</p>
 <p>Rule, pre-registered in <code>decision.yaml</code>: resolved, higher is better, margin −5.0 pp, at least 10 paired tasks.</p>
@@ -363,7 +378,15 @@ z-index:2}.cap b{font:500 12px var(--af-font-mono);color:var(--af-brand-text);le
 const lines = [...document.querySelectorAll('.term .l')], cap = document.querySelector('.cap');
 const say = (n, t) => { cap.querySelector('b').textContent = n; cap.querySelector('span').textContent = t; };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-lines.forEach((l) => l.classList.add('hide'));
+function prepare() {  // the stage fits the taller scene: the finished terminal, or the comment to its Outcome table
+  const stage = document.querySelector('.stage'), gh = document.querySelector('.gh');
+  const table = document.querySelector('.gh table').getBoundingClientRect();
+  const comment = table.bottom - gh.getBoundingClientRect().top + 18;
+  stage.style.height = Math.ceil(Math.max(document.querySelector('.term').offsetHeight, comment)) + 'px';
+  lines.forEach((l) => l.classList.add('hide'));
+  say('1', 'flightdeck compares the two arms, paired by task');  // a one-line caption, as each is, for the height
+  window.clipHeight = Math.ceil(document.querySelector('.cap').getBoundingClientRect().bottom);
+}
 async function type(l, ms) { const c = l.querySelector('.c'), t = c.dataset.t; l.classList.remove('hide');
   for (let k = 0; k <= t.length; k++) { c.textContent = t.slice(0, k); if (ms) await wait(ms); } }
 async function play() {
@@ -388,5 +411,5 @@ async function play() {
   await wait(6400);
   window.clipDone = true;
 }
-document.fonts.ready.then(play);
+document.fonts.ready.then(prepare);  // the recorder sizes the window to clipHeight, then calls play()
 </script></body></html>

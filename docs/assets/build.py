@@ -19,7 +19,7 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
   (verdict, experiment, rule) in GitHub's narrow layout, 358 px wide, for screens under 600 px;
 - `clip.mp4`, `clip-light.mp4` and their `-poster.png`: the demo clip, Night and Day, from `clip-{dark,light}.html`:
   `stats compare` in a terminal, then `report` and its verdict, then the same report as the pull-request comment,
-  about 18 s at 680 px and 2x (needs ffmpeg);
+  about 18 s at 680 px and 2x, the window as tall as its content (needs ffmpeg);
 - `suite.svg`: where flightdeck sits in the suite, and `flow-data-plane.svg`, `flow-experiment.svg`,
   `flow-holdout.svg` and `paired-by-task.svg` for the guides, drawn with agent-factory's diagram conventions
   (Airframe tokens with Night fallbacks, so they follow the theme when inlined with `--8<--`), with theme-v12's
@@ -461,37 +461,37 @@ def paired_by_task() -> str:
 # `clip-{dark,light}.html` is the page, which plays its own timeline; the MP4s
 # are screenshots of it taken back to back, encoded at the time each was on screen. Night and Day differ in the page
 # and the comment (GitHub's palette); the terminal is dark in both, as Airframe's Terminal always is.
-CLIP_W, CLIP_H, CLIP_COLS = 680, 640, 71  # 71 columns of 14 px DM Mono fill the terminal at 680
+CLIP_W, CLIP_COLS = 680, 71  # 71 columns of 14 px DM Mono fill the terminal at 680; the height fits the content
 CLIP_CSS = """
-html,body{margin:0;height:100%;background:var(--af-canvas);overflow:hidden}
-.stage{position:relative;width:100vw;height:100vh}
-.scene{position:absolute;inset:0;padding:20px 20px 84px;box-sizing:border-box;transition:opacity .45s,transform .45s}
+html,body{margin:0;background:var(--af-canvas);overflow:hidden}
+.stage{position:relative;margin:20px 20px 0}
+.scene{position:absolute;inset:0;transition:opacity .45s,transform .45s}
 .scene.off{opacity:0;transform:translateY(12px)}
 .term{background:var(--af-terminal-bg);color:var(--af-terminal-fg);border-radius:var(--af-radius-card);
 border:1px solid color-mix(in srgb,var(--af-terminal-fg) 8%,transparent);font:14px/19px var(--af-font-mono);
 overflow:hidden}
-.term .bar{display:flex;gap:14px;align-items:center;padding:0 14px;height:34px;border-bottom:1px solid
-color-mix(in srgb,var(--af-terminal-fg) 9%,transparent);font:500 10.5px var(--af-font-mono);letter-spacing:.08em;
-text-transform:uppercase;color:var(--af-terminal-dim)}.term .bar b{color:var(--af-terminal-fg);font-weight:500}
+.term .bar{display:flex;gap:6px;align-items:center;padding:0 14px;height:34px;border-bottom:1px solid
+color-mix(in srgb,var(--af-terminal-fg) 9%,transparent);font:500 12.5px var(--af-font-sans);
+color:var(--af-terminal-dim)}
+.term .bar b{color:var(--af-terminal-fg);font-weight:500}
 .term pre{margin:0;padding:16px 18px;font:inherit;white-space:pre}
-.term .p{color:var(--af-brand)}.term .c,.term .v{color:var(--af-code-keyword)}.term .hide{visibility:hidden}
-.gh{height:100%;overflow:hidden;border-radius:var(--af-radius-card);border:1px solid var(--af-line)}
+.term .p{color:var(--af-brand)}.term .c,.term .v{color:var(--af-code-keyword)}
+.term .hide{visibility:hidden}
+.gh{height:100%;overflow:hidden;border-radius:var(--af-radius-card);border:1px solid var(--af-line);
+box-sizing:border-box}
 .gh .page{width:auto;padding:16px}.gh .avatar{display:none}
-.cap{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px;align-items:baseline;
-width:max-content;max-width:calc(100vw - 48px);box-sizing:border-box;padding:9px 14px;background:var(--af-raised);
-color:var(--af-fg);border:1px solid var(--af-line-strong);border-left:3px solid var(--af-brand);
-border-radius:var(--af-radius-control);box-shadow:var(--af-shadow-overlay);font:500 15px/1.35 var(--af-font-sans);
-z-index:2}.cap b{font:500 12px var(--af-font-mono);color:var(--af-brand-text);letter-spacing:.08em}
+.cap{display:flex;gap:10px;align-items:baseline;padding:14px 20px 18px;color:var(--af-fg);
+font:500 15px/1.35 var(--af-font-sans)}
+.cap b{font:500 12px var(--af-font-mono);color:var(--af-brand-text);letter-spacing:.08em}
 """
 
 
 def clip_lines(steps: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """The terminal's lines as (kind, text): `stats compare` and its table and paired difference, then `report` and
-    its verdict, wrapped at CLIP_COLS."""
+    """The terminal's lines as (kind, text): `stats compare` and its output, then `report` and its verdict, wrapped at
+    CLIP_COLS."""
     stats, report = (next(s for s in steps if s[0].startswith(p)) for p in ("flightdeck stats", "flightdeck report"))
-    keep = [p for p in stats[1].split("\n\n") if p.startswith(("VARIANT", "Paired difference"))]
     lines: list[tuple[str, str]] = []
-    for cmd, output in ((stats[0], "\n\n".join(keep)), (report[0], report[1])):
+    for cmd, output in ((stats[0], stats[1]), (report[0], report[1])):
         parts = cmd.split(" \\\n")
         lines += [("cmd" if i == 0 else "cmd2", x.strip() + (" \\" if i < len(parts) - 1 else ""))
                   for i, x in enumerate(parts)]
@@ -520,7 +520,15 @@ def clip_page(steps: list[tuple[str, str]], report: str, theme: str) -> str:
 const lines = [...document.querySelectorAll('.term .l')], cap = document.querySelector('.cap');
 const say = (n, t) => { cap.querySelector('b').textContent = n; cap.querySelector('span').textContent = t; };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-lines.forEach((l) => l.classList.add('hide'));
+function prepare() {  // the stage fits the taller scene: the finished terminal, or the comment to its Outcome table
+  const stage = document.querySelector('.stage'), gh = document.querySelector('.gh');
+  const table = document.querySelector('.gh table').getBoundingClientRect();
+  const comment = table.bottom - gh.getBoundingClientRect().top + 18;
+  stage.style.height = Math.ceil(Math.max(document.querySelector('.term').offsetHeight, comment)) + 'px';
+  lines.forEach((l) => l.classList.add('hide'));
+  say('1', 'flightdeck compares the two arms, paired by task');  // a one-line caption, as each is, for the height
+  window.clipHeight = Math.ceil(document.querySelector('.cap').getBoundingClientRect().bottom);
+}
 async function type(l, ms) { const c = l.querySelector('.c'), t = c.dataset.t; l.classList.remove('hide');
   for (let k = 0; k <= t.length; k++) { c.textContent = t.slice(0, k); if (ms) await wait(ms); } }
 async function play() {
@@ -545,12 +553,13 @@ async function play() {
   await wait(6400);
   window.clipDone = true;
 }
-document.fonts.ready.then(play);
+document.fonts.ready.then(prepare);  // the recorder sizes the window to clipHeight, then calls play()
 """
     return (f'<!doctype html><html data-theme="{theme}"><head><meta charset="utf-8">'
             f'<link rel="stylesheet" href="{FONTS}">'
             f"<style>{css}{GH_CSS}{CLIP_CSS}</style></head><body><div class=\"stage\">"
-            f'<div class="scene s1"><div class="term"><div class="bar"><b>flightdeck</b><span>fixture experiment</span>'
+            '<div class="scene s1"><div class="term"><div class="bar"><b>flightdeck</b><span>·</span>'
+            '<span>Fixture experiment</span>'
             f'</div><pre>{chr(10).join(rows)}</pre></div></div>'
             f'<div class="scene s2 off"><div class="gh" style="{gh}"><div class="page"><div class="row">'
             f'<div class="comment"><div class="head"><b>flightdeck</b> commented</div><div class="md">{body}</div>'
@@ -566,8 +575,11 @@ def record_clip(pages: dict[str, str]) -> None:
     with sync_playwright() as pw, tempfile.TemporaryDirectory() as d:
         browser = pw.chromium.launch()
         for name, page in pages.items():
-            tab = browser.new_context(device_scale_factor=2, viewport={"width": CLIP_W, "height": CLIP_H}).new_page()
+            tab = browser.new_context(device_scale_factor=2, viewport={"width": CLIP_W, "height": 900}).new_page()
             tab.set_content(page, wait_until="networkidle")
+            tab.wait_for_function("window.clipHeight > 0", timeout=30000)
+            tab.set_viewport_size({"width": CLIP_W, "height": tab.evaluate("window.clipHeight")})
+            tab.evaluate("() => { play(); }")  # not awaited: the frames are taken while it plays
             tab.wait_for_function("window.clipStarted === true", timeout=30000)
             shots: list[tuple[Path, float]] = []
             while not tab.evaluate("window.clipDone === true"):
