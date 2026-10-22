@@ -17,6 +17,9 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
   (the verdict and the Outcome table, for the README and the docs home) and the whole comment (for Reports), then
   the `.png` screenshots of them, shown at their native 816 px; `report-comment-phone-{dark,light}`: the comment's top
   (verdict, experiment, rule) in GitHub's narrow layout, 358 px wide, for screens under 600 px;
+- `clip.mp4`, `clip-light.mp4` and their `-poster.png`: the demo clip, Night and Day, from `clip-{dark,light}.html`:
+  `stats compare` in a terminal, then `report` and its verdict, then the same report as the pull-request comment,
+  about 18 s at 680 px and 2x, the window as tall as its content (needs ffmpeg);
 - `suite.svg`: where flightdeck sits in the suite, and `flow-data-plane.svg`, `flow-experiment.svg`,
   `flow-holdout.svg` and `paired-by-task.svg` for the guides, drawn with agent-factory's diagram conventions
   (Airframe tokens with Night fallbacks, so they follow the theme when inlined with `--8<--`), with theme-v12's
@@ -451,6 +454,158 @@ def paired_by_task() -> str:
 
 
 # ---------------------------------------------------------------------------------------------------- main
+# ------------------------------------------------------------------------------------------------------- the clip
+# The demo clip (KAN-75): about 20 s at 640 px and 2x, so it reads at a docs column's width and on a phone. It opens on
+# `stats compare` in a terminal (the poster is that first frame), types `report` and its verdict, then shows the same
+# report as the pull-request comment: its verdict, the experiment, the rule and the Outcome table.
+# `clip-{dark,light}.html` is the page, which plays its own timeline; the MP4s
+# are screenshots of it taken back to back, encoded at the time each was on screen. Night and Day differ in the page
+# and the comment (GitHub's palette); the terminal is dark in both, as Airframe's Terminal always is.
+CLIP_W, CLIP_COLS = 680, 71  # 71 columns of 14 px DM Mono fill the terminal at 680; the height fits the content
+CLIP_CSS = """
+html,body{margin:0;background:var(--af-canvas);overflow:hidden}
+.stage{position:relative;margin:20px 20px 0}
+.scene{position:absolute;inset:0;transition:opacity .45s,transform .45s}
+.scene.off{opacity:0;transform:translateY(12px)}
+.term{background:var(--af-terminal-bg);color:var(--af-terminal-fg);border-radius:var(--af-radius-card);
+border:1px solid color-mix(in srgb,var(--af-terminal-fg) 8%,transparent);font:14px/19px var(--af-font-mono);
+overflow:hidden}
+.term .bar{display:flex;gap:6px;align-items:center;padding:0 14px;height:34px;border-bottom:1px solid
+color-mix(in srgb,var(--af-terminal-fg) 9%,transparent);font:500 12.5px var(--af-font-sans);
+color:var(--af-terminal-dim)}
+.term .bar b{color:var(--af-terminal-fg);font-weight:500}
+.term pre{margin:0;padding:16px 18px;font:inherit;white-space:pre}
+.term .p{color:var(--af-brand)}.term .c,.term .v{color:var(--af-code-keyword)}
+.term .hide{visibility:hidden}
+.gh{height:100%;overflow:hidden;border-radius:var(--af-radius-card);border:1px solid var(--af-line);
+box-sizing:border-box}
+.gh .page{width:auto;padding:16px}.gh .avatar{display:none}
+.cap{display:flex;gap:10px;align-items:baseline;padding:14px 20px 18px;color:var(--af-fg);
+font:500 15px/1.35 var(--af-font-sans)}
+.cap b{font:500 12px var(--af-font-mono);color:var(--af-brand-text);letter-spacing:.08em}
+"""
+
+
+def clip_lines(steps: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """The terminal's lines as (kind, text): `stats compare` and its output, then `report` and its verdict, wrapped at
+    CLIP_COLS."""
+    stats, report = (next(s for s in steps if s[0].startswith(p)) for p in ("flightdeck stats", "flightdeck report"))
+    lines: list[tuple[str, str]] = []
+    for cmd, output in ((stats[0], stats[1]), (report[0], report[1])):
+        parts = cmd.split(" \\\n")
+        lines += [("cmd" if i == 0 else "cmd2", x.strip() + (" \\" if i < len(parts) - 1 else ""))
+                  for i, x in enumerate(parts)]
+        lines += [("out", x) for x in wrap(output, CLIP_COLS)] + [("out", "")]
+    return lines + [("cmd", "")]
+
+
+def clip_page(steps: list[tuple[str, str]], report: str, theme: str) -> str:
+    """The clip's page in `theme`: Airframe (the vendored stylesheet) around the terminal and GitHub's palette in the
+    comment. Its script plays the timeline and sets `window.clipDone` at the end."""
+    from markdown_it import MarkdownIt
+
+    css = (ROOT / "docs/stylesheets/airframe.css").read_text(encoding="utf-8")
+    rows = []
+    for i, (kind, text) in enumerate(clip_lines(steps)):
+        if kind.startswith("cmd"):
+            prompt = "$ " if kind == "cmd" else "> "
+            rows.append(f'<span class="l" data-i="{i}" data-k="cmd"><span class="p">{prompt}</span>'
+                        f'<span class="c" data-t="{esc(text)}">{"▌" if not text else ""}</span></span>')
+        else:
+            cls = "v" if VERDICT.match(text) else ""
+            rows.append(f'<span class="l {cls}" data-i="{i}" data-k="out">{esc(text)}</span>')
+    body = MarkdownIt("commonmark", {"html": True}).enable("table").render(report.split("\n### Process")[0])
+    gh = ";".join(f"--{k}:{v}" for k, v in GH[theme].items()) + ";--w:auto"
+    script = """
+const lines = [...document.querySelectorAll('.term .l')], cap = document.querySelector('.cap');
+const say = (n, t) => { cap.querySelector('b').textContent = n; cap.querySelector('span').textContent = t; };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+function prepare() {  // the stage fits the taller scene: the finished terminal, or the comment to its Outcome table
+  const stage = document.querySelector('.stage'), gh = document.querySelector('.gh');
+  const table = document.querySelector('.gh table').getBoundingClientRect();
+  const comment = table.bottom - gh.getBoundingClientRect().top + 18;
+  stage.style.height = Math.ceil(Math.max(document.querySelector('.term').offsetHeight, comment)) + 'px';
+  lines.forEach((l) => l.classList.add('hide'));
+  say('1', 'flightdeck compares the two arms, paired by task');  // a one-line caption, as each is, for the height
+  window.clipHeight = Math.ceil(document.querySelector('.cap').getBoundingClientRect().bottom);
+}
+async function type(l, ms) { const c = l.querySelector('.c'), t = c.dataset.t; l.classList.remove('hide');
+  for (let k = 0; k <= t.length; k++) { c.textContent = t.slice(0, k); if (ms) await wait(ms); } }
+async function play() {
+  let i = 0;
+  const block = async (typing) => {  // a command (and its continuation), then its output up to the blank line
+    while (i < lines.length && lines[i].dataset.k === 'cmd' && lines[i].querySelector('.c').dataset.t) {
+      await type(lines[i], typing); i++;
+      if (lines[i] && lines[i].dataset.k === 'cmd' && !lines[i].querySelector('.c').dataset.t) break; }
+    await wait(350);
+    while (i < lines.length && lines[i].dataset.k === 'out') { lines[i].classList.remove('hide'); i++; await wait(45); }
+  };
+  say('1', 'flightdeck compares the two arms, paired by task');
+  await block(0);  // the first command is already typed in the first frame
+  window.clipStarted = true;
+  await wait(3800);
+  say('2', 'The report ends in a verdict, by a rule fixed in advance');
+  await block(28);
+  lines[i].classList.remove('hide');
+  await wait(3600);
+  say('3', 'The same report, posted on the pull request as one comment');
+  document.querySelector('.s1').classList.add('off'); document.querySelector('.s2').classList.remove('off');
+  await wait(6400);
+  window.clipDone = true;
+}
+document.fonts.ready.then(prepare);  // the recorder sizes the window to clipHeight, then calls play()
+"""
+    return (f'<!doctype html><html data-theme="{theme}"><head><meta charset="utf-8">'
+            f'<link rel="stylesheet" href="{FONTS}">'
+            f"<style>{css}{GH_CSS}{CLIP_CSS}</style></head><body><div class=\"stage\">"
+            '<div class="scene s1"><div class="term"><div class="bar"><b>flightdeck</b><span>·</span>'
+            '<span>Fixture experiment</span>'
+            f'</div><pre>{chr(10).join(rows)}</pre></div></div>'
+            f'<div class="scene s2 off"><div class="gh" style="{gh}"><div class="page"><div class="row">'
+            f'<div class="comment"><div class="head"><b>flightdeck</b> commented</div><div class="md">{body}</div>'
+            "</div></div></div></div></div>"
+            f'</div><div class="cap"><b></b><span></span></div><script>{script}</script></body></html>\n')
+
+
+def record_clip(pages: dict[str, str]) -> None:
+    """clip.mp4 / clip-light.mp4 and their posters (the first frame) from the clip pages: {mp4 name: html}."""
+    from playwright.sync_api import sync_playwright
+
+    ffmpeg = shutil.which("ffmpeg") or sys.exit("build: the clip needs ffmpeg on PATH")
+    with sync_playwright() as pw, tempfile.TemporaryDirectory() as d:
+        browser = pw.chromium.launch()
+        for name, page in pages.items():
+            tab = browser.new_context(device_scale_factor=2, viewport={"width": CLIP_W, "height": 900}).new_page()
+            tab.set_content(page, wait_until="networkidle")
+            tab.wait_for_function("window.clipHeight > 0", timeout=30000)
+            tab.set_viewport_size({"width": CLIP_W, "height": tab.evaluate("window.clipHeight")})
+            tab.evaluate("() => { play(); }")  # not awaited: the frames are taken while it plays
+            tab.wait_for_function("window.clipStarted === true", timeout=30000)
+            shots: list[tuple[Path, float]] = []
+            while not tab.evaluate("window.clipDone === true"):
+                path = Path(d) / f"{name}-{len(shots):05d}.png"
+                tab.screenshot(path=str(path))
+                shots.append((path, tab.evaluate("performance.now()") / 1000))
+            tab.context.close()
+            seconds = shots[-1][1] - shots[0][1]
+            if not 15 <= seconds <= 25:
+                sys.exit(f"build: {name} runs {seconds:.1f} s; a clip runs 15 to 25 s")
+            listing = Path(d) / f"{name}.txt"
+            rows = []
+            for (path, t), (_, nxt) in zip(shots, [*shots[1:], (None, shots[-1][1] + 0.1)], strict=True):
+                rows += [f"file '{path}'", f"duration {max(nxt - t, 0.01):.3f}"]
+            listing.write_text("\n".join([*rows, f"file '{shots[-1][0]}'"]) + "\n", encoding="utf-8")
+            subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing),
+                            "-vf", "fps=15,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "28",
+                            "-movflags", "+faststart", str(HERE / name)], check=True)
+            shutil.copyfile(shots[0][0], HERE / name.replace(".mp4", "-poster.png"))
+            size = (HERE / name).stat().st_size
+            if size > 3_000_000:
+                sys.exit(f"build: {name} is {size} bytes; a clip stays under 3 MB")
+            print(f"build: wrote {name} ({seconds:.1f} s, {len(shots)} frames, {size // 1024} KB) and its poster")
+        browser.close()
+
+
 def shoot(pages: dict[str, tuple[str, str]]) -> None:
     """PNG per page: {png name: (html, selector)}, with Playwright's Chromium."""
     from playwright.sync_api import sync_playwright
@@ -471,7 +626,7 @@ def shoot(pages: dict[str, tuple[str, str]]) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--no-png", action="store_true", help="Skip the Playwright screenshots.")
+    ap.add_argument("--no-png", action="store_true", help="Skip the Playwright screenshots and the clip.")
     args = ap.parse_args()
     with tempfile.TemporaryDirectory() as d:
         steps = session(Path(d))
@@ -493,15 +648,18 @@ def main() -> None:
         "suite.svg": suite(), "flow-data-plane.svg": flow_data_plane(), "flow-experiment.svg": flow_experiment(),
         "flow-holdout.svg": flow_holdout(), "paired-by-task.svg": paired_by_task(),
     }
+    files.update({f"clip-{t}.html": clip_page(steps, report, t) for t in ("dark", "light")})
     pages = {f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page")
              for k in ("", "-full", "-phone") for t in ("dark", "light")}
+    clips = {"clip.mp4": files["clip-dark.html"], "clip-light.mp4": files["clip-light.html"]}
     files["sources.sha256"] = "".join(f"{hashlib.sha256(p.encode()).hexdigest()}  {n}\n"
-                                      for n, (p, _) in sorted(pages.items()))
+                                      for n, p in sorted([*((n, p) for n, (p, _) in pages.items()), *clips.items()]))
     for name, text in files.items():
         (HERE / name).write_text(text, encoding="utf-8")
         print("build: wrote", name)
     if not args.no_png:
         shoot(pages)
+        record_clip(clips)
 
 
 if __name__ == "__main__":
