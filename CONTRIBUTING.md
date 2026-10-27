@@ -130,3 +130,12 @@ no-literal rule: GitHub renders the README's images outside any stylesheet, so `
 color of the diagram as an Airframe token with its hex fallback (`var(--af-fg, #FFFFFF)`), the terminal recordings
 with Airframe's dark values as literals, and the PR-comment page with GitHub's own colors, since it shows how GitHub
 renders the report. Change colors in `build.py`, never in its output.
+
+## Releasing
+
+A release is a `vX.Y.Z` tag on main, made with the suite's checklist
+([agent-factory: Releasing](https://sean-koval.github.io/agent-factory/releases/)). In one PR, rename `## Unreleased` in
+`CHANGELOG.md` to the new version and bump `pyproject.toml`, `src/flightdeck/__init__.py` and `uv.lock` (`uv lock`).
+Once CI is green on the merge commit, push the tag: `release.yml` checks it with `scripts/release_check.py`, reruns the
+tests and publishes the GitHub release with the changelog section as its notes. Every change a user would notice adds a
+line under `## Unreleased`.

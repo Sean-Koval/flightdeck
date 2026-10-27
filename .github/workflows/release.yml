@@ -1,0 +1,56 @@
+# A v* tag on main becomes a GitHub release (KAN-145; the suite checklist: agent-factory docs/releases/).
+# The tag must match pyproject.toml and src/flightdeck/__init__.py, and CHANGELOG.md's section for it is the notes.
+# The tests run again on the tagged commit. By hand: run it for an existing tag to publish its release again.
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: An existing v* tag to publish (again)
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          fetch-depth: 0
+      - name: The tag is on main
+        run: git merge-base --is-ancestor HEAD origin/main || { echo "::error::$TAG is not on main"; exit 1; }
+      - name: The tag matches the version and the changelog
+        run: python3 scripts/release_check.py "$TAG" > notes.md
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Tests on the tagged commit
+        run: uv run --locked pytest -q
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md \
+              $([[ "$TAG" == *-* ]] && echo --prerelease)
+          fi
