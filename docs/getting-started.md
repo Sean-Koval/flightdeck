@@ -85,5 +85,6 @@ data plane ([ADR-0001](decisions/0001-boundary-with-hangar.md), [Contracts](cont
 - [Concepts](concepts.md): the five verdict words, variant, trial, check against grader.
 - [Reports](reports.md): the report's anatomy and the pre-registered rule.
 - [Running experiments](runners.md): planning and submitting trials to hangar.
+- [Share a benchmark](benchmarks.md): write tasks, tag them and have your team run them.
 - [CLI reference](cli.md): every command and flag; the dev loop is in
   [CONTRIBUTING.md](https://github.com/Sean-Koval/flightdeck/blob/main/CONTRIBUTING.md).

@@ -90,6 +90,7 @@ nav:
           - ADR checks and the nightly runner: adr-checks.md
           - Mutation scoring: mutation-scoring.md
       - Reports: reports.md
+      - Share a benchmark: benchmarks.md
   - Reference:
       - CLI: cli.md
       - Contracts: contracts.md
