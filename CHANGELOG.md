@@ -6,7 +6,7 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
-Nothing yet since v0.1.0.
+- **Docs:** a guide to creating a benchmark and sharing it with your team, with today's commands (KAN-196).
 
 ## v0.1.0: the first tagged release
 
