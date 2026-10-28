@@ -13,4 +13,6 @@ ai-dlc's MIT License beside it (LICENSE.ai-dlc). ai-dlc's evaluation contracts
 contracts/evaluation/) come from the same commit; schemas/aidlc/LICENSE.ai-dlc carries ai-dlc's MIT License.
 
 Portions may be ported from hangar (https://github.com/Sean-Koval/hangar), licensed under the Apache License,
-Version 2.0: src/flightdeck/ported/modelpolicy.py and src/flightdeck/ported/hangar_traces.py.
+Version 2.0: src/flightdeck/ported/modelpolicy.py and src/flightdeck/ported/hangar_traces.py. src/flightdeck/metrics/process.sql
+adapts hangar's evals/semver/metrics.py and classify.py (rule()) at commit 9013e81, and tests/legacy_semver.py keeps
+their logic as the test reference.

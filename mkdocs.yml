@@ -96,6 +96,7 @@ nav:
       - Contracts: contracts.md
       - Data plane: data-plane.md
       - Weekly metrics: metrics.md
+      - Process metrics: process-metrics.md
       - Statistics: statistics.md
       - Decisions:
           - "0001: Boundary with hangar": decisions/0001-boundary-with-hangar.md

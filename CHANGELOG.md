@@ -6,6 +6,8 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Data plane:** process metrics and step labels per agent run (`process_metrics`, `step_labels`), ported from
+  hangar's `evals/semver` kit onto hangar's trace columns ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-86).
 - **Docs:** a guide to creating a benchmark and sharing it with your team, with today's commands (KAN-196).
 
 ## v0.1.0: the first tagged release

@@ -1,0 +1,1275 @@
+{
+ "resourceSpans": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "hangar"
+      }
+     },
+     {
+      "key": "hangar.trace.schema",
+      "value": {
+       "stringValue": "hangar.trace/v1"
+      }
+     },
+     {
+      "key": "hangar.export.scope",
+      "value": {
+       "stringValue": "session"
+      }
+     },
+     {
+      "key": "hangar.session.id",
+      "value": {
+       "stringValue": "ses-semver"
+      }
+     },
+     {
+      "key": "hangar.environment",
+      "value": {
+       "stringValue": "bare"
+      }
+     },
+     {
+      "key": "hangar.person",
+      "value": {
+       "stringValue": "dev-a"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "hangar.trace",
+      "version": "1"
+     },
+     "spans": [
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000001",
+       "name": "invoke_agent pi",
+       "kind": 1,
+       "startTimeUnixNano": "1760300000000000000",
+       "endTimeUnixNano": "1760300412000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "turn"
+         }
+        },
+        {
+         "key": "hangar.run.id",
+         "value": {
+          "stringValue": "run-semver1"
+         }
+        },
+        {
+         "key": "hangar.turn.number",
+         "value": {
+          "intValue": "1"
+         }
+        },
+        {
+         "key": "hangar.session.id",
+         "value": {
+          "stringValue": "ses-semver"
+         }
+        },
+        {
+         "key": "hangar.harness",
+         "value": {
+          "stringValue": "pi"
+         }
+        },
+        {
+         "key": "hangar.turn.outcome",
+         "value": {
+          "stringValue": "exited"
+         }
+        },
+        {
+         "key": "gen_ai.response.model",
+         "value": {
+          "stringValue": "gemini-3.8-flash"
+         }
+        },
+        {
+         "key": "gen_ai.usage.input_tokens",
+         "value": {
+          "intValue": "182000"
+         }
+        },
+        {
+         "key": "gen_ai.usage.output_tokens",
+         "value": {
+          "intValue": "14000"
+         }
+        },
+        {
+         "key": "gen_ai.usage.cache_read.input_tokens",
+         "value": {
+          "intValue": "120000"
+         }
+        },
+        {
+         "key": "hangar.cost_source",
+         "value": {
+          "stringValue": "prices"
+         }
+        },
+        {
+         "key": "hangar.cost_usd",
+         "value": {
+          "doubleValue": 0.19
+         }
+        }
+       ],
+       "events": [
+        {
+         "timeUnixNano": "1760300410000000000",
+         "name": "test.run",
+         "attributes": [
+          {
+           "key": "test.suite.name",
+           "value": {
+            "stringValue": "bash tests/test.sh"
+           }
+          },
+          {
+           "key": "test.suite.run.status",
+           "value": {
+            "stringValue": "success"
+           }
+          },
+          {
+           "key": "hangar.test.run.kind",
+           "value": {
+            "stringValue": "grader"
+           }
+          },
+          {
+           "key": "hangar.test.run.trusted",
+           "value": {
+            "boolValue": true
+           }
+          },
+          {
+           "key": "hangar.test.total",
+           "value": {
+            "intValue": "116"
+           }
+          },
+          {
+           "key": "hangar.test.passed",
+           "value": {
+            "intValue": "116"
+           }
+          },
+          {
+           "key": "hangar.test.failed",
+           "value": {
+            "intValue": "0"
+           }
+          },
+          {
+           "key": "hangar.test.errors",
+           "value": {
+            "intValue": "0"
+           }
+          },
+          {
+           "key": "hangar.test.complete",
+           "value": {
+            "boolValue": true
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000002",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool todo_write",
+       "kind": 1,
+       "startTimeUnixNano": "1760300020000000000",
+       "endTimeUnixNano": "1760300021000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "todo_write"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "plan"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "plan: parse, compare, ranges, cli"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "1"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "2"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000003",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300040000000000",
+       "endTimeUnixNano": "1760300041000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "ls -la"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "total 0"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "3"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "4"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000004",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300060000000000",
+       "endTimeUnixNano": "1760300061000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "git status"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "On branch main"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "5"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "6"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000005",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool read",
+       "kind": 1,
+       "startTimeUnixNano": "1760300080000000000",
+       "endTimeUnixNano": "1760300081000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "read"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "read"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "/opt/hangar/harness/pi/node_modules/semver/classes/range.js"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "class Range {"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "7"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "8"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000006",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool write",
+       "kind": 1,
+       "startTimeUnixNano": "1760300100000000000",
+       "endTimeUnixNano": "1760300101000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "write"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "/workspace/semver/semver.py"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "9"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "10"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000007",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool write",
+       "kind": 1,
+       "startTimeUnixNano": "1760300120000000000",
+       "endTimeUnixNano": "1760300121000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "write"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "/workspace/semver/test_semver.py"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "11"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "12"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000008",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300140000000000",
+       "endTimeUnixNano": "1760300141000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "python3 -m unittest"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "FAILED (failures=2)"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": false
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "13"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "14"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "test"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000009",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool edit",
+       "kind": 1,
+       "startTimeUnixNano": "1760300160000000000",
+       "endTimeUnixNano": "1760300161000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "/workspace/semver/semver.py"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "15"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "16"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "000000000000000a",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300180000000000",
+       "endTimeUnixNano": "1760300181000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "python3 -m unittest"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "OK"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "17"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "18"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "test"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "000000000000000b",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300200000000000",
+       "endTimeUnixNano": "1760300201000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "python3 semver.py sort 1.10.0 1.2.0"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "1.2.0\n1.10.0"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "19"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "20"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "000000000000000c",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300220000000000",
+       "endTimeUnixNano": "1760300221000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "python3 -m unittest -v"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "Traceback (most recent call last)"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "21"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "22"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "test"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "000000000000000d",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300240000000000",
+       "endTimeUnixNano": "1760300241000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "python3 -m unittest"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "OK"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "23"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "24"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "test"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "000000000000000e",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool edit",
+       "kind": 1,
+       "startTimeUnixNano": "1760300260000000000",
+       "endTimeUnixNano": "1760300261000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "edit"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "/workspace/semver/semver.py"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "ok"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "25"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "26"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "000000000000000f",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300280000000000",
+       "endTimeUnixNano": "1760300281000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "cd /workspace/semver && python3 -m unittest"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "OK"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "27"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "28"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "test"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000010",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool grep",
+       "kind": 1,
+       "startTimeUnixNano": "1760300300000000000",
+       "endTimeUnixNano": "1760300301000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "grep"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "search"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "def satisfies"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "semver.py:88"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "29"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "30"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000011",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300320000000000",
+       "endTimeUnixNano": "1760300321000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "cat nope.txt"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": "No such file"
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": false
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "31"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "32"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+       "spanId": "0000000000000012",
+       "parentSpanId": "0000000000000001",
+       "name": "execute_tool bash",
+       "kind": 1,
+       "startTimeUnixNano": "1760300340000000000",
+       "endTimeUnixNano": "1760300341000000000",
+       "attributes": [
+        {
+         "key": "hangar.kind",
+         "value": {
+          "stringValue": "tool.call"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "bash"
+         }
+        },
+        {
+         "key": "hangar.tool.kind",
+         "value": {
+          "stringValue": "shell"
+         }
+        },
+        {
+         "key": "hangar.tool.input",
+         "value": {
+          "stringValue": "git add -A && git commit -qm 'semver'"
+         }
+        },
+        {
+         "key": "hangar.tool.output",
+         "value": {
+          "stringValue": ""
+         }
+        },
+        {
+         "key": "hangar.tool.ok",
+         "value": {
+          "boolValue": true
+         }
+        },
+        {
+         "key": "hangar.seq",
+         "value": {
+          "intValue": "33"
+         }
+        },
+        {
+         "key": "hangar.seq.end",
+         "value": {
+          "intValue": "34"
+         }
+        },
+        {
+         "key": "hangar.shell.ops",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "git.commit"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
