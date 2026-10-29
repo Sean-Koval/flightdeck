@@ -18,7 +18,8 @@ with ev as (
         min(ts) filter (where kind = 'pr.close') as closed_at,
         min(ts) filter (where kind = 'abandon') as abandoned_at,
         any_value(reason) filter (where kind = 'abandon') as abandon_reason,
-        any_value(green_to_merge_seconds) filter (where kind = 'pr.merge') as green_to_merge_s
+        any_value(green_to_merge_seconds) filter (where kind = 'pr.merge') as green_to_merge_s,
+        any_value(data) filter (where kind = 'pr.merge') as merge_data
     from job_events where source = 'job' group by job_id
 ), rn as (
     select job_id, any_value(repo) as rn_repo, any_value(person) as rn_person, count(*) as runs,
@@ -98,6 +99,33 @@ select count(*) filter (where exists (
     count(*) as n
 from scoped_jobs j join prs p on p.url = j.pr_url
 where j.merged_at >= getvariable('ws')::timestamptz - interval 14 day and j.merged_at < getvariable('we')::timestamptz - interval 14 day;
+
+-- Outcome labels of each agent PR (KAN-232), from hangar's pr.merge data (hangar docs/api/outcome-labels.md): the
+-- share of the agent's added lines the merged diff still adds, and the share of the merged diff's added lines that
+-- are not the agent's. Null when hangar recorded none (merged before it did, or `outcome_error`).
+create or replace view pr_outcomes as
+select job_id, repo, person, merged_at, pr_url, agent_added, merged_added, surviving,
+    surviving / nullif(agent_added, 0) as survival_at_merge,
+    (merged_added - surviving) / nullif(merged_added, 0) as human_edit_share,
+    json_extract_string(merge_data, '$.human_commits')::int as human_commits,
+    json_extract_string(merge_data, '$.review_rounds')::int as review_rounds
+from (select *, json_extract_string(merge_data, '$.agent_added_lines')::double as agent_added,
+          json_extract_string(merge_data, '$.merged_added_lines')::double as merged_added,
+          json_extract_string(merge_data, '$.surviving_lines')::double as surviving
+      from scoped_jobs where merged_at is not null);
+
+-- survival at merge: surviving lines / the agent's added lines, summed over agent PRs merged in the week with labels.
+-- A share of lines, not of PRs, so no interval (lines of one PR are not independent). n is the PRs.
+create or replace view weekly_survival_at_merge as
+select count(*) as n, sum(surviving) / nullif(sum(agent_added), 0) as value
+from pr_outcomes where merged_at >= getvariable('ws')::timestamptz and merged_at < getvariable('we')::timestamptz
+  and agent_added > 0;
+
+-- human-edit share: merged added lines that are not the agent's / merged added lines, over the same PRs.
+create or replace view weekly_human_edit_share as
+select count(*) as n, sum(merged_added - surviving) / nullif(sum(merged_added), 0) as value
+from pr_outcomes where merged_at >= getvariable('ws')::timestamptz and merged_at < getvariable('we')::timestamptz
+  and merged_added > 0;
 
 -- active delegators: people with at least 3 agent PRs merged in the week (value) / people with a job run that week (n).
 create or replace view weekly_active_delegators as

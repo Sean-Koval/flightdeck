@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from importlib.resources import files
 from pathlib import Path
 
 import fsspec
@@ -14,6 +15,7 @@ from typer.testing import CliRunner
 
 from flightdeck.cli import app
 from flightdeck.dataplane import compact, github
+from flightdeck.dataplane.duck import connect
 from flightdeck.metrics import weekly
 
 WEEK = "2026-W45"  # Mon 2026-11-02 .. Sun 2026-11-08
@@ -39,6 +41,11 @@ PULLS = [
 ]
 
 
+# hangar's outcome labels on a merge (KAN-232); job-7 merged with none
+LABELS1 = {"agent_added_lines": 10, "merged_added_lines": 12, "surviving_lines": 8, "survival_at_merge": 0.8,
+           "human_commits": 1, "review_rounds": 2}
+
+
 @pytest.fixture(scope="module")
 def plane(tmp_path_factory: pytest.TempPathFactory) -> str:
     root = tmp_path_factory.mktemp("week")
@@ -50,12 +57,13 @@ def plane(tmp_path_factory: pytest.TempPathFactory) -> str:
     for i, (job, day, person, kw) in enumerate(runs, 1):
         write_run(src, day, f"ses-{job}", f"run-0000000{i}", job=job, person=person, **kw)
     ev = [("job-1", "2026-11-03", "pr.open", 10, {}), ("job-1", "2026-11-03", "review.first", 12, {"by": "bob"}),
-          ("job-1", "2026-11-03", "pr.merge", 14, {"green_to_merge_seconds": 3600}),
+          ("job-1", "2026-11-03", "pr.merge", 14, {"green_to_merge_seconds": 3600, **LABELS1}),
           ("job-2", "2026-11-03", "pr.open", 10, {}), ("job-2", "2026-11-04", "review.first", 10, {}),
           ("job-2", "2026-11-04", "pr.close", 12, {}),
           ("job-3", "2026-11-04", "abandon", 15, {"reason": "flaky_env", "person": "bob"}),
           ("job-5", "2026-11-04", "abandon", 16, {"reason": "other", "run_ids": []}),  # cancelled before it started
-          ("job-6", "2026-11-05", "pr.merge", 12, {"green_to_merge_seconds": 7200}),
+          ("job-6", "2026-11-05", "pr.merge", 12, {"green_to_merge_seconds": 7200, "agent_added_lines": 10,
+                                                   "merged_added_lines": 10, "surviving_lines": 10}),
           ("job-7", "2026-11-05", "pr.merge", 13, {"green_to_merge_seconds": 10800}),
           ("job-8", "2026-10-20", "pr.merge", 12, {}), ("job-9", "2026-10-21", "pr.merge", 12, {})]
     for job, day, kind, hour, data in ev:
@@ -84,10 +92,22 @@ def test_every_metric_on_a_synthetic_week(plane: str) -> None:
     assert m["steer_rate"] == {"n": 3, "value": pytest.approx(1 / 3)}
     assert m["cost_per_merged_pr"] == {"n": 3, "value": pytest.approx(1.5)}
     assert (m["revert"]["k"], m["revert"]["n"]) == (1, 2)  # cohort: merged in 2026-W43
+    assert m["survival_at_merge"] == {"n": 2, "value": pytest.approx(18 / 20)}  # lines, pooled; job-7 has no labels
+    assert m["human_edit_share"] == {"n": 2, "value": pytest.approx(4 / 22)}
     assert m["active_delegators"] == {"value": 1, "n": 2}
     assert m["infra_errors"] == {"value": 1}
     lo, hi = m["yield"]["ci95"]
     assert lo < 0.6 < hi
+
+
+def test_pr_outcomes_per_agent_pr(plane: str) -> None:
+    con = connect(plane)
+    con.execute(files("flightdeck.metrics").joinpath("weekly.sql").read_text(encoding="utf-8"))
+    for name in ("person", "repo"):
+        con.execute(f"set variable {name} = ?", [None])
+    rows = con.sql("select job_id, survival_at_merge, human_edit_share, human_commits, review_rounds from pr_outcomes"
+                   " where job_id in ('job-1', 'job-7') order by 1").fetchall()
+    assert rows == [("job-1", 0.8, pytest.approx(4 / 12), 1, 2), ("job-7", None, None, None, None)]
 
 
 def test_person_and_repo_scope(plane: str) -> None:
@@ -102,6 +122,7 @@ def test_cli_writes_latest_json_valid_against_the_schema(plane: str, tmp_path: P
     assert out.exit_code == 0, out.output
     assert "60% (23%-88%, 3/5)" in out.output  # under 20 observations: the interval, not only the point estimate
     assert "2026-W42 | 2026-W43 | 2026-W44 | 2026-W45" in out.output
+    assert "| 90% (n=2) |" in out.output and "| 18% (n=2) |" in out.output  # survival, human-edit share
     latest = json.loads((tmp_path / "weekly" / "latest.json").read_text())
     jsonschema.Draft202012Validator(json.loads(SCHEMA.read_text())).validate(latest)
     assert (tmp_path / "weekly" / f"{WEEK}.md").read_text() == out.output.rstrip("\n") + "\n"
