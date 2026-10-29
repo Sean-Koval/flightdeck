@@ -25,16 +25,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Sealing an attempt's evidence: credential redaction and the evidence manifest.
+"""Sealing an attempt's evidence: the evidence manifest.
 
-Changes from ai-dlc: `redact` is run.py's `_redact` and `manifest_of` is report.py's, moved here unchanged; ai-dlc's
-report rebuild, which re-checks the manifest, is not ported (flightdeck's report reads the data plane).
+Changes from ai-dlc: `manifest_of` is report.py's, moved here unchanged; ai-dlc's report rebuild, which re-checks the
+manifest, is not ported (flightdeck's report reads the data plane). run.py's `_redact` was ported too and removed with
+the real-client path (KAN-93): a deterministic trial is given no credential to redact.
 """
 
 from __future__ import annotations
 
 import hashlib
-import os
 from pathlib import Path
 
 MANIFEST = "manifest.json"
@@ -46,26 +46,3 @@ def manifest_of(run_dir: Path) -> dict[str, str]:
         for p in sorted(run_dir.rglob("*"))
         if p.is_file() and p.name != MANIFEST
     }
-
-
-def redact(run_dir: Path, result: dict, names: list[str]) -> None:
-    """Remove profile-named credential values from retained evidence and fail the attempt.
-
-    Values shorter than eight characters are ignored to avoid shredding ordinary text.
-    """
-    found = []
-    for name in names:
-        value = os.environ.get(name, "").encode()
-        if len(value) < 8:
-            continue
-        for path in sorted(p for p in run_dir.rglob("*") if p.is_file()):
-            data = path.read_bytes()
-            if value in data:
-                path.write_bytes(data.replace(value, f"[REDACTED:{name}]".encode()))
-                found.append(f"{name} in {path.relative_to(run_dir).as_posix()}")
-    if found:
-        result.update(
-            outcome="incomplete",
-            stage="redaction",
-            detail="credential value found in evidence and redacted: " + ", ".join(found),
-        )

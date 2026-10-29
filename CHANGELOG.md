@@ -8,6 +8,10 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 - **Data plane:** process metrics and step labels per agent run (`process_metrics`, `step_labels`), ported from
   hangar's `evals/semver` kit onto hangar's trace columns ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-86).
+- **Local backend:** runs only the `deterministic` driver. The unqualified `claude-code@<version>` driver is removed,
+  with its run budget, egress proxy and `ANTHROPIC_API_KEY`; model trials run on hangar (KAN-93).
+- **Tasks:** `schemas/aidlc/` keeps only `scenario.schema.json`; ai-dlc's profile, event, report and base-image
+  contracts, which nothing read, are removed (KAN-93).
 - **Docs:** a guide to creating a benchmark and sharing it with your team, with today's commands (KAN-196).
 
 ## v0.1.0: the first tagged release

@@ -6,13 +6,14 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 Portions of this software may be ported from ai-dlc (https://github.com/Sean-Koval/ai-dlc), licensed under the
 MIT License. Ported files live under src/flightdeck/ported/ and keep ai-dlc's copyright and MIT permission notice
 in their headers, as the MIT License requires. The local Docker runner in src/flightdeck/ported/aidlc/ is ported
-from ai-dlc's src/ai_dlc/verification/evaluation/ and src/ai_dlc/verification/test_proxy.py at commit f5be4f4; the
-csv-validator fixture in tasks/fixtures/csv-validator/ comes from ai-dlc's evaluations/ at the same commit, with
+from ai-dlc's src/ai_dlc/verification/evaluation/ at commit f5be4f4 (attempt.py, drivers.py, git_observer.py,
+evidence.py); the csv-validator fixture in tasks/fixtures/csv-validator/ comes from ai-dlc's evaluations/ at the same commit, with
 ai-dlc's MIT License beside it (LICENSE.ai-dlc). ai-dlc's evaluation contracts
-(src/flightdeck/ported/aidlc/contracts.py, planning.py) and their JSON Schemas (schemas/aidlc/, from ai-dlc's
-contracts/evaluation/) come from the same commit; schemas/aidlc/LICENSE.ai-dlc carries ai-dlc's MIT License.
+(src/flightdeck/ported/aidlc/contracts.py, planning.py) and the scenario's JSON Schema
+(schemas/aidlc/scenario.schema.json, from ai-dlc's contracts/evaluation/) come from the same commit; schemas/aidlc/LICENSE.ai-dlc carries ai-dlc's MIT License.
 
 Portions may be ported from hangar (https://github.com/Sean-Koval/hangar), licensed under the Apache License,
-Version 2.0: src/flightdeck/ported/modelpolicy.py and src/flightdeck/ported/hangar_traces.py. src/flightdeck/metrics/process.sql
+Version 2.0: src/flightdeck/ported/modelpolicy.py, src/flightdeck/ported/hangar_traces.py and
+src/flightdeck/ported/tails.py. src/flightdeck/metrics/process.sql
 adapts hangar's evals/semver/metrics.py and classify.py (rule()) at commit 9013e81, and tests/legacy_semver.py keeps
 their logic as the test reference.

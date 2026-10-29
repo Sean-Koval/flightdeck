@@ -105,3 +105,4 @@ nav:
           - "0004: The local runner's budget": decisions/0004-local-runner-budget.md
           - "0005: The post-v0 budget": decisions/0005-post-v0-budget.md
           - "0006: Holdout custody": decisions/0006-holdout-custody.md
+          - "0008: Cleanup after the ports": decisions/0008-cleanup-after-the-ports.md

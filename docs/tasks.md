@@ -152,8 +152,8 @@ It was converted by hand; `flightdeck task import-aidlc` (below) now does the sa
 
 ## Importing ai-dlc scenarios
 
-ai-dlc's evaluation contracts moved here (#17): `src/flightdeck/ported/aidlc/contracts.py` (`Scenario`, `Assertion`,
-`ArmReport`, ...) and their JSON Schemas in `schemas/aidlc/`, from ai-dlc's handoff commit `f5be4f4`.
+ai-dlc's scenario contract moved here (#17): `src/flightdeck/ported/aidlc/contracts.py` (`Suite`, `Scenario`,
+`Assertion`) and its JSON Schema, `schemas/aidlc/scenario.schema.json`, from ai-dlc's handoff commit `f5be4f4`.
 
 ```sh
 flightdeck task import-aidlc evaluations/suites/smoke.json --out tasks/imported/smoke

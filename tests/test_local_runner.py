@@ -4,11 +4,8 @@ out. The Docker boundary is faked except in the tests at the end, which skip wit
 import io
 import json
 import shutil
-import socket
-import socketserver
 import subprocess
 import tarfile
-import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -18,7 +15,7 @@ from typer.testing import CliRunner
 from flightdeck.cli import app
 from flightdeck.dataplane import ingest
 from flightdeck.dataplane.duck import connect
-from flightdeck.ported.aidlc import attempt, budgets, drivers, test_proxy
+from flightdeck.ported.aidlc import attempt, drivers
 from flightdeck.runners import local
 from flightdeck.runners.hangar import RunnerError, TrialPlan
 from flightdeck.specs import lang
@@ -151,28 +148,10 @@ def test_missing_docker_is_infrastructure_with_no_host_fallback(tmp_path: Path, 
     assert (result["outcome"], result["stage"]) == ("infrastructure", "provision") and "Docker" in result["detail"]
 
 
-def test_egress_goes_only_through_the_pinned_proxy_given_as_text(tmp_path: Path, fake: FakeDocker) -> None:
-    with pytest.raises(ValueError, match="pinned"):
-        run(tmp_path, egress={"hosts": ["api.anthropic.com"], "proxy_image": "python:3"})
-    run(tmp_path, egress={"hosts": ["api.anthropic.com"], "proxy_image": IMAGE})
-    proxy = next(c for c in fake.calls if fake.verb(c) == "run")
-    assert proxy[-1] == (Path(attempt.__file__).parent / "test_proxy.py").read_text()
-    assert "--env=ALLOW_HOSTS=api.anthropic.com" in proxy and "--cap-drop=ALL" in proxy
+def test_every_attempt_runs_without_a_network(tmp_path: Path, fake: FakeDocker) -> None:
+    run(tmp_path)
     create = next(c for c in fake.calls if c[0] == "create")
-    assert "--network=none" not in create and any(p.endswith("-int") for p in create if p.startswith("--network="))
-
-
-def test_the_proxy_logs_each_decision_as_one_json_line(monkeypatch, capsys) -> None:
-    monkeypatch.setenv("ALLOW_HOSTS", "api.anthropic.com")
-    with socketserver.ThreadingTCPServer(("127.0.0.1", 0), test_proxy.Handler) as server:
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        host, port = server.server_address[:2]
-        with socket.create_connection((str(host), int(port)), timeout=5) as client:
-            client.sendall(b"CONNECT pypi.org:443 HTTP/1.1\r\n\r\n")
-            assert b"403" in client.recv(200)
-        server.shutdown()
-    assert [json.loads(x) for x in capsys.readouterr().out.splitlines()] == [
-        {"allowed": False, "host": "pypi.org", "port": 443}]
+    assert "--network=none" in create and not any(fake.verb(c) == "network" for c in fake.calls)
 
 
 # ---------------------------------------------------------------------------------------------------- tasks
@@ -200,37 +179,25 @@ def test_sealed_and_mined_tasks_are_refused_before_anything_runs(tmp_path: Path,
         local.LocalDockerBackend(None)
 
 
-def test_drivers_come_from_the_variant_and_the_task_solution(monkeypatch) -> None:
-    oracle, client = local.pick_driver(load_task(SMOKE / "semver"), "o", {"harness": "deterministic"})
-    assert client is None and oracle.steps({})[-1] == ["bash", f"{local.SOLUTION}/solve.sh"]
+def test_drivers_come_from_the_variant_and_the_task_solution() -> None:
+    oracle = local.pick_driver(load_task(SMOKE / "semver"), "o", {"harness": "deterministic"})
+    assert oracle.steps({})[-1] == ["bash", f"{local.SOLUTION}/solve.sh"]
     assert oracle.steps({})[0][:3] == ["python", "-c", drivers.WRITER]
-    scripted, _ = local.pick_driver(load_task(FIXTURES / "csv-validator"), "o", {"harness": "deterministic"})
+    scripted = local.pick_driver(load_task(FIXTURES / "csv-validator"), "o", {"harness": "deterministic"})
     assert [s[0] for s in scripted.steps({})[1:]] == ["python", "git", "git"]
-    real, client = local.pick_driver(load_task(SMOKE / "semver"), "c", {"harness": "claude-code@2.1.296",
-                                                                         "model": "claude-opus-5-5"})
-    assert isinstance(real, drivers.ClaudeCode) and real.install({}) == [] and client == {
-        "kind": "claude-code", "version": "2.1.296", "model": "claude-opus-5-5"}
-    for v in ({"harness": "claude-code"}, {"harness": "codex@1"}):
-        with pytest.raises(RunnerError, match="the local backend runs"):
+    for v in ({"harness": "claude-code", "model": "claude-opus-5-5"}, {"harness": "claude-code@2.1.296"},
+              {"harness": "codex@1"}):
+        with pytest.raises(RunnerError, match="runs only `deterministic`.*model trials run on hangar"):
             local.pick_driver(load_task(SMOKE / "semver"), "x", v)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    plan = TrialPlan("s", [load_task(SMOKE / "semver")], {"c": {"harness": "claude-code@2.1.296",
-                                                                 "model": "claude-opus-5-5"}}, environment="b")
-    with pytest.raises(RunnerError, match="ANTHROPIC_API_KEY"):
-        local.LocalDockerBackend("/nonexistent").submit(plan)
-    plan.variants["c"]["model"] = "opus"
-    with pytest.raises(RunnerError, match="concrete model"):
-        local.LocalDockerBackend("/nonexistent").submit(plan)
 
 
 # ---------------------------------------------------------------------------------------------------- rows
-def _trial(d: Path, steps: list[dict], outcome: str = "completed", git: str = "available", client=None) -> Path:
+def _trial(d: Path, steps: list[dict], outcome: str = "completed", git: str = "available") -> Path:
     (d / "steps").mkdir(parents=True)
     (d / "grading").mkdir()
-    planned = {**PLANNED, **({"client": client} if client else {})}
-    (d / "inputs.json").write_text(json.dumps({"planned": planned}))
+    (d / "inputs.json").write_text(json.dumps({"planned": PLANNED}))
     (d / "attempt.json").write_text(json.dumps({"outcome": outcome, "stage": "provision" if outcome != "completed"
-                                                else None, "detail": "x", "git_anchor": ANCHOR, "client": None}))
+                                                else None, "detail": "x", "git_anchor": ANCHOR}))
     for i, s in enumerate(steps, 1):
         (d / "steps" / f"{i:02d}.json").write_text(json.dumps(
             {"stdout": "", "stderr": "", "exit_code": 0, "commits": [], "start_ns": 10 * i, "end_ns": 10 * i + 5, **s}))
@@ -280,27 +247,6 @@ def test_rows_carry_hangar_columns_and_tests_before_commit_evaluates(tmp_path: P
     assert infra["infra_reason"] == "provision: x"
 
 
-def test_a_models_test_commands_are_spans_never_trusted_test_runs(tmp_path: Path) -> None:
-    client = {"kind": "claude-code", "version": "2.1.296", "model": "claude-opus-5-5"}
-    stream = "\n".join(json.dumps(e) for e in [
-        {"type": "assistant", "message": {"content": [
-            {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "pytest -q && git commit -m x"}},
-            {"type": "tool_use", "id": "t2", "name": "Edit", "input": {"file_path": "/workspace/csv/a.py"}},
-            {"type": "tool_use", "id": "t3", "name": "mcp__docs__search", "input": {"query": "csv"}}]}},
-        {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1", "is_error": True}]}},
-        {"type": "assistant", "message": {"content": [
-            {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "pytest -q && git commit -m x"}}]}},
-    ])
-    session = {"command": ["claude", "-p", "--output-format", "stream-json"], "stdout": stream}
-    out = local.rows("local-rs", _trial(tmp_path / "a", [session, COMMIT], client=client), "csv", "cc", 1)
-    tools = [(s["tool_name"], s["tool_kind"], s["shell_ops"], s["tool_ok"], s["file_repo_path"])
-             for s in out["spans"][1:]]
-    assert tools[:3] == [("Bash", "shell", ["test", "git.commit"], False, None), ("Edit", "edit", None, None, "a.py"),
-                         ("mcp__docs__search", "mcp", None, None, None)]
-    assert out["test_cases"] == [] and out["runs"][0]["harness"] == "claude-code"
-    assert _spec(out) == "fail"  # a commit and no trusted test run before it
-
-
 def test_totals_read_unittest_and_pytest_summaries() -> None:
     assert local.totals("Ran 5 tests in 0.1s\n\nFAILED (failures=1, errors=1)") == {
         "total": 5, "passed": 3, "failed": 1, "errors": 1, "skipped": 0, "complete": True}
@@ -326,35 +272,6 @@ def test_collect_and_status_rebuild_the_run_set_from_its_evidence(tmp_path: Path
 
 
 # ---------------------------------------------------------------------------------------------------- ported pieces
-STREAM = Path(__file__).resolve().parent / "fixtures" / "local" / "claude-code-2.1.220.jsonl"
-CLIENT = {"kind": "claude-code", "version": "2.1.220", "model": "claude-sonnet-4-6"}
-
-
-def test_claude_stream_meters_the_native_result_and_refuses_damaged_identity() -> None:
-    # Stale on purpose (2.1.220, before hangar's pinned 2.1.296): it checks the parser, not today's stream shape
-    parsed = drivers.parse_claude_stream(STREAM.read_bytes(), CLIENT)
-    assert parsed["complete"] and parsed["usage"]["total_tokens"] == sum(
-        parsed["usage"][k] for k in drivers.TOKEN_FIELDS)
-    events = [json.loads(x) for x in STREAM.read_bytes().splitlines()]
-    events[0]["model"] = "claude-opus-5-5"
-    with pytest.raises(ValueError, match="malformed"):
-        drivers.parse_claude_stream(b"\n".join(json.dumps(e).encode() for e in events), CLIENT)
-    with pytest.raises(ValueError, match="malformed"):
-        drivers.parse_claude_stream(STREAM.read_bytes()[:-40], CLIENT)
-
-
-def test_run_budget_refuses_past_the_worst_observed_usage() -> None:
-    planned = {"scenario": "s", "arm": "a", "attempt": 1, "limits": {"max_spend_usd": 2}}
-    assert budgets.RunBudget({"max_tokens": 10, "max_spend_usd": 0}).decision(planned)["limit"] == "max_spend_usd"
-    ledger = budgets.RunBudget({"max_tokens": 100, "max_spend_usd": 3})
-    assert ledger.decision(planned)["start"]
-    ledger.observe({"usage": {"total_tokens": 60, "cost_usd": 1.5}})
-    assert ledger.decision(planned)["limit"] == "max_tokens"  # 40 left < 60 seen
-    ledger.observe(None)
-    assert ledger.decision(planned)["limit"] == "unknown-usage"
-    assert budgets.refused_attempt(ledger.decision(planned))["outcome"] == "not-started"
-
-
 def _git(repo: Path, *args: str) -> str:
     env = {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null", "PATH": "/usr/bin:/bin"}
     return subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@e.invalid", *args],
@@ -379,8 +296,6 @@ def test_git_observer_reads_only_post_anchor_history_and_dirty_paths(tmp_path: P
     seen = go.retain_git_observation(tmp_path, expected_anchor=anchor)
     assert seen["status"] == "available" and [c["paths"] for c in seen["commits"]] == [[], ["a.py"]]
     assert seen["dirty_paths"] == ["a.py"]
-    assert go.evaluate_git_assertion(tmp_path, "path-committed", path="a.py", before=None, after=None)[0] == "fail"
-    assert go.evaluate_git_assertion(tmp_path, "commit-present", path=None, before=None, after=None)[0] == "pass"
     assert go.retain_git_observation(tmp_path, expected_anchor="3" * 40)["status"] == "unavailable"
 
 

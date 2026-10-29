@@ -664,4 +664,3 @@ Besides the options' environment variables above, flightdeck reads these directl
 | `GITHUB_TOKEN` | `report post` and `report experiment --post` (`issues:write` / `pull_requests:write`; `gist` for `--gist`), and `ingest github` (read-only). |
 | `GITHUB_API_URL` | GitHub API root for posting reports (default `https://api.github.com`). |
 | `FLIGHTDECK_AUTHOR` | Also read by `mutate run`, whose cost gate charges that author's sub-cap. |
-| `ANTHROPIC_API_KEY` | Local backend only, for a real-model `claude-code@<version>` trial (an API key, never a subscription login); never used in CI. |
