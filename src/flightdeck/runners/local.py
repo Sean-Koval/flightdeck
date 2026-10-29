@@ -3,17 +3,15 @@
 ai-dlc's attempt runner (`flightdeck.ported.aidlc`) does the isolation. This module maps flightdeck's model onto it: a
 task directory in (its environment built to an image id, its tests kept on the controller and run on the collected
 tree), `flightdeck.parquet/v1` rows out with `source=local` (runs, grades, spans, events, test_cases), so stats, reports
-and specs read a local run set like a hangar experiment. Team tasks (sealed or mined) run on hangar, where credentials
-and egress policy live.
+and specs read a local run set like a hangar experiment. Only the deterministic driver runs here: no model, no
+credentials, no network. Model trials and team tasks (sealed or mined) run on hangar.
 """
 
 from __future__ import annotations
 
-import dataclasses
 import hashlib
 import io
 import json
-import os
 import re
 import shlex
 import subprocess
@@ -26,17 +24,14 @@ from pathlib import Path
 from typing import Any
 
 from flightdeck.dataplane import ingest
-from flightdeck.ported.aidlc import attempt, budgets, drivers, evidence, git_observer
-from flightdeck.ported.hangar_traces import shell_ops, tool_kind
+from flightdeck.ported.aidlc import attempt, drivers, evidence, git_observer
+from flightdeck.ported.hangar_traces import shell_ops
 from flightdeck.runners import cache
-from flightdeck.runners.hangar import RunnerError, RunSetStatus, TrialPlan, check_models
+from flightdeck.runners.hangar import RunnerError, RunSetStatus, TrialPlan
 from flightdeck.tasks.format import DEFAULT_COMMAND, Task
 
-CREDENTIALS = ["ANTHROPIC_API_KEY"]  # the only secret a local trial may use: real-model runs, never in CI
 SOLUTION = "/tmp/flightdeck-solution"
-OUTCOMES = {"completed": ("succeeded", None), "infrastructure": ("failed", "infra_error"),
-            "not-started": ("cancelled", "cancelled")}  # else failed: incomplete, unavailable
-INPUT_KEYS = ("command", "file_path", "path", "pattern", "url", "query")
+OUTCOMES = {"completed": ("succeeded", None), "infrastructure": ("failed", "infra_error")}  # else failed
 Row = dict[str, Any]
 
 
@@ -46,20 +41,17 @@ def refusal(task: Task) -> str | None:
     return None
 
 
-def pick_driver(task: Task, name: str, v: dict[str, Any]) -> tuple[drivers.Driver, dict[str, Any] | None]:
-    """The variant's driver: `deterministic` (the task's solution, no model) or `claude-code@<version>`."""
-    harness, _, version = str(v.get("harness") or "").partition("@")
+def pick_driver(task: Task, name: str, v: dict[str, Any]) -> drivers.Deterministic:
+    """The variant's driver: `deterministic`, the task's solution with no model."""
     sol = task.path / "solution"
-    if harness == "deterministic" and (sol / "deterministic.json").is_file():
-        return drivers.Deterministic(sol, json.loads((sol / "deterministic.json").read_text(encoding="utf-8"))), None
-    if harness == "deterministic" and (sol / "solve.sh").is_file():  # Harbor's oracle: copy solution/ in, run it
+    if v.get("harness") == "deterministic" and (sol / "deterministic.json").is_file():
+        return drivers.Deterministic(sol, json.loads((sol / "deterministic.json").read_text(encoding="utf-8")))
+    if v.get("harness") == "deterministic" and (sol / "solve.sh").is_file():  # Harbor's oracle: copy solution/ in
         files = [p.relative_to(sol).as_posix() for p in sorted(sol.rglob("*")) if p.is_file()]
         steps = [*({"write": f"{SOLUTION}/{f}", "from": f} for f in files), ["bash", f"{SOLUTION}/solve.sh"]]
-        return drivers.Deterministic(sol, {"steps": steps}), None
-    if harness == "claude-code" and version:
-        return drivers.ClaudeCode(), {"kind": harness, "version": version, "model": v.get("model")}
-    raise RunnerError(f"variant {name}, task {task.id}: the local backend runs `deterministic` (needs "
-                      "solution/solve.sh or solution/deterministic.json) or `claude-code@<version>`")
+        return drivers.Deterministic(sol, {"steps": steps})
+    raise RunnerError(f"variant {name}, task {task.id}: the local backend runs only `deterministic` (needs "
+                      "solution/solve.sh or solution/deterministic.json); model trials run on hangar")
 
 
 def build(task: Task) -> tuple[str, str]:
@@ -118,58 +110,32 @@ class LocalDockerBackend:
         if refused := [r for t in plan.tasks if (r := refusal(t))]:
             raise RunnerError("\n".join(refused))
         picked = {(t.id, k): pick_driver(t, k, v) for t in plan.tasks for k, v in plan.variants.items()}
-        real = {k: v for k, v in plan.variants.items() if not str(v.get("harness")).startswith("deterministic")}
-        if real:
-            check_models(dataclasses.replace(plan, variants=real))
-            if not all(os.environ.get(c) for c in CREDENTIALS):
-                raise RunnerError(f"claude-code variants need {', '.join(CREDENTIALS)} (an API key, never a login)")
         run_set = f"local-{plan.suite}-{plan.suite_run}-{uuid.uuid4().hex[:6]}"
         root = Path(self.out) / "raw" / run_set
         root.mkdir(parents=True)
         (root / "plan.json").write_text(json.dumps({"suite": plan.suite, "tasks": [t.id for t in plan.tasks],
                                                     "variants": plan.variants, "n": plan.n, **cache.digests(plan)},
                                                    indent=1))
-        ledger = budgets.RunBudget({"max_tokens": 2**53 - 1, "max_spend_usd": plan.budget_usd or 0})
         for task in plan.tasks:
             image, wd = build(task)
             for name in plan.variants:
-                driver, client = picked[task.id, name]
                 for n in range(1, plan.n + 1):
-                    self.trial(task, image, wd, name, n, driver, client, ledger, plan.trial_budget_usd or 2.0,
-                               root / task.id / name / str(n))
+                    self.trial(task, image, wd, name, n, picked[task.id, name], root / task.id / name / str(n))
         self.collect(run_set)
         return run_set
 
-    def trial(self, task: Task, image: str, wd: str, variant: str, n: int, driver: drivers.Driver,
-              client: dict | None, ledger: budgets.RunBudget, spend: float, d: Path) -> None:
+    def trial(self, task: Task, image: str, wd: str, variant: str, n: int, driver: drivers.Deterministic,
+              d: Path) -> None:
         timeout = float((task.config.get("agent") or {}).get("timeout_sec") or 1800)
         planned = {"scenario": task.id, "arm": variant, "attempt": n, "image": image, "workdir": wd,
                    "limits": {"timeout_minutes": timeout / 60}}
-        decision = None
-        if client:
-            planned.update(client=client, goal=task.instruction)
-            planned["limits"].update(max_turns=int(task.flightdeck.get("max_turns", 50)), max_spend_usd=spend)
-            decision = ledger.decision(planned)
-            d.mkdir(parents=True)
-            (d / budgets.RECEIPT).write_text(json.dumps(decision, indent=1, sort_keys=True))
-            planned["limits"]["max_spend_usd"] = decision["max_spend_usd"]
-        if decision and not decision["start"]:
-            result = budgets.refused_attempt(decision)
-        else:
-            egress = {"hosts": ["api.anthropic.com"], "proxy_image": image} if client else None
-            result = attempt.run_attempt(planned, run_dir=d, fixture=None, steps=driver.steps(planned),
-                                         install=driver.install(planned), cancel=self.cancel, egress=egress,
-                                         driver=driver)
-            if (d / "tree" / "project").is_dir():
-                grade(task, image, d)
-            git_observer.retain_git_observation(d, expected_anchor=result.get("git_anchor"))
-        names = CREDENTIALS if client else []
-        evidence.redact(d, result, names)
+        result = attempt.run_attempt(planned, run_dir=d, fixture=None, steps=driver.steps(planned),
+                                     install=driver.install(planned), cancel=self.cancel, driver=driver)
+        if (d / "tree" / "project").is_dir():
+            grade(task, image, d)
+        git_observer.retain_git_observation(d, expected_anchor=result.get("git_anchor"))
         (d / "attempt.json").write_text(json.dumps(result, indent=1, sort_keys=True))
-        evidence.redact(d, {}, names)  # the record just written is evidence too
         (d / evidence.MANIFEST).write_text(json.dumps(evidence.manifest_of(d), indent=1, sort_keys=True))
-        if decision and decision["start"]:
-            ledger.observe(result.get("client") if result.get("stage") != "redaction" else None)
 
     def status(self, run_set: str) -> RunSetStatus:
         root = Path(self.out) / "raw" / run_set
@@ -212,49 +178,21 @@ def totals(text: str) -> dict[str, Any]:
             "errors": c.get("error", 0), "skipped": c.get("skipped", 0), "complete": True} if c else {"complete": False}
 
 
-def stream_calls(text: str, wd: str) -> list[tuple[str, str, str, bool | None, str | None]]:
-    """A Claude Code stream-json session's tool calls: (name, tool_kind, input summary, ok, repo path)."""
-    uses: dict[str, dict] = {}
-    ok: dict[str, bool] = {}
-    for line in text.splitlines():
-        try:
-            e = json.loads(line)
-        except ValueError:
-            continue
-        content = (e.get("message") or {}).get("content") if isinstance(e, dict) else None
-        for c in content if isinstance(content, list) else []:
-            if isinstance(c, dict) and c.get("type") == "tool_use" and e.get("type") == "assistant":
-                uses.setdefault(str(c.get("id")), c)
-            elif isinstance(c, dict) and c.get("type") == "tool_result":
-                ok[str(c.get("tool_use_id"))] = not c.get("is_error")
-    out = []
-    for uid, u in uses.items():
-        inp = u["input"] if isinstance(u.get("input"), dict) else {}
-        p = str(inp.get("file_path") or "")
-        path = p[len(wd) + 1:] if p.startswith(wd + "/") else (p or None) if not p.startswith("/") else None
-        summary = next((str(inp[k]) for k in INPUT_KEYS if k in inp), json.dumps(inp))
-        out.append((str(u.get("name")), tool_kind(u.get("name")), summary[:2000], ok.get(uid), path))
-    return out
-
-
-def calls(step: dict, client: dict | None, wd: str) -> list[tuple[str, str, str, bool | None, str | None]]:
-    """A step's tool calls: the model's own, from its stream, for a session step; else the command itself."""
+def call(step: dict) -> tuple[str, str, str, bool, str | None]:
+    """A step's command as one tool call: a file write is an edit, anything else a shell command."""
     cmd, ok = step["command"], step["exit_code"] == 0
-    if client and cmd[:2] == ["claude", "-p"]:
-        return stream_calls(step["stdout"], wd)
     if cmd[1:3] == ["-c", drivers.WRITER]:
-        return [("Write", "edit", f"write {cmd[3]}", ok, None if cmd[3].startswith("/") else cmd[3])]
+        return "Write", "edit", f"write {cmd[3]}", ok, None if cmd[3].startswith("/") else cmd[3]
     text = cmd[2] if len(cmd) == 3 and cmd[:2] in (["sh", "-c"], ["bash", "-c"]) else shlex.join(cmd)
-    return [("exec", "shell", text[:2000], ok, None)]
+    return "exec", "shell", text[:2000], ok, None
 
 
 def rows(run_set: str, d: Path, task: str, variant: str, n: int) -> dict[str, list[Row]]:
     """One trial's evidence as data-plane rows. Test runs come only from commands the controller ran for a
-    deterministic driver (trusted: the agent can't write them); a model's transcript is never test evidence."""
+    deterministic driver (trusted: the agent can't write them)."""
     a = json.loads((d / "attempt.json").read_text())
-    planned = json.loads((d / "inputs.json").read_text())["planned"] if (d / "inputs.json").is_file() else {}
     load = lambda p: json.loads((d / p).read_text()) if (d / p).is_file() else {}  # noqa: E731
-    git, graded, client = load("grading/git.json"), load("grading/hidden-tests.json"), planned.get("client")
+    git, graded = load("grading/git.json"), load("grading/hidden-tests.json")
     steps = [json.loads(p.read_text()) for p in sorted((d / "steps").glob("*.json"))]
     end = (d / "attempt.json").stat().st_mtime_ns
     t0 = steps[0]["start_ns"] if steps else end
@@ -270,19 +208,17 @@ def rows(run_set: str, d: Path, task: str, variant: str, n: int) -> dict[str, li
     commits = [c for c in git.get("commits") or [] if not c.get("anchor")] if git.get("status") == "available" else []
     real, placed, seq = [c["hash"] for c in commits], set(), 0
     for s in steps:
-        ops: list[str] = []
-        for name, kind, inp, ok, path in calls(s, client, planned.get("workdir") or attempt.WORKDIR):
-            seq += 1
-            sops = shell_ops(inp) if kind == "shell" else []
-            ops += sops
-            spans.append({**span, "span_id": sid(seq), "parent_span_id": sid(0), "kind": "tool.call",
-                          "name": f"execute_tool {name}", "start_ns": s["start_ns"], "end_ns": s["end_ns"], "seq": seq,
-                          "tool_kind": kind, "tool_name": name, "tool_input": inp, "tool_ok": ok,
-                          "shell_ops": sops or None, "file_repo_path": path})
-            if not client and "test" in sops:
-                tests.append({**base, "trace_id": trace, "test_run_id": sid(seq), "status": "pass" if ok else "fail",
-                              "run_kind": "local.controller", "trusted": True, "exit_code": s["exit_code"],
-                              "time_ns": s["end_ns"], **totals(s["stdout"] + "\n" + s["stderr"])})
+        name, kind, inp, ok, path = call(s)
+        seq += 1
+        ops = shell_ops(inp) if kind == "shell" else []
+        spans.append({**span, "span_id": sid(seq), "parent_span_id": sid(0), "kind": "tool.call",
+                      "name": f"execute_tool {name}", "start_ns": s["start_ns"], "end_ns": s["end_ns"], "seq": seq,
+                      "tool_kind": kind, "tool_name": name, "tool_input": inp, "tool_ok": ok,
+                      "shell_ops": ops or None, "file_repo_path": path})
+        if "test" in ops:
+            tests.append({**base, "trace_id": trace, "test_run_id": sid(seq), "status": "pass" if ok else "fail",
+                          "run_kind": "local.controller", "trusted": True, "exit_code": s["exit_code"],
+                          "time_ns": s["end_ns"], **totals(s["stdout"] + "\n" + s["stderr"])})
         # a commit in a step that also tested goes after the test unless the command committed first
         early = "git.commit" in ops and "test" in ops and ops.index("git.commit") < ops.index("test")
         for h in [h for h in s.get("commits") or [] if h in real and h not in placed]:
@@ -296,15 +232,11 @@ def rows(run_set: str, d: Path, task: str, variant: str, n: int) -> dict[str, li
         events.append({**base, "trace_id": trace, "span_id": sid(0), "span_kind": "job", "name": "git.commit",
                        "time_ns": end + seq, "seq": seq, "attrs": json.dumps({"vcs.ref.head.revision": h})})
     outcome, cls = OUTCOMES.get(a["outcome"], ("failed", None))
-    usage = (a.get("client") or {}).get("usage") or {}
     run = {**base, "job_id": rid, "turn": 1, "experiment_id": run_set, "trial_key": key, "task_id": task,
-           "variant": variant, "trial": n, "environment": "local", "harness": (client or {}).get("kind",
-           "deterministic"), "harness_version": (client or {}).get("version"), "model_id": (client or {}).get("model"),
-           "outcome": outcome, "reason": a.get("limit") or a.get("detail"), "outcome_class": cls,
+           "variant": variant, "trial": n, "environment": "local", "harness": "deterministic", "outcome": outcome,
+           "reason": a.get("limit") or a.get("detail"), "outcome_class": cls,
            "infra_reason": f"{a.get('stage')}: {a.get('detail')}" if cls else None,
-           "environment_digest": planned.get("image"), "cost_usd": usage.get("cost_usd"),
-           "cost_source": "client" if usage else None, "input_tokens": usage.get("input_tokens"),
-           "output_tokens": usage.get("output_tokens"), "cache_read_tokens": usage.get("cache_read_input_tokens"),
+           "environment_digest": load("inputs.json").get("planned", {}).get("image"),
            "started_at": datetime.fromtimestamp(t0 / 1e9, UTC), "finished_at": datetime.fromtimestamp(end / 1e9, UTC),
            "diff_files": sorted({p for c in commits for p in c["paths"]} | set(git.get("dirty_paths") or [])),
            "truncated": a["outcome"] != "completed" or git.get("status") != "available"}

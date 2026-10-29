@@ -25,11 +25,16 @@
 # SOFTWARE.
 
 
-"""Versioned evaluation contracts; scenarios and reports never carry secret values.
+"""Versioned evaluation contracts; scenarios never carry secret values.
 
-Unchanged from ai-dlc apart from this docstring. `flightdeck task import-aidlc` (`flightdeck.tasks.aidlc`) validates
-ai-dlc suites with `Suite` and maps each `Scenario` onto a task directory; `schemas/aidlc/*.schema.json` are these
-models' published JSON Schemas (`tests/test_aidlc_import.py` checks they still match).
+`flightdeck task import-aidlc` (`flightdeck.tasks.aidlc`) validates ai-dlc suites with `Suite` and maps each `Scenario`
+onto a task directory; `schemas/aidlc/scenario.schema.json` is the scenario's published JSON Schema
+(`tests/test_aidlc_import.py` checks it still matches).
+
+Changes from ai-dlc: the models no flightdeck path reads are gone (KAN-93): `Profile` with its `Engine`, `Driver`,
+`Budgets` and `Egress`; `Event`; `Report` with `ArmReport` and `AssertionResult`; `BaseImage` with `Client` and `Mise`.
+They described ai-dlc's runner, release qualification and report, none of which flightdeck uses. `Scenario`, `Suite`
+and their parts are unchanged.
 """
 
 from __future__ import annotations
@@ -41,8 +46,6 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 Identifier = Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9-]*$")]
 Sha256 = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 Text = Annotated[str, StringConstraints(min_length=1)]
-# A registry digest, or the local image ID of a prebuilt candidate image.
-Image = Annotated[str, StringConstraints(pattern=r"^([^\s@]+@)?sha256:[0-9a-f]{64}$")]
 Dimension = Literal["workflow", "correctness", "quality"]
 ARMS = ("treatment", "baseline")
 
@@ -115,129 +118,4 @@ class Suite(Strict):
     scenarios: Annotated[list[Scenario], Field(min_length=1)]
 
 
-class Engine(Strict):
-    """The candidate's identity, and the prebuilt image that already contains it."""
-
-    artifact: Text
-    sha256: Sha256
-    image: Image
-
-
-class Driver(Strict):
-    kind: Literal["deterministic", "codex", "claude-code"]
-    version: Text
-    script: Text | None = None
-
-
-class Budgets(Strict):
-    """Explicit on purpose: a missing spend setting must not become an unlimited one."""
-
-    max_tokens: Annotated[int, Field(ge=0)]
-    max_spend_usd: Annotated[float, Field(ge=0, allow_inf_nan=False)]
-
-
-class Egress(Strict):
-    # Port 443 only. The proxy resolves each name once and refuses non-global addresses.
-    hosts: Annotated[
-        list[Annotated[str, StringConstraints(pattern=r"^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$")]],
-        Field(min_length=1),
-    ]
-    proxy_image: Image
-
-
-class Profile(Strict):
-    schema_version: Literal[1] = Field(alias="schema")
-    id: Identifier
-    mode: Literal["candidate", "release"]
-    image: Image
-    engine: Engine
-    driver: Driver
-    model: Text
-    budgets: Budgets
-    # Environment-variable names only; values are read by the runner, never by planning.
-    credentials: list[Annotated[str, StringConstraints(pattern=r"^[A-Z_][A-Z0-9_]*$")]] = []
-    resources: list[Text] = []
-    # Destinations a real client may reach; absent means no network at all.
-    egress: Egress | None = None
-    attempts: Annotated[int, Field(ge=1)]
-
-
-class Event(Strict):
-    schema_version: Literal[1] = Field(alias="schema")
-    source: Literal["driver", "process", "mcp", "filesystem", "git", "provider", "controller"]
-    at: Text
-    kind: Identifier
-    evidence: list[Text] = []
-
-
-class AssertionResult(Strict):
-    id: Identifier
-    dimension: Dimension
-    expected: Text
-    observed: str | None
-    evidence: list[Text]
-    result: Literal["pass", "fail", "unavailable", "pending"]
-
-
-class ArmReport(Strict):
-    scenario: Identifier
-    arm: Literal["treatment", "baseline"]
-    attempt: Annotated[int, Field(ge=1)]
-    outcome: Literal[
-        "completed",
-        "infrastructure",
-        "product",
-        "workflow-violation",
-        "unavailable",
-        "incomplete",
-        "not-started",
-    ]
-    stage: str | None = None
-    limit: str | None = None
-    detail: str | None = None
-    cleanup_clean: bool
-    metrics: dict
-    assertions: list[AssertionResult]
-
-
-class Report(Strict):
-    schema_version: Literal[1] = Field(alias="schema")
-    suite: Identifier
-    profile: Identifier
-    evidence_kind: Literal["fixture", "live"]
-    arms: list[ArmReport]
-    comparison: dict
-
-
-class Client(Strict):
-    kind: Literal["claude-code"]
-    version: Annotated[str, StringConstraints(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")]
-    # The published binary's digest per platform; the build refuses any other bytes.
-    sha256: Annotated[dict[Literal["linux-x64", "linux-arm64"], Sha256], Field(min_length=1)]
-
-
-class Mise(Strict):
-    """The shared check runner, verified from its published bytes per platform."""
-
-    version: Annotated[str, StringConstraints(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")]
-    sha256: Annotated[dict[Literal["linux-x64", "linux-arm64"], Sha256], Field(min_length=1)]
-
-
-class BaseImage(Strict):
-    """The image both arms share: a pinned parent, distribution packages and one client."""
-
-    schema_version: Literal[1] = Field(alias="schema")
-    parent: Image = Field(alias="from")
-    packages: list[Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9+.-]*$")]] = []
-    client: Client
-    # Optional for schema-1 compatibility. Recipes without it cannot qualify the normal check runner.
-    mise: Mise | None = None
-
-
-SCHEMAS = {
-    "scenario": Scenario,
-    "profile": Profile,
-    "event": Event,
-    "report": Report,
-    "base-image": BaseImage,
-}
+SCHEMAS = {"scenario": Scenario}

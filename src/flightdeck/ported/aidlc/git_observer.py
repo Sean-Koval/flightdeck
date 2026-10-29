@@ -28,13 +28,12 @@
 
 Changes from ai-dlc: the anchor ref is `refs/flightdeck/anchor` and the temporary directory prefix is flightdeck's.
 The local backend turns the observation's post-anchor commits into `git.commit` events and its paths into
-`runs.diff_files`; `evaluate_git_assertion` (ai-dlc's `commit-present`, `path-committed`, `ordering`) is kept for
-the assertion mapping (#17).
+`runs.diff_files`. `evaluate_git_assertion` and its helpers are gone (KAN-93): `flightdeck task import-aidlc` maps
+ai-dlc's `commit-present`, `path-committed` and `ordering` onto behavior specs instead (#17), so nothing called them.
 """
 
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import json
 import os
@@ -429,114 +428,3 @@ def retain_git_observation(run_dir: Path, *, expected_anchor: str | None) -> dic
     grading.mkdir(exist_ok=True)
     (grading / "git.json").write_text(json.dumps(observation, indent=2, sort_keys=True) + "\n")
     return observation
-
-
-def _validated_observation(run_dir: Path) -> dict:
-    try:
-        observation = json.loads((run_dir / EVIDENCE).read_text())
-        if not isinstance(observation, dict) or observation.get("schema") != 1:
-            raise ValueError
-        if observation.get("status") == "unavailable":
-            detail = observation.get("detail")
-            if not isinstance(detail, str) or not detail:
-                raise ValueError
-            return observation
-        commits = observation.get("commits")
-        if observation.get("status") != "available" or not isinstance(commits, list) or not commits:
-            raise ValueError
-        if not all(
-            isinstance(item, dict)
-            and OBJECT_ID.fullmatch(str(item.get("hash", "")))
-            and isinstance(item.get("parents"), list)
-            and all(OBJECT_ID.fullmatch(str(parent)) for parent in item["parents"])
-            and item.get("order") == index
-            and isinstance(item.get("anchor"), bool)
-            and isinstance(item.get("paths"), list)
-            and all(isinstance(path, str) for path in item["paths"])
-            for index, item in enumerate(commits)
-        ):
-            raise ValueError
-        anchor = observation.get("anchor_commit")
-        if [item["hash"] for item in commits if item["anchor"]] != [anchor]:
-            raise ValueError
-        seen: set[str] = set()
-        for item in commits:
-            if (item["hash"] == anchor) != (not item["parents"]):
-                raise ValueError
-            if any(parent not in seen for parent in item["parents"]):
-                raise ValueError
-            seen.add(item["hash"])
-        if observation.get("head_commit") != commits[-1]["hash"]:
-            raise ValueError
-        for key in ("head_paths", "dirty_paths"):
-            if not isinstance(observation.get(key), list) or not all(
-                isinstance(path, str) for path in observation[key]
-            ):
-                raise ValueError
-        return observation
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
-        return {"status": "unavailable", "detail": "Git observation missing or malformed"}
-
-
-def _matching_commits(observation: dict, pattern: str | None) -> list[dict]:
-    commits = [item for item in observation["commits"] if not item["anchor"]]
-    if pattern is None:
-        return commits
-    return [
-        item
-        for item in commits
-        if any(fnmatch.fnmatchcase(path, pattern) for path in item["paths"])
-    ]
-
-
-def _ancestors(commits: list[dict], commit: str) -> set[str]:
-    parents = {item["hash"]: set(item["parents"]) for item in commits}
-    found: set[str] = set()
-    pending = list(parents.get(commit, set()))
-    while pending:
-        parent = pending.pop()
-        if parent not in found:
-            found.add(parent)
-            pending.extend(parents.get(parent, set()))
-    return found
-
-
-def evaluate_git_assertion(
-    run_dir: Path, kind: str, *, path: str | None, before: str | None, after: str | None
-) -> tuple[str, str, list[str]]:
-    observation = _validated_observation(run_dir)
-    if observation["status"] != "available":
-        return "unavailable", observation["detail"], [EVIDENCE]
-    if kind == "commit-present":
-        matches = _matching_commits(observation, path)
-        target = f" changing {path}" if path else ""
-        return (
-            ("pass", f"{len(matches)} post-anchor commit(s){target}", [EVIDENCE])
-            if matches
-            else ("fail", f"no post-anchor commit{target}", [EVIDENCE])
-        )
-    if kind == "path-committed" and path:
-        matches = _matching_commits(observation, path)
-        head = [item for item in observation["head_paths"] if fnmatch.fnmatchcase(item, path)]
-        dirty = [item for item in observation["dirty_paths"] if fnmatch.fnmatchcase(item, path)]
-        if dirty:
-            return "fail", f"matching path has uncommitted changes: {', '.join(dirty)}", [EVIDENCE]
-        if not matches or not head:
-            return "fail", f"no committed path at HEAD matches {path}", [EVIDENCE]
-        return "pass", f"{len(head)} committed path(s) at HEAD match {path}", [EVIDENCE]
-    if kind == "ordering" and before and after:
-        before_commits = _matching_commits(observation, before)
-        after_commits = _matching_commits(observation, after)
-        before_hashes = {item["hash"] for item in before_commits}
-        ordered = bool(before_commits and after_commits) and all(
-            bool(before_hashes & _ancestors(observation["commits"], item["hash"]))
-            for item in after_commits
-        )
-        if ordered:
-            return "pass", f"{before} was committed before {after}", [EVIDENCE]
-        return (
-            "fail",
-            f"collected history does not commit {before} before implementation matching {after}",
-            [EVIDENCE],
-        )
-    return "unavailable", f"invalid selectors for {kind}", [EVIDENCE]
