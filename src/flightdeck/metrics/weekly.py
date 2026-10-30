@@ -23,7 +23,8 @@ SCHEMA = "flightdeck.weekly/v1"
 DOCS = "https://sean-koval.github.io/flightdeck/metrics/"
 LABELS = {"yield": "Agent PR yield", "agent_share": "Agent share of merged PRs", "review_wait": "Review wait",
           "green_to_merge": "Green to merge", "steer_rate": "Human steers per merged PR", "abandon": "Abandon rate",
-          "revert": "14-day revert rate", "cost_per_merged_pr": "Cost per merged PR",
+          "revert": "14-day revert rate", "survival_at_merge": "Code survival at merge",
+          "human_edit_share": "Human-edit share", "cost_per_merged_pr": "Cost per merged PR",
           "active_delegators": "Active delegators", "infra_errors": "Infra-error runs (excluded)"}
 TARGETS = {"yield": ">= 60%", "review_wait": "p50 < 4 h, p90 < 24 h", "abandon": "< 25%", "active_delegators": "6 of 6"}
 
@@ -38,16 +39,12 @@ def iso_week(d: date) -> str:
     return f"{y}-W{w:02d}"
 
 
-def _lit(v: str | None) -> str:
-    return "null" if v is None else "'" + v.replace("'", "''") + "'"
-
-
 def compute(con: duckdb.DuckDBPyConnection, week: str, person: str | None = None, repo: str | None = None) -> dict:
     """Every metric for one week and scope."""
     ws = week_start(week)
-    for name, value in {"ws": f"timestamptz '{ws} 00:00:00+00'", "we": f"timestamptz '{ws + timedelta(7)} 00:00:00+00'",
-                        "person": _lit(person), "repo": _lit(repo)}.items():
-        con.execute(f"set variable {name} = {value}")
+    for name, value in {"ws": f"{ws} 00:00:00+00", "we": f"{ws + timedelta(7)} 00:00:00+00", "person": person,
+                        "repo": repo}.items():
+        con.execute(f"set variable {name} = ?", [value])  # bound, not quoted by hand
     out: dict[str, Any] = {}
     for m in LABELS:
         rel = con.sql(f"from weekly_{m}")
@@ -83,7 +80,8 @@ def cell(m: str, d: dict) -> str:
         return str(d["value"])
     if d["value"] is None:  # no merged PRs, or none with a recorded cost
         return f"- (n={d['n']})"
-    return (f"${d['value']:.2f}" if m.startswith("cost") else f"{d['value']:.1f}") + f" (n={d['n']})"
+    pct = m in ("survival_at_merge", "human_edit_share")
+    return ("${:.2f}" if m.startswith("cost") else "{:.0%}" if pct else "{:.1f}").format(d["value"]) + f" (n={d['n']})"
 
 
 def markdown(doc: dict) -> str:

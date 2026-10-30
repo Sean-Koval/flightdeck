@@ -53,7 +53,7 @@
     "metrics": {
       "type": "object",
       "required": ["yield", "agent_share", "review_wait", "green_to_merge", "steer_rate", "abandon", "revert",
-                   "cost_per_merged_pr", "active_delegators", "infra_errors"],
+                   "survival_at_merge", "human_edit_share", "cost_per_merged_pr", "active_delegators", "infra_errors"],
       "properties": {
         "yield": {"$ref": "#/$defs/rate"},
         "agent_share": {"$ref": "#/$defs/rate"},
@@ -66,6 +66,8 @@
           "properties": {"by_reason": {"type": "object", "additionalProperties": {"type": "integer"}}}
         },
         "revert": {"$ref": "#/$defs/rate"},
+        "survival_at_merge": {"$ref": "#/$defs/value", "description": "surviving / agent-added lines (KAN-232); n is PRs"},
+        "human_edit_share": {"$ref": "#/$defs/value", "description": "merged added lines not the agent's (KAN-232); n is PRs"},
         "cost_per_merged_pr": {"$ref": "#/$defs/value"},
         "active_delegators": {"$ref": "#/$defs/value"},
         "infra_errors": {"$ref": "#/$defs/value"}

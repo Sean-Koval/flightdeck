@@ -6,6 +6,8 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Metrics:** code survival at merge and human-edit share, from hangar's outcome labels on `pr.merge`, as the
+  `pr_outcomes` view and two weekly rows beside the revert rate ([Outcome labels](https://sean-koval.github.io/flightdeck/outcome-labels/), KAN-232).
 - **Data plane:** process metrics and step labels per agent run (`process_metrics`, `step_labels`), ported from
   hangar's `evals/semver` kit onto hangar's trace columns ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-86).
 - **Local backend:** runs only the `deterministic` driver. The unqualified `claude-code@<version>` driver is removed,

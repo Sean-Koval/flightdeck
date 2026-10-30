@@ -1,10 +1,9 @@
 # Weekly team metrics
 
 The team's weekly scorecard, defined once here and computed by one SQL file over the data plane. hangar's standup
-line and Slack digest read the rendered numbers, never their own.
+line and Slack digest (hangar#168) cite this page and read `latest.json`, never computing their own.
 
-This page is the definition; hangar's standup line and Slack digest (hangar#168) cite it and read `latest.json`. The
-only implementation is
+The only implementation is
 [`src/flightdeck/metrics/weekly.sql`](https://github.com/Sean-Koval/flightdeck/blob/main/src/flightdeck/metrics/weekly.sql):
 one DuckDB view per metric over the [data plane](data-plane.md), with each numerator and denominator repeated in a
 header comment. A change to a definition changes this page and that file in the same PR.
@@ -63,6 +62,8 @@ share is team or repo scope only.
 | [Human steers per merged PR](#steer-rate) | | `weekly_steer_rate` |
 | [Abandon rate](#abandon) | < 25%, with a reason | `weekly_abandon`, `weekly_abandon_reasons` |
 | [14-day revert rate](#revert) | | `weekly_revert` |
+| [Code survival at merge](#survival-at-merge) | | `weekly_survival_at_merge`, `pr_outcomes` |
+| [Human-edit share](#human-edit-share) | | `weekly_human_edit_share`, `pr_outcomes` |
 | [Cost per merged PR](#cost-per-merged-pr) | | `weekly_cost_per_merged_pr` |
 | [Active delegators](#active-delegators) | 6 of 6 | `weekly_active_delegators` |
 
@@ -107,6 +108,14 @@ A revert is a PR whose body is GitHub's revert-button text (`Reverts owner/repo#
 `This reverts commit <sha>` for the PR's merge commit, or is titled `Revert "<title>"`. Reverts pushed straight to the
 branch are not seen until hangar emits `revert` job events.
 
+### Survival at merge
+
+Defined in [Outcome labels](outcome-labels.md#survival-at-merge).
+
+### Human-edit share
+
+Defined in [Outcome labels](outcome-labels.md#human-edit-share).
+
 ### Cost per merged PR
 
 The summed `cost_usd` of every run of the agent jobs merged in the week ÷ those jobs. Review jobs (hangar#161) are
@@ -128,12 +137,11 @@ The decision recorded for #6: facts hangar knows come from hangar, facts only Gi
 | Data | Source | Table |
 | --- | --- | --- |
 | Jobs, runs, cost, steers, outcome class | hangar's outbox `run.json` | `runs` |
-| PR opened, first review, merged (with green-to-merge), closed, abandoned (with reason) | hangar's outbox job events | `job_events` |
+| PR opened, first review, merged (with green-to-merge and outcome labels), closed, abandoned (with reason) | hangar's outbox job events | `job_events` |
 | All merged PRs on the team's repos, reverts | GitHub REST, nightly (`flightdeck ingest github`) | `prs` |
 
-The issue's alternative, hangar emitting review and revert job events, is half taken. hangar already emits
-`review.first` and has reserved a `revert` event. When hangar emits `revert`, the revert view switches to it, and the
-`prs` table remains only for agent share.
+The issue's alternative, hangar emitting review and revert job events, is half taken: hangar emits `review.first`
+and `revert`, but the revert view still reads `prs`.
 
 ## See also
 
