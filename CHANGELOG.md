@@ -6,6 +6,10 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Metrics:** step labels count what a call does, not the first thing it names. Version and help probes are no
+  longer test runs; tests in loops, behind `uv run` flags and in CI scripts are. A call has every label it earns
+  (`labels`), with a new `setup` label and more shell edits (`sed -i`, `git apply`, python rewrites), so a call
+  that writes and tests counts as an edit and a test run ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-272).
 - **Metrics:** code survival at merge and human-edit share, from hangar's outcome labels on `pr.merge`, as the
   `pr_outcomes` view and two weekly rows beside the revert rate ([Outcome labels](https://sean-koval.github.io/flightdeck/outcome-labels/), KAN-232).
 - **Data plane:** process metrics and step labels per agent run (`process_metrics`, `step_labels`), ported from
