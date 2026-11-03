@@ -78,7 +78,8 @@ OUTBOX: dict[str, pa.Schema] = {"job_events": JOB_EVENTS, "prs": PRS}
 
 # Written by flightdeck itself, not flattened from hangar: one spec or ADR check's result for one unit (a turn, job or
 # session; `run_id` is its id, `source` its run source). `spec_source` is `spec` or `adr:<repo>/<adr>`.
-SPEC_RESULTS = _schema("spec_results", "spec_id spec_source scope result repo harness_digest knowledge_snapshot")
+SPEC_RESULTS = _schema("spec_results",
+                       "spec_id spec_source scope result repo harness_digest knowledge_snapshot observation_policy")
 # One trial the cache reused for a run set (runners/cache.py): `run_id` is the reused trial's, `experiment_id` the run
 # set it stands in for.
 TRIAL_REUSE = _schema("trial_reuse", "experiment_id task_id variant age_days:float")

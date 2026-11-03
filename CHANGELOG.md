@@ -6,6 +6,8 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Behavior specs:** opt-in `conservative-v1` distinguishes witnessed forbidden tools from missing evidence on truncated exports. Legacy defaults stay unchanged; stored results and alerts retain policy identity.
+
 - **Integrity:** unknown tool results no longer complete repair loops. Duplicate trace rows do not inflate process counts; conflicting run or span identities exclude the affected aggregate (KAN-175).
 - **Data plane:** initialize UTC after DuckDB loads its built-in extensions, fixing local connections with the locked DuckDB release.
 
