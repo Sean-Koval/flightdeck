@@ -28,7 +28,7 @@ select run_id, source, seq, start_ns, tool_kind, tool_name, tool_input, tool_out
     -- the agent's answer key: a third-party implementation on disk (pi's pack carried node-semver)
     regexp_matches(coalesce(tool_input, ''), 'node_modules|/opt/hangar/harness') as answer_key_risk,
     row_number() over (partition by run_id, source order by seq nulls last, start_ns) - 1 as idx
-from spans where kind = 'tool.call';
+from (select distinct * from spans) where kind = 'tool.call';
 
 -- One row per agent run (a turn or a trial) that is not truncated. A test run fails when its tool call failed or its
 -- output shows a failure; a fix loop is metrics.py's: a failing test run, then an edit, then the next passing one.
@@ -44,11 +44,11 @@ with s as (
 ), passes as (
     select f.run_id, f.source, f.idx, (select min(e.idx) from s e where e.run_id = f.run_id and e.source = f.source
         and e.label = 'edit' and e.idx > f.last_fail) as edit_after
-    from f where f.label = 'test' and not f.test_failed and f.last_fail is not null
+    from f where f.label = 'test' and f.tool_ok is true and not f.test_failed and f.last_fail is not null
 ), loops as (
     select run_id, source, count(*) as fix_loops from passes p
     where p.edit_after < p.idx and not exists (select 1 from s t where t.run_id = p.run_id and t.source = p.source
-        and t.label = 'test' and not t.test_failed and t.idx > p.edit_after and t.idx < p.idx)
+        and t.label = 'test' and t.tool_ok is true and not t.test_failed and t.idx > p.edit_after and t.idx < p.idx)
     group by run_id, source
 ), steps as (
     select run_id, source, count(*) as tool_calls, count(*) filter (where tool_ok is false) as tool_errors,
@@ -65,7 +65,8 @@ with s as (
 ), trusted as (  -- hangar's own checks, apart from the agent's word (hangar.test.run.counted)
     select run_id, source, count(*) as trusted_test_runs,
         count(*) filter (where status <> 'success' or failed > 0 or errors > 0) as failing_trusted_test_runs
-    from test_cases where case_name is null and trusted and total > 0 and complete group by run_id, source
+    from (select distinct * from test_cases)
+    where case_name is null and trusted and total > 0 and complete group by run_id, source
 )
 select r.run_id, r.source, r.experiment_id, r.task_id, r.variant, r.trial, r.harness, r.model_id,
     coalesce(st.tool_calls, 0) as tool_calls, coalesce(st.tool_errors, 0) as tool_errors,
@@ -77,9 +78,14 @@ select r.run_id, r.source, r.experiment_id, r.task_id, r.variant, r.trial, r.har
     coalesce(t.failing_trusted_test_runs, 0) as failing_trusted_test_runs,
     r.input_tokens, r.output_tokens, r.cache_read_tokens, r.cost_usd, r.cost_source,
     epoch(r.finished_at - r.started_at) as wall_s
-from runs r
+from (select distinct * from runs) r
 left join steps st using (run_id, source)
 left join counts c using (run_id, source)
 left join loops l using (run_id, source)
 left join trusted t using (run_id, source)
-where not coalesce(r.truncated, false);
+where not coalesce(r.truncated, false)
+    -- An identity with conflicting content has no unique process history. Keep raw rows, omit its aggregate.
+    and not exists (select 1 from spans s where s.run_id = r.run_id and s.source = r.source
+        group by s.trace_id, s.span_id having count(distinct s) > 1)
+    and not exists (select 1 from runs conflicting where conflicting.run_id = r.run_id and conflicting.source = r.source
+        group by conflicting.run_id, conflicting.source having count(distinct conflicting) > 1);

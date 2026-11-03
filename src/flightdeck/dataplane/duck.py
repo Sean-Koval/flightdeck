@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import importlib.resources
-import importlib.util
+from importlib import import_module, resources, util
 
 import duckdb
 
@@ -18,10 +17,11 @@ def connect(uri: str) -> duckdb.DuckDBPyConnection:
     caller's Google application-default credentials), else through DuckDB's httpfs with a GCS secret (HMAC keys) the
     caller has set up. Flightdeck itself holds no credentials (ADR-0001).
     """
-    con = duckdb.connect(config={"TimeZone": "UTC"})
+    con = duckdb.connect()
+    con.execute("SET TimeZone = 'UTC'")
     base = uri.rstrip("/")
-    if base.startswith("gs://") and importlib.util.find_spec("gcsfs"):
-        con.register_filesystem(importlib.import_module("gcsfs").GCSFileSystem())
+    if base.startswith("gs://") and util.find_spec("gcsfs"):
+        con.register_filesystem(import_module("gcsfs").GCSFileSystem())
     elif base.startswith(("gs://", "s3://")):
         con.execute("INSTALL httpfs; LOAD httpfs;")
     for name in ALL:
@@ -33,5 +33,5 @@ def connect(uri: str) -> duckdb.DuckDBPyConnection:
         con.execute(
             f"create view {name} as select * from read_parquet('{glob}', hive_partitioning=true, union_by_name=true)"
         )
-    con.execute(importlib.resources.files("flightdeck.metrics").joinpath("process.sql").read_text(encoding="utf-8"))
+    con.execute(resources.files("flightdeck.metrics").joinpath("process.sql").read_text(encoding="utf-8"))
     return con

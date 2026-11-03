@@ -6,6 +6,9 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Integrity:** unknown tool results no longer complete repair loops. Duplicate trace rows do not inflate process counts; conflicting run or span identities exclude the affected aggregate (KAN-175).
+- **Data plane:** initialize UTC after DuckDB loads its built-in extensions, fixing local connections with the locked DuckDB release.
+
 - **Metrics:** code survival at merge and human-edit share, from hangar's outcome labels on `pr.merge`, as the
   `pr_outcomes` view and two weekly rows beside the revert rate ([Outcome labels](https://sean-koval.github.io/flightdeck/outcome-labels/), KAN-232).
 - **Data plane:** process metrics and step labels per agent run (`process_metrics`, `step_labels`), ported from

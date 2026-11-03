@@ -33,7 +33,7 @@ They read the command text only where those don't say enough. `idx` is the call'
 
 ## The metrics
 
-`process_metrics` has one row per agent run that is not truncated:
+`process_metrics` has one row per untruncated agent run without conflicting run or span identities:
 
 | Column | What it counts |
 | --- | --- |
@@ -41,12 +41,16 @@ They read the command text only where those don't say enough. `idx` is the call'
 | `tool_calls_before_first_edit` | The `idx` of the first `edit`: calls spent before writing anything |
 | `edit_calls`, `by_label` | Edits, and calls per label |
 | `test_runs`, `failing_test_runs` | The agent's own test runs. One fails when its call failed or its output shows `FAILED`, `Error` or `Traceback` |
-| `fix_loops` | A failing test run, then an edit, then the next passing test run |
+| `fix_loops` | A failing test, then an edit, then a test with `tool_ok` true and no failure marker |
 | `reference_lookups`, `answer_key_reads` | `reference` calls, and reads of an implementation on disk |
 | `trusted_test_runs`, `failing_trusted_test_runs` | hangar's own counted checks (trusted, complete, more than zero tests) |
 | `input_tokens`, `output_tokens`, `cache_read_tokens`, `cost_usd`, `wall_s` | From the run itself |
 
 The agent's test runs are its word; trusted runs are hangar's. The two are reported apart on purpose.
+Unknown tool results never finish a repair loop. None of these counts establishes causal credit.
+
+Exact duplicate rows count once. Conflicting rows sharing a run, source, trace and span identity exclude that run from `process_metrics`.
+Conflicting run metadata also excludes the entire run/source identity. Raw tables retain both copies for diagnosis. This does not detect missing spans, clipping or forged evidence; see [integrity limits](research/process-integrity.md).
 
 ## Where they came from
 
