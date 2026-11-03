@@ -8,6 +8,7 @@ import typer
 from flightdeck import __version__
 from flightdeck.dataplane import compact, github, ingest
 from flightdeck.judges import app as judge_app
+from flightdeck.metrics.labels import labels as label_score
 from flightdeck.metrics.weekly import app as metrics_app
 from flightdeck.report import markdown
 from flightdeck.runners.cache import app as cache_app
@@ -33,6 +34,7 @@ for _panel, _subs in PANELS.items():
         app.add_typer(_sub, name=_name, rich_help_panel=_panel)
 plumbing.command("compact", rich_help_panel="Data plane")(compact.compact)
 ingest.app.command("github")(github.prs)
+metrics_app.command("labels")(label_score)
 
 
 @plumbing.command(rich_help_panel="About")
