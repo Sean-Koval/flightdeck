@@ -1,0 +1,35 @@
+{"tool": "bash", "input": "ls -la && python3 --version && python3 -m pytest --version", "label": "explore", "labels": ["explore"], "why": "looks around and probes versions: no test runs"}
+{"tool": "bash", "input": "pip install -e '.[dev]'", "label": "setup", "labels": ["setup"], "why": "installs the package and its dev tools"}
+{"tool": "bash", "input": "python3 -m pytest -q tests/test_core.py", "label": "test", "labels": ["test"], "why": ""}
+{"tool": "bash", "input": "for t in a b c; do python -m pytest tests/test_$t.py -q; done", "label": "test", "labels": ["test"], "why": "tests in a loop"}
+{"tool": "bash", "input": "uv run --frozen --project svc pytest -x", "label": "test", "labels": ["test"], "why": "a wrapper with flags"}
+{"tool": "bash", "input": "bash scripts/ci/verify.sh > /tmp/verify.log 2>&1 &", "label": "test", "labels": ["test"], "why": "the CI script, in the background"}
+{"tool": "bash", "input": "sleep 600; tail -5 /tmp/verify.log", "label": "explore", "labels": ["explore"], "why": "waits for the background run and reads its log"}
+{"tool": "bash", "input": "sed -i 's/foo/bar/g' src/app.py && pytest -q", "label": "test", "labels": ["test", "edit"], "why": "edits in place, then tests"}
+{"tool": "Edit", "input": "src/app.py", "label": "edit", "labels": ["edit"], "why": ""}
+{"tool": "Write", "input": "tests/test_app.py", "label": "edit", "labels": ["edit"], "why": "a test file is still an edit"}
+{"tool": "Read", "input": "src/app.py", "label": "explore", "labels": ["explore"], "why": ""}
+{"tool": "Grep", "input": "def handler", "label": "explore", "labels": ["explore"], "why": ""}
+{"tool": "bash", "input": "git status && git diff --stat", "label": "vcs", "labels": ["vcs"], "why": "read-only git is vcs in the taxonomy"}
+{"tool": "bash", "input": "git add -A && git commit -qm 'fix'", "label": "vcs", "labels": ["vcs"], "why": ""}
+{"tool": "bash", "input": "gh pr create --fill", "label": "vcs", "labels": ["vcs"], "why": ""}
+{"tool": "bash", "input": "hangar-agent progress \"running tests\" --pct 60", "label": "other", "labels": ["other"], "why": "a harness signal, not work"}
+{"tool": "bash", "input": "python3 -c 'import app; print(app.slug(\"A B\"))'", "label": "verify", "labels": ["verify"], "why": "runs the code by hand"}
+{"tool": "bash", "input": "node scripts/build.js", "label": "verify", "labels": ["verify"], "why": ""}
+{"tool": "bash", "input": "npm ci && npm test", "label": "test", "labels": ["test", "setup"], "why": ""}
+{"tool": "bash", "input": "make lint", "label": "other", "labels": ["other"], "why": "lint has no label"}
+{"tool": "bash", "input": "ruff check src && pyright", "label": "other", "labels": ["other"], "why": "lint and types have no label"}
+{"tool": "TodoWrite", "input": "plan: parse, then the CLI", "label": "plan", "labels": ["plan"], "why": ""}
+{"tool": "WebFetch", "input": "https://docs.python.org/3/library/re.html", "label": "reference", "labels": ["reference"], "why": ""}
+{"tool": "bash", "input": "cat node_modules/semver/package.json", "label": "reference", "labels": ["reference", "explore"], "why": "reads a third-party implementation"}
+{"tool": "bash", "input": "python3 - <<'EOF'\nfrom pathlib import Path\np = Path('src/app.py')\np.write_text(p.read_text().replace('a', 'b'))\nEOF", "label": "edit", "labels": ["edit", "verify"], "why": "python that rewrites a file"}
+{"tool": "bash", "input": "docker compose run --rm app pytest -q", "label": "test", "labels": ["test"], "why": "tests inside a container"}
+{"tool": "bash", "input": "pytest --collect-only -q | head", "label": "explore", "labels": ["explore"], "why": "lists tests without running them"}
+{"tool": "bash", "input": "go test ./... 2>&1 | tail -20", "label": "test", "labels": ["test", "explore"], "why": ""}
+{"tool": "bash", "input": "cargo build --release", "label": "other", "labels": ["other"], "why": "a build has no label"}
+{"tool": "bash", "input": "echo 'DEBUG=1' >> .env", "label": "edit", "labels": ["edit"], "why": "writes a config file"}
+{"tool": "bash", "input": "python manage.py test", "label": "test", "labels": ["test"], "why": "Django's test runner"}
+{"tool": "bash", "input": "tox -e py312", "label": "test", "labels": ["test"], "why": ""}
+{"tool": "bash", "input": "mkdir -p src/pkg && touch src/pkg/__init__.py", "label": "edit", "labels": ["edit"], "why": "creates a source file"}
+{"tool": "bash", "input": "rm -rf build dist", "label": "other", "labels": ["other"], "why": "a delete has no label"}
+{"tool": "bash", "input": "git log --oneline -5", "label": "vcs", "labels": ["vcs"], "why": ""}

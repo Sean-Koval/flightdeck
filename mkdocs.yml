@@ -98,6 +98,7 @@ nav:
       - Weekly metrics: metrics.md
       - Outcome labels: outcome-labels.md
       - Process metrics: process-metrics.md
+      - Label gold sets: label-gold-sets.md
       - Statistics: statistics.md
       - Decisions:
           - "0001: Boundary with hangar": decisions/0001-boundary-with-hangar.md

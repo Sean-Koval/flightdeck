@@ -21,7 +21,7 @@ Every command, argument and option of `flightdeck`, generated from the code by `
 | [`knowledge`](#flightdeck-knowledge) | The knowledge gold set: seal it, score arms on correctness and citations. | [`seal`](#flightdeck-knowledge-seal), [`score`](#flightdeck-knowledge-score) | [Knowledge evals](knowledge-evals.md) |
 | [`judge`](#flightdeck-judge) | Rubric judges: label sheets, calibration, judge labels, corrected estimates. | [`label`](#flightdeck-judge-label), [`calibrate`](#flightdeck-judge-calibrate), [`score`](#flightdeck-judge-score), [`estimate`](#flightdeck-judge-estimate) | [Judges](judges.md) |
 | **Data plane** | | | |
-| [`metrics`](#flightdeck-metrics) | Weekly team metrics over the data plane. | [`weekly`](#flightdeck-metrics-weekly) | [Weekly metrics](metrics.md) |
+| [`metrics`](#flightdeck-metrics) | Weekly team metrics over the data plane. | [`weekly`](#flightdeck-metrics-weekly), [`labels`](#flightdeck-metrics-labels) | [Weekly metrics](metrics.md) |
 | [`compact`](#flightdeck-compact) | Compact hangar's outbox into the data plane (nightly on Cloud Run: deploy/compactor/). | — | [Data plane: compactor](data-plane.md#compactor) |
 | [`query`](#flightdeck-query) | Run SQL over the data plane's tables (runs, spans, events, manifests, grades, test_cases); tab-separated. | — | [Data plane: querying](data-plane.md#querying) |
 | **About** | | | |
@@ -616,6 +616,20 @@ flightdeck metrics weekly [OPTIONS]
 | `--repo` | text |  |  | Only this repository (owner/repo). |
 | `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root. |
 | `--reports` | text |  | `FLIGHTDECK_REPORTS_URI` | Write reports/weekly/ here (private). |
+
+### `flightdeck metrics labels`
+
+Score step labels against a hand-labelled gold set: accuracy, per-label precision and recall, the misses.
+
+```
+flightdeck metrics labels [OPTIONS]
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `--gold` | text | required |  | Gold file: JSON lines of run_id, seq, label and optional labels. |
+| `--data` | text | required | `FLIGHTDECK_DATA_URI` | Data plane root. |
+| `--min-accuracy` | number | `0.0` |  | Exit 1 when first-label accuracy is below this. |
 
 ## `flightdeck compact`
 
