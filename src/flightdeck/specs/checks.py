@@ -79,7 +79,8 @@ def run(con: duckdb.DuckDBPyConnection, specs: list[lang.Spec], dt: str) -> list
                 src, repo, digest, snap = meta[unit]
                 rows.append({"run_id": unit, "source": src, "dt": dt, "spec_id": s["id"], "result": result,
                              "spec_source": s.get("spec_source", "spec"), "scope": scope, "repo": repo,
-                             "harness_digest": digest, "knowledge_snapshot": snap})
+                             "harness_digest": digest, "knowledge_snapshot": snap,
+                             "observation_policy": s.get("observation_policy", "legacy-v1")})
     return rows
 
 
@@ -94,13 +95,14 @@ def alerts(rows: list[dict], examples: int = 5) -> list[dict]:
     days: dict[tuple, dict[str, list]] = defaultdict(lambda: defaultdict(lambda: [0, 0, set(), []]))
     for r in rows:
         if r["result"] in (lang.PASS, lang.FAIL):
-            d = days[(r["spec_source"], r["spec_id"], r.get("repo"))][str(r["dt"])]
+            d = days[(r["spec_source"], r["spec_id"], r.get("repo"),
+                      r.get("observation_policy") or "legacy-v1")][str(r["dt"])]
             d[0] += r["result"] == lang.FAIL
             d[1] += 1
             d[2] |= {f"{k}={r[k]}" for k in ("harness_digest", "knowledge_snapshot") if r.get(k)}
             d[3] += [r["run_id"]] if r["result"] == lang.FAIL else []
     out = []
-    for (src, sid, repo), series in sorted(days.items(), key=lambda kv: tuple(map(str, kv[0]))):
+    for (src, sid, repo, policy), series in sorted(days.items(), key=lambda kv: tuple(map(str, kv[0]))):
         ds = sorted(series)
         best = None
         for j in range(1, len(ds)):
@@ -113,7 +115,7 @@ def alerts(rows: list[dict], examples: int = 5) -> list[dict]:
             _, j, before, after = best
             seen = set().union(*(series[d][2] for d in ds[:j]))
             out.append({"check": sid, "spec_source": src, "repo": repo, "day": ds[j], "before": before, "after": after,
-                        "changed": sorted(series[ds[j]][2] - seen),
+                        "changed": sorted(series[ds[j]][2] - seen), "observation_policy": policy,
                         "examples": [x for d in ds[j:] for x in series[d][3]][:examples]})
     return out
 
@@ -123,7 +125,8 @@ def file_alerts(found: list[dict], repo: str, gh: Any = subprocess.run) -> None:
     api = lambda *a: gh(["gh", "api", *a], capture_output=True, text=True, check=True).stdout  # noqa: E731
     open_ = json.loads(api(f"repos/{repo}/issues?labels=flightdeck:violation&state=open&per_page=100") or "[]")
     for a in found:
-        title = f"flightdeck: {a['check']} violations rose ({a['repo'] or 'all repos'})"
+        suffix = "" if a.get("observation_policy", "legacy-v1") == "legacy-v1" else f" [{a['observation_policy']}]"
+        title = f"flightdeck: {a['check']} violations rose ({a['repo'] or 'all repos'}){suffix}"
         body = (f"`{a['spec_source']}` `{a['check']}`: violation rate {a['before']:.0%} before {a['day']}, "
                 f"{a['after']:.0%} from then.\n\nChanged that day: {', '.join(a['changed']) or 'nothing recorded'}.\n\n"
                 f"Example runs: {', '.join(a['examples'])}")

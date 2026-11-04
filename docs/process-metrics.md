@@ -39,7 +39,7 @@ zero. `answer_key_risk` marks a read of a reference implementation.
 
 ## The metrics
 
-`process_metrics` has one row per agent run that is not truncated:
+`process_metrics` has one row per agent run that is not truncated and has no conflicting rows:
 
 | Column | What it counts |
 | --- | --- |
@@ -47,12 +47,16 @@ zero. `answer_key_risk` marks a read of a reference implementation.
 | `tool_calls_before_first_edit` | The `idx` of the first call with `edit`: calls spent before writing anything |
 | `edit_calls`, `by_label` | Calls with `edit` in `labels`, and calls per first `label` |
 | `test_runs`, `failing_test_runs` | Calls with `test` in `labels`. One fails when its call failed or its output shows `FAILED`, `Error` or `Traceback` |
-| `fix_loops` | A failing test run, then an edit, then the next passing test run (the edit may share its call) |
+| `fix_loops` | A failing test run, then an edit, then the next passing test run with `tool_ok` true (the edit may share its call) |
 | `reference_lookups`, `answer_key_reads` | `reference` calls, and reads of an implementation on disk |
 | `trusted_test_runs`, `failing_trusted_test_runs` | hangar's own counted checks (trusted, complete, more than zero tests) |
 | `input_tokens`, `output_tokens`, `cache_read_tokens`, `cost_usd`, `wall_s` | From the run itself |
 
 The agent's test runs are its word; trusted runs are hangar's. The two are reported apart on purpose.
+None of these counts establishes causal credit.
+
+Exact duplicate rows count once. Two different spans with one identity, or two different run rows, leave that run out.
+Raw tables keep both copies. Missing spans, clipping and forged evidence go undetected; see [integrity limits](research/process-integrity.md).
 
 ## Where they came from
 

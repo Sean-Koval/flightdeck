@@ -162,6 +162,8 @@ def matcher(m: Any, spec: Spec) -> Matcher:
 
 def plan(s: Spec) -> tuple[str, dict[str, Any]]:
     """Validate a spec; its operator (count, order, each, paths, unknown) and compiled arguments."""
+    if s.get("observation_policy", "legacy-v1") not in ("legacy-v1", "conservative-v1"):
+        raise SpecError("observation_policy must be legacy-v1 or conservative-v1")
     if s.get("scope", "turn") not in SCOPES:
         raise SpecError(f"{s.get('id')}: scope is one of {sorted(SCOPES)}")
     a = s.get("assert")
@@ -281,19 +283,76 @@ def _scope(s: Spec) -> dict[str, list[str]]:
     return {k: [v] if isinstance(v, str) else list(v) for k, v in f.items()}
 
 
-def _finish(applies: bool | None, truncated: bool, result: str) -> str:
-    """A truncated export never passes: what it is missing could have been the violation."""
-    if applies is None or not applies:
-        return UNKNOWN if applies is None else NA
-    return UNKNOWN if truncated and result in (PASS, NA) else result
+_OBS_ATTR = ("source", "job_id", "session_id")
+_OBS_GROUPS = (("runs", ("run_id",), None), ("spans", ("trace_id", "span_id"), None),
+          ("spans", ("trace_id",), _OBS_ATTR), ("both", ("run_id",), _OBS_ATTR))
+
+
+def _observations_consistent(tables: dict[str, list[dict]]) -> bool:
+    """Exact replays are harmless for existence; conflicting identities or attribution are not."""
+    rows = {k: tables.get(k, []) for k in ("runs", "spans")}
+    rows["both"] = rows["runs"] + rows["spans"]
+    run_ids = {r.get("run_id") for r in rows["runs"]}
+    for name, keys, cols in _OBS_GROUPS:
+        seen: dict[tuple, str] = {}
+        for r in rows[name]:
+            key = tuple(r.get(k) for k in keys)
+            value = json.dumps([r.get(k) for k in (cols or TABLES[name].names)], default=str, sort_keys=True)
+            if any(not isinstance(k, str) or not k for k in key) or seen.get(key, value) != value:
+                return False
+            seen[key] = value
+    return all(isinstance(r.get("source"), str) and r["source"] for r in rows["both"]) and all(
+        r.get("kind") != "tool.call" or r.get("run_id") in run_ids for r in rows["spans"])
+
+
+def _observations_consistent_sql() -> str:
+    """Independent SQL checks of the same normalized schema rows and attribution keys."""
+    both = "(" + " union all ".join(f"select run_id, {', '.join(_OBS_ATTR)} from _{t}" for t in ("runs", "spans")) + ")"
+    clauses = [f"not exists (select 1 from {both} where source is null or source = '')",
+               "not exists (select 1 from _spans s where kind = 'tool.call' "
+               "and not exists (select 1 from _runs r where r.run_id = s.run_id))"]
+    for name, keys, cols in _OBS_GROUPS:
+        bad = " or ".join(f"{k} is null or {k} = ''" for k in keys)
+        value = "(" + ", ".join(cols) + ")" if cols else "r"
+        clauses.append(f"not exists (select 1 from {both if name == 'both' else '_' + name} r "
+                       f"group by {', '.join(keys)} having {bad} or count(distinct {value}) > 1)")
+    return " and ".join(clauses)
+
+
+def _witness(s: Spec, op: str, a: dict) -> bool:
+    """v1 supports only positive concrete tool-kind/operation existence, never missing fields."""
+    m = s.get("assert") or {}
+    m = m.get("never", (m.get("count") or {}).get("match"))
+    tool = m.get("tool") if isinstance(m, dict) else None
+    return (op == "count" and a["lo"] == 0 and type(a["hi"]) is int and a["hi"] == 0
+            and isinstance(m, dict) and set(m) == {"tool"} and isinstance(tool, dict)
+            and set(tool) <= {"kind", "ops"} and bool(tool.get("kind") or tool.get("ops")))
 
 
 def evaluate(s: Spec, tables: dict[str, list[dict]]) -> dict[str, str]:
     """Results per unit of one flattened export (`flatten_trace` output)."""
     op, a = plan(s)
-    col, its = SCOPES[s.get("scope", "turn")], items(tables)
-    return {key: _finish(_applies(s, u), u["truncated"], _eval(op, a, [i for i in its if i[col] == key], u))
-            for key, u in _units(tables, s.get("scope", "turn")).items()}
+    col, its = SCOPES[s.get("scope", "turn")], None
+    conservative = s.get("observation_policy", "legacy-v1") == "conservative-v1"
+    safe = _observations_consistent(tables) if conservative else False
+    out = {}
+    for key, u in _units(tables, s.get("scope", "turn")).items():
+        applies = _applies(s, u)
+        if conservative and u["truncated"]:
+            values = [{r.get(k) for r in tables.get("runs", []) if r.get(col) == key} for k in _scope(s)]
+            known = safe and all(len(v) == 1 and None not in v and "" not in v for v in values)
+            witnessed = known and applies is True and _witness(s, op, a) and any(
+                a["m"][0]({"k": "tool", "tool_kind": r.get("tool_kind"), "ops": r.get("shell_ops")})
+                for r in tables.get("spans", []) if r.get("kind") == "tool.call" and r.get(col) == key)
+            out[key] = (UNKNOWN if not known or applies is None else NA if not applies else
+                        FAIL if witnessed else UNKNOWN)
+        else:
+            if its is None:
+                its = items(tables)
+            result = _eval(op, a, [i for i in its if i[col] == key], u)
+            out[key] = (UNKNOWN if applies is None else NA if not applies else
+                        UNKNOWN if u["truncated"] and result in (PASS, NA) else result)
+    return out
 
 
 # --- the SQL compiler --------------------------------------------------------------------------------------------
@@ -361,13 +420,22 @@ def sql(s: Spec) -> str:
     applies = " and ".join("(" + " or ".join(f"coalesce(u.{k}, '') glob {_q(g)}" for g in gs) + ")"
                            for k, gs in _scope(s).items()) if not set(s.get("applies_when") or {}) - set(UNIT_KEYS) \
         else "null"
+    partial, known = f"when trunc and res in ('{PASS}', '{NA}') then '{UNKNOWN}'", "true"
+    if s.get("observation_policy", "legacy-v1") == "conservative-v1":
+        fields = [k for k in _scope(s) if k in (*UNIT_KEYS, "harness")]
+        known = " and ".join(f"count(distinct {k}) = 1 and bool_and({k} is not null and {k} <> '')" for k in fields)
+        partial = (f"when trunc then case when not known or not ({_observations_consistent_sql()}) "
+                   f"or applies is null then '{UNKNOWN}' when not applies then '{NA}' "
+                   f"when res = '{FAIL}' and {_q(_witness(s, op, a))} then '{FAIL}' else '{UNKNOWN}' end")
     return f"""with u as (select {col} as unit, bool_or(coalesce(truncated, false)) as trunc,
+        {known} as known,
         {", ".join(f"any_value({k}) as {k}" for k in (*UNIT_KEYS, "harness"))},
         flatten(list(coalesce(diff_files, []))) as diff
         from _runs where {col} is not null group by 1),
-      r as (select unit, trunc, {applies} as applies, {res} as res from u)
-      select unit, case when applies is null then '{UNKNOWN}' when not applies then '{NA}'
-        when trunc and res in ('{PASS}', '{NA}') then '{UNKNOWN}' else res end from r order by 1"""
+      r as (select unit, trunc, known, {applies} as applies, {res} as res from u)
+      select unit, case {partial if s.get('observation_policy', 'legacy-v1') == 'conservative-v1' else ''}
+        when applies is null then '{UNKNOWN}' when not applies then '{NA}'
+        {partial if s.get('observation_policy', 'legacy-v1') == 'legacy-v1' else ''} else res end from r order by 1"""
 
 
 def connect_tables(tables: dict[str, list[dict]]) -> duckdb.DuckDBPyConnection:
