@@ -6,6 +6,8 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Metrics:** `flightdeck metrics labels` scores step labels against a hand-labelled gold set: first-label accuracy,
+  per-label precision and recall, and the misses; CI scores a synthetic set ([Label gold sets](https://sean-koval.github.io/flightdeck/label-gold-sets/), KAN-273).
 - **Metrics:** step labels count what a call does, not the first thing it names. Version and help probes are no
   longer test runs; tests in loops, behind `uv run` flags and in CI scripts are. A call has every label it earns
   (`labels`), with a new `setup` label and more shell edits (`sed -i`, `git apply`, python rewrites), so a call

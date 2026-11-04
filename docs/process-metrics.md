@@ -33,7 +33,8 @@ The rules key on `hangar.tool.kind` and `hangar.shell.ops` ([hangar's taxonomy](
 They read the command text where those don't say enough. A runner counts at a command position: a line or segment start,
 a loop's `do`, or behind wrappers like `uv run --project x`.
 
-hangar clips long inputs, so labels read from text are a lower bound. `idx` is the call's position in its run, from
+hangar clips long inputs, so labels read from text are a lower bound. [Label gold sets](label-gold-sets.md) measure
+how often they are right. `idx` is the call's position in its run, from
 zero. `answer_key_risk` marks a read of a reference implementation.
 
 ## The metrics
