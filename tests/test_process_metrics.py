@@ -135,7 +135,7 @@ CASES = [
     ("bash", "echo done"), ("bash", "mkdir -p x"),
 ]
 DIFFERENT = {  # (tool name, input): the new label, documented in docs/process-metrics.md
-    ("bash", "pip install pytest"): "other",  # not a test run: shell_ops has no `test`
+    ("bash", "pip install pytest"): "setup",  # not a test run: installing is `setup`
     ("write", "/workspace/semver/test_pytest_cfg.py"): "edit",  # an edit whose path names pytest is an edit
     ("todo_write", "plan"): "plan",  # plan tools have their own label
 }
@@ -148,6 +148,54 @@ def test_rule_labeller_reproduces_classify_rule(tmp_path: Path) -> None:
     want = [DIFFERENT.get((n, i)) or rule({"name": n, "args": i}) for n, i in allcases]
     assert got == want
     assert [rule({"name": n, "args": i}) for n, i in DIFFERENT] == ["test", "test", "other"]
+
+
+BODY = "cat > pkg/core.py <<'EOF'\nimport re\n\ndef slug(s):\n    return re.sub(r'\\W+', '-', s)\nEOF\n"
+# KAN-272: shell commands the Nov 2 validation found mislabelled (synthetic, in the same shapes), with every label each
+# should carry; the first is `label`. The first six are the hand-labelled run, in order.
+SHELL = [
+    ("ls -la && python3 --version && python3 -m pytest --version; git --version; hangar-agent progress \"look\"",
+     ["explore"]),
+    ("which pytest; pip --version; pip install pytest 2>&1 | tail -3", ["setup", "explore"]),
+    ("head -3 ~/.local/bin/pytest; python3 -m pytest --version; pip show pytest 2>&1 | head -3", ["explore"]),
+    ("mkdir -p pkg tests && cd /w\n" + BODY + "hangar-agent progress \"tests\" --pct 60\n"
+     "python3 -m pytest -q 2>&1 | tail -5\npython3 -m pkg \"Some Title\"", ["test", "edit", "explore", "verify"]),
+    ("git init -q && git add -A && git commit -q -m \"init\" && git log --stat --oneline | cat", ["vcs", "explore"]),
+    ("hangar-agent done \"built pkg: slug() + CLI (python -m pkg TEXT), 16/16 pytest tests pass\"", ["other"]),
+    ("for f in tests/test_a.py tests/test_b.py; do pytest -q $f; done", ["test"]),
+    ("uv run --project svc pytest -x tests/unit", ["test"]),
+    ("bash scripts/ci/verify.sh 2>&1 | tail -20", ["test", "explore"]),
+    ("./scripts/run_tests.sh", ["test"]),
+    ("pytest --collect-only -q", ["other"]),
+    ("sed -i 's/old/new/' pkg/core.py", ["edit"]),
+    ("perl -pi -e 's/a/b/' x.py", ["edit"]),
+    ("git apply fix.patch", ["edit"]),
+    ("python3 - <<'EOF'\nfrom pathlib import Path\nPath('pkg/core.py').write_text('x = 1')\nEOF", ["edit", "verify"]),
+    ("echo 'x = 1' > pkg/conf.py", ["edit"]),
+    ("python3 - <<'EOF'\nfrom pathlib import Path\np = Path('t.py'); s = p.read_text()\ns = s.replace('a', 'b')\n…",
+     ["edit", "verify"]),  # clipped before its write
+    ("pytest -q > out.log 2>&1", ["test"]),
+    ("uv sync --frozen", ["setup"]),
+    ("npm ci && npm test", ["test", "setup"]),
+    ("sudo apt-get -y install jq", ["setup"]),
+    ("echo \"run python later\"", ["other"]),
+    ("python3 --version", ["other"]),
+]
+
+
+def test_labels_for_shell_commands(tmp_path: Path) -> None:
+    con = connect(str(plane(tmp_path, build([("bash", i, "", True) for i, _ in SHELL]))))
+    got = rows(con, "select label, labels from step_labels order by idx")
+    assert [(r["label"], r["labels"]) for r in got] == [(w[0], w) for _, w in SHELL]
+
+
+def test_a_call_that_writes_and_tests_is_an_edit_and_a_test_run(tmp_path: Path) -> None:
+    steps = [("bash", "pytest -q", "1 failed", False), ("bash", BODY + "pytest -q", "3 passed", True)]
+    con = connect(str(plane(tmp_path, build(steps))))
+    (got,) = rows(con, "select edit_calls, test_runs, failing_test_runs, fix_loops, tool_calls_before_first_edit "
+                       "from process_metrics")
+    assert got == {"edit_calls": 1, "test_runs": 2, "failing_test_runs": 1, "fix_loops": 1,
+                   "tool_calls_before_first_edit": 1}
 
 
 def test_truncated_runs_are_left_out(tmp_path: Path) -> None:
