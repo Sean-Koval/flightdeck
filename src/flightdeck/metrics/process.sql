@@ -19,6 +19,18 @@ create or replace macro step_re_runner() as step_re_at()
 create or replace macro step_re_probe() as
     '\b(pytest|py\.test|unittest|tox|nox|jest|vitest|mocha)\b[^\n;&|]*\s(--version|--help|--collect-only|-V)'
     || '($|[\s;&|)])';
+-- A look around: which tool, which version, what is installed, where a module lives. The python is read before
+-- quotes are blanked (`python -c "import x; print(x.__file__)"`), and runs nothing for `verify`.
+create or replace macro step_re_look_print() as
+    '\s*(import\s+[\w.]+(\s*,\s*[\w.]+)*\s*;\s*)*print\(\s*[\w.]*'
+    || '(__file__|__version__|__path__|path|version|version_info|executable)\s*\)\s*;?\s*';
+create or replace macro step_re_look_py() as
+    'python[\d.]*\s+-c\s+("' || step_re_look_print() || '"|''' || step_re_look_print() || ''')';
+-- A program's --version is a look; `python -m pkg --help` runs the agent's own CLI, which is `verify`.
+create or replace macro step_re_look() as step_re_at()
+    || '((which|whereis|command\s+-v)(\s+-\S+)*\s+[^-\s;&|]\S*|[\w.+-]+\s+--version|(python[\d.]*|pytest|py\.test)\s+-V'
+    || '|python[\d.]*\s+-m\s+(pytest|pip|uv)\s+--version'
+    || '|((python[\d.]*\s+-m\s+|uv\s+)?pip[\d.]*|npm)\s+(list|ls|show|freeze))($|[\s;&|)])';
 create or replace macro step_re_setup() as step_re_at()
     || '(pip[\d.]*\s+install|python[\d.]*\s+-m\s+(pip\s+install|venv)|uv\s+(sync|venv|add|pip\s+install|tool\s+install)'
     || '|poetry\s+(install|add)|pipenv\s+install|conda\s+(install|create)|(npm|pnpm|yarn|bun)\s+(ci|install|i|add)'
@@ -48,7 +60,7 @@ with c as (
         case when tool_kind = 'web' or regexp_matches(inp, 'node_modules|/opt/hangar/harness|require\(')
             then 'reference' end,
         case when list_has_any(ops, ['git.commit', 'git.push', 'pr.open'])
-            or (sh and regexp_matches(inp, '\bgit (add|status|log|diff|show)\b')) then 'vcs' end,
+            or (sh and regexp_matches(inp, '\bgit (init|add|status|log|diff|show)\b')) then 'vcs' end,
         case when (list_contains(ops, 'test') and not regexp_matches(inp, step_re_probe()))
             or (sh and regexp_matches(regexp_replace(inp, step_re_probe(), ' ', 'g'), step_re_runner()))
             then 'test' end,
@@ -56,9 +68,13 @@ with c as (
         case when sh and regexp_matches(cmd, step_re_setup()) then 'setup' end,
         case when tool_kind = 'plan' then 'plan' end,
         case when tool_kind in ('read', 'search')
-            or (sh and regexp_matches(inp, '\b(ls|cat|find|grep|rg|head|tail|wc|tree|sed -n)\b')) then 'explore' end,
-        case when sh and regexp_matches(
-            regexp_replace(cmd, 'python[\d.]*\s+-m\s+(pytest|unittest|pip|venv)\b', ' ', 'g'),
+            or (sh and regexp_matches(inp, '\b(ls|cat|find|grep|rg|head|tail|wc|tree|sed -n)\b'))
+            or (sh and (regexp_matches(cmd, step_re_look()) or regexp_matches(inp, step_re_look_py())))
+            then 'explore' end,
+        case when sh and regexp_matches(regexp_replace(
+            -- `cmd` again, with python that only looks around taken out first
+            regexp_replace(regexp_replace(inp, step_re_look_py(), ' ', 'g'), '"[^"\n]*"?|''[^''\n]*''?', '""', 'g'),
+            'python[\d.]*\s+-m\s+(pytest|unittest|pip|venv)\b', ' ', 'g'),
             step_re_at() || '(python[\d.]*|node)\s+([^-\s]|-[cme]?\s)') then 'verify' end
     ], lambda x: x is not null) as found
     from c
