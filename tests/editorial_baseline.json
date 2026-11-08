@@ -4,12 +4,12 @@
     "long_sentences": 1
   },
   "docs/concepts.md": {
-    "words": 1210
+    "words": 1208
   },
   "docs/contracts.md": {
     "long_paragraphs": 1,
     "long_sentences": 5,
-    "words": 1492
+    "words": 1491
   },
   "docs/data-plane.md": {
     "words": 1690

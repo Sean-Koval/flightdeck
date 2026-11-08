@@ -62,7 +62,7 @@ until it has run for real.
 | **Knowledge evals**: a 40-question gold set scored on correctness and citation validity | Code merged; [#21](https://github.com/Sean-Koval/flightdeck/issues/21) open until the gold set is written and scored | [Knowledge evals](knowledge-evals.md) |
 | **Trial cache**: reuse trials whose inputs haven't changed; a nightly drift sentinel | Code merged; [#24](https://github.com/Sean-Koval/flightdeck/issues/24) open until the sentinel runs nightly | [The trial cache](cache.md) |
 | **Mutation scoring**: remove one harness component at a time and check that a grader or spec notices | Code merged; [#16](https://github.com/Sean-Koval/flightdeck/issues/16) open until the first live run | [Mutation scoring](mutation-scoring.md) |
-| **Small by design**: 3,785 counted lines of analysis code, enforced in CI | The budget is full; any increase needs a new ADR | [ADR-0005](decisions/0005-post-v0-budget.md) |
+| **Small by design**: 3,850 counted lines of analysis code, enforced in CI | Nearly full; any increase needs a new ADR | [ADR-0009](decisions/0009-label-and-integrity-budget.md) |
 
 Every command and flag is in the [CLI reference](cli.md); what flightdeck reads, writes and pins is in
 [Contracts](contracts.md).

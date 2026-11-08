@@ -2,7 +2,7 @@
 
 What flightdeck reads, what it writes, the files a team commits for it, and the pin set it judges trials by.
 
-Every contract here is additive within its version. A new optional field is not a new version; removing or renaming
+Contracts are additive within their versions. A new optional field is not a new version; removing or renaming
 one is.
 
 ## What flightdeck reads
@@ -91,7 +91,7 @@ Every table also has `run_id`, `source` and `dt` (`flightdeck.parquet/v1`; `dt` 
 
 | Written by flightdeck | Columns |
 | --- | --- |
-| `spec_results` | `spec_id`, `spec_source`, `scope`, `result`, `repo`, `harness_digest`, `knowledge_snapshot` |
+| `spec_results` | `spec_id`, `spec_source`, `scope`, `result`, `repo`, `harness_digest`, `knowledge_snapshot`, `observation_policy` |
 | `trial_reuse` | `experiment_id`, `task_id`, `variant`, `age_days` float |
 | `judge_labels` | `rubric`, `rubric_digest`, `judge`, `label` float, `rationale_digest`, `status` |
 

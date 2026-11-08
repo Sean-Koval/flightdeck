@@ -6,6 +6,13 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Budget:** the counted-line limit is 3,850, up from 3,785, so the step-label and process-integrity work fit
+  together ([ADR 0009](https://sean-koval.github.io/flightdeck/decisions/0009-label-and-integrity-budget/), KAN-175).
+- **Behavior specs:** opt-in `conservative-v1` distinguishes witnessed forbidden tools from missing evidence on truncated exports. Legacy defaults stay unchanged; stored results and alerts retain policy identity.
+
+- **Integrity:** unknown tool results no longer complete repair loops. Duplicate trace rows do not inflate process counts; conflicting run or span identities exclude the affected aggregate (KAN-175).
+- **Data plane:** initialize UTC after DuckDB loads its built-in extensions, fixing local connections with the locked DuckDB release.
+
 - **Metrics:** `flightdeck metrics labels` scores step labels against a hand-labelled gold set: first-label accuracy,
   per-label precision and recall, and the misses; CI scores a synthetic set ([Label gold sets](https://sean-koval.github.io/flightdeck/label-gold-sets/), KAN-273).
 - **Metrics:** step labels count what a call does, not the first thing it names. Version and help probes are no

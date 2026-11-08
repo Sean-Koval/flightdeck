@@ -73,8 +73,9 @@ carry yet.
 Each unit gets `pass`, `fail`, `not_applicable` or `unknown`. `unknown` never counts as a pass, the same rule as
 ai-dlc's "unavailable mandatory observations never pass".
 
-A truncated export (`hangar.export.truncated`) turns a would-be `pass` or `not_applicable` into `unknown`, since what
-it lost could have been the violation. A `fail` it shows stays a `fail`.
+By default, truncated applicable units turn `pass` or assertion-level `not_applicable` into `unknown`.
+Known non-applicability stays `not_applicable`; failures stay failures.
+Opt into [conservative partial observations](partial-observations.md) to distinguish witnessed violations from missing evidence.
 
 ### Two evaluators
 
