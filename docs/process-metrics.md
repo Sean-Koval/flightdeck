@@ -61,8 +61,7 @@ Raw tables keep both copies. Missing spans, clipping and forged evidence go unde
 ## Where they came from
 
 They are ported from hangar's `evals/semver` kit, built for its 2026-10-12 harness comparison. That kit parsed pi and
-Antigravity logs into its own spans. hangar's trace export now does that job for every harness, so the parser was
-dropped. `tests/test_process_metrics.py` checks the views against the kit's `metrics.py` and `classify.rule()` on
+Antigravity logs; hangar's trace export now does that for every harness. `tests/test_process_metrics.py` checks the views against the kit's `metrics.py` and `classify.rule()` on
 one trial.
 
 ### Differences from hangar's kit
