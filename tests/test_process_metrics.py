@@ -179,7 +179,19 @@ SHELL = [
     ("npm ci && npm test", ["test", "setup"]),
     ("sudo apt-get -y install jq", ["setup"]),
     ("echo \"run python later\"", ["other"]),
-    ("python3 --version", ["other"]),
+    # KAN-273: looking around, from a real Antigravity run (Nov 8): versions, tools, packages, where a module lives
+    ("python3 --version", ["explore"]),
+    ("python3 --version; which pytest; which uv; which pip", ["explore"]),
+    ("python3 -m pytest --version; pytest --version", ["explore"]),
+    ("pip list", ["explore"]),
+    ("command -v hatch || echo missing", ["explore"]),
+    ("python3 -c \"import hatchling; print(hatchling.__file__)\"", ["explore"]),
+    ("which python3; python3 -c \"import sys; print(sys.path)\"; pytest --version", ["explore"]),
+    ("python3 -c \"import pkg; print(pkg.__version__)\" && python3 app.py", ["explore", "verify"]),
+    ("python3 -c \"import pkg; print(pkg.slug('A b'))\"", ["verify"]),
+    ("git init -q", ["vcs"]),
+    ("python -m slugkit --help", ["verify"]),
+    ("echo \"see pip list\" --version", ["other"]),
 ]
 
 

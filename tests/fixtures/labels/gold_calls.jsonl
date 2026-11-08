@@ -33,3 +33,8 @@
 {"tool": "bash", "input": "mkdir -p src/pkg && touch src/pkg/__init__.py", "label": "edit", "labels": ["edit"], "why": "creates a source file"}
 {"tool": "bash", "input": "rm -rf build dist", "label": "other", "labels": ["other"], "why": "a delete has no label"}
 {"tool": "bash", "input": "git log --oneline -5", "label": "vcs", "labels": ["vcs"], "why": ""}
+{"tool": "bash", "input": "python3 --version; which pytest; which uv; which pip", "label": "explore", "labels": ["explore"], "why": "looks for tools and versions (Nov 8 Antigravity run)"}
+{"tool": "bash", "input": "pip list", "label": "explore", "labels": ["explore"], "why": "lists what is installed"}
+{"tool": "bash", "input": "python3 -c \"import hatchling; print(hatchling.__file__)\"", "label": "explore", "labels": ["explore"], "why": "asks where a module lives: runs none of the project's code"}
+{"tool": "bash", "input": "python3 -m pytest --version; pytest --version", "label": "explore", "labels": ["explore"], "why": "a runner asked for its version: no test runs"}
+{"tool": "bash", "input": "git init && git add . && git status", "label": "vcs", "labels": ["vcs"], "why": ""}

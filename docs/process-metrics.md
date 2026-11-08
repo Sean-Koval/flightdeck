@@ -20,13 +20,13 @@ first. A call that writes files, runs the tests and runs the program has all thr
 | Label | When |
 | --- | --- |
 | `reference` | A `web` tool, or an input that reads a third-party implementation (`node_modules`, `/opt/hangar/harness`, `require(`) |
-| `vcs` | `shell_ops` has `git.commit`, `git.push` or `pr.open`, or a shell runs `git add`, `status`, `log`, `diff` or `show` |
+| `vcs` | `shell_ops` has `git.commit`, `git.push` or `pr.open`, or a shell runs `git init`, `add`, `status`, `log`, `diff` or `show` |
 | `test` | `shell_ops` has `test`, or a shell runs a test runner or a test or CI script (`bash scripts/ci/verify.sh`). A probe (`--version`, `--help`, `--collect-only`, nothing else run) is not a test run |
 | `edit` | An `edit` tool, or a shell write: `cat >`, `tee`, `sed -i`, `perl -pi`, `git apply`, python that writes or rewrites a file, a redirect into a source file |
 | `setup` | A shell installing or syncing dependencies (`pip install`, `uv sync`, `npm ci`, `apt-get install`) |
 | `plan` | A `plan` tool |
-| `explore` | A `read` or `search` tool, or a shell `ls`, `cat`, `find`, `grep`, `rg`, `head`, `tail`, `wc`, `tree` or `sed -n` |
-| `verify` | A shell running `python`, `python3` or `node` (not inside quotes, not `-m pytest`) |
+| `explore` | A `read` or `search` tool, or a shell `ls`, `cat`, `find`, `grep`, `rg`, `head`, `tail`, `wc`, `tree` or `sed -n`. Also a look around: `which`, `--version`, `pip list`, `python -c "import x; print(x.__file__)"` |
+| `verify` | A shell running `python`, `python3` or `node` (not inside quotes, not `-m pytest`, not a look around) |
 | `other` | Anything else |
 
 The rules key on `hangar.tool.kind` and `hangar.shell.ops` ([hangar's taxonomy](https://sean-koval.github.io/hangar/api/traces/#normalized-tool-kinds)).
