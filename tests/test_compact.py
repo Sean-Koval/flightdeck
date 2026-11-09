@@ -8,7 +8,7 @@ from pathlib import Path
 
 import fsspec
 import jsonschema
-from hangar_outbox import run_doc, write_event, write_run
+from hangar_outbox import failed_job_trace, run_doc, write_event, write_run
 from typer.testing import CliRunner
 
 from flightdeck.cli import app
@@ -64,6 +64,17 @@ def test_compact_fills_all_six_tables_and_a_rerun_is_byte_identical(tmp_path: Pa
     compact_cli("--date", DAY, "--lookback", "0", "--rebuild", "--input", str(src), "--out", str(out))
     assert files(out) == before
     assert not list(out.rglob("*.tmp"))
+
+
+def test_trace_fills_digests_and_job_state_and_run_json_wins_where_both_have_one(tmp_path: Path) -> None:
+    """KAN-309: run.json's harness_digest, job_state and cache writes win; the trace fills environment_digest."""
+    d = write_run(tmp_path / "outbox", DAY, "ses-1", "run-00000001", job="job-7", harness_digest="sha256:outbox",
+                  usage={"input_tokens": 10, "output_tokens": 5, "cache_write_tokens": 7, "cost_usd": 1.5})
+    (d / "trace.otlp.json").write_text(json.dumps(failed_job_trace()), encoding="utf-8")
+    compact.compact_date(str(tmp_path / "outbox"), str(tmp_path / "plane"), DAY)
+    con = connect(str(tmp_path / "plane"))
+    row = con.sql("select harness_digest, environment_digest, job_state, cache_write_tokens from runs").fetchall()
+    assert row == [("sha256:outbox", "sha256:" + "e" * 64, "delivering", 7)]
 
 
 def test_incomplete_run_is_picked_up_the_next_night_by_lookback(tmp_path: Path) -> None:

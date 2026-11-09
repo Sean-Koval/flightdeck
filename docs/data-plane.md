@@ -69,8 +69,10 @@ digest and the rubric's calibration status ([Judges](judges.md)).
 
 ### Nullable until hangar emits them
 
-`harness_digest`, `environment_digest`, `knowledge_snapshot` and `grader_digest` are nullable now and fill with no
-schema change once hangar emits them.
+`knowledge_snapshot` and `grader_digest` are nullable now and fill with no schema change once hangar emits them.
+
+The trace's turn span fills `harness_digest`, `environment_digest` and `cache_write_tokens`, its job span
+`job_state`; `run.json` wins over them.
 
 `runs.outcome_class` is `agent`, `infra_error`, `cancelled` or `human`, and null for records from before hangar#166.
 It and `infra_reason` come from the trial, or from the turn span's `hangar.outcome.class` and
@@ -87,8 +89,8 @@ GitHub, Anthropic/OpenAI, AWS and Slack tokens) as `***`. They clip event text t
 
 ## Ingest
 
-`flightdeck ingest` pulls from hangar directly, for an author who wants one experiment's results now. That covers the
-wait for the night's compaction, and a hangar whose outbox is off. Code: `src/flightdeck/dataplane/ingest.py`.
+`flightdeck ingest` pulls from hangar directly, for one experiment's results now: before the nightly compaction, or
+with the outbox off. Code: `src/flightdeck/dataplane/ingest.py`.
 
 ```sh
 flightdeck ingest export DIR                                  # files from `hangar experiment export <id> -o DIR`
@@ -114,7 +116,7 @@ One `runs` row per trial, from the index. A trial's spans, events and test resul
 A trial hangar retried after an infrastructure error (hangar#166) keeps its row, `excluded`. The retry is a second
 row under the same `trial_key`, with `run_id` `<experiment>/<task>/<variant>/<n>~<attempt>`.
 
-Pins that break hangar's model rule are warned about, as `experiment status` reports them. A trial still pending or
+Ingest warns about pins that break hangar's model rule, as `experiment status` does. A trial still pending or
 running has `outcome` null, and statistics leave it out.
 
 Drifted trials (`trials[].drift`) are kept, with `drift` set; `flightdeck stats compare` excludes them unless
@@ -125,7 +127,7 @@ Drifted trials (`trials[].drift`) are kept, with `drift` set; `flightdeck stats 
 
 Each unit (an experiment, a job, a session) owns one Parquet part per table and day, `part-<unit>.parquet`.
 Re-ingesting replaces the unit's rows by `run_id`, so it adds no duplicates. A trial that finished on a later day
-moves partitions instead of staying behind.
+moves partitions.
 
 ### Validation
 

@@ -13,6 +13,7 @@ import pyarrow.parquet as pq
 import pytest
 from fsspec.implementations.memory import MemoryFileSystem
 from hangar_export import EXP, Recorded, export_dir, export_routes, no_proxy, plane
+from hangar_outbox import failed_job_trace
 from typer.testing import CliRunner
 
 from flightdeck.cli import app
@@ -127,6 +128,17 @@ def test_job_and_session_ingest_over_rest(tmp_path: Path, no_proxy: None) -> Non
     assert con.sql("select source, count(*) from runs group by 1 order by 1").fetchall() == [("job", 1),
                                                                                          ("session", 1)]
     assert con.sql("select digest from manifests").fetchall() == [("sha256:" + "1" * 64,)]
+
+
+def test_job_ingest_fills_digests_job_state_and_cache_writes(tmp_path: Path, no_proxy: None) -> None:
+    (tmp_path / "trace.json").write_text(json.dumps(failed_job_trace()))
+    with Recorded({"/api/jobs/job-fixture01/trace": tmp_path / "trace.json"}) as hangar:
+        result = CliRunner().invoke(app, ["ingest", "job", "job-fixture01", "--hangar", hangar.url,
+                                          "--out", str(tmp_path / "plane")])
+    assert result.exit_code == 0, result.output
+    con = connect(str(tmp_path / "plane"))
+    row = con.sql("select harness_digest, environment_digest, job_state, cache_write_tokens from runs").fetchall()
+    assert row == [("sha256:" + "h" * 64, "sha256:" + "e" * 64, "failed", 1200)]
 
 
 def test_ingest_without_hangar_url_is_a_usage_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

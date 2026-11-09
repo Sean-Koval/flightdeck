@@ -46,6 +46,23 @@ def trace(session: str, run_id: str, start: float, steer: bool = False) -> dict:
     return {"resourceSpans": [{"resource": {"attributes": res}, "scopeSpans": [{"spans": [turn, tool]}]}]}
 
 
+def failed_job_trace() -> dict:
+    """trace_job.json as hangar exports a failed job (KAN-309): the turn carries its harness and environment digests
+    and its cache writes, the job span its state and reason."""
+    otlp = json.loads((FIX / "trace_job.json").read_text(encoding="utf-8"))
+    for span in otlp["resourceSpans"][0]["scopeSpans"][0]["spans"]:
+        a = {x["key"]: x for x in span["attributes"]}
+        kind = a.get("hangar.kind", {}).get("value", {}).get("stringValue")
+        if kind == "job":
+            a["hangar.job.state"]["value"] = {"stringValue": "failed"}
+            span["attributes"].append({"key": "hangar.job.reason", "value": {"stringValue": "verify failed"}})
+        elif kind == "turn":
+            a["gen_ai.usage.cache_write.input_tokens"]["value"] = {"intValue": "1200"}
+            span["attributes"] += [{"key": "hangar.harness.digest", "value": {"stringValue": "sha256:" + "h" * 64}},
+                                   {"key": "hangar.environment.digest", "value": {"stringValue": "sha256:" + "e" * 64}}]
+    return otlp
+
+
 def run_doc(session: str, run_id: str, day: str, **kw: Any) -> dict:
     doc = {"schema": "hangar.run/v1", "source": "job", "run_id": run_id, "session_id": session, "turn": 1,
            "job_id": kw.pop("job", None), "job_source": "github", "job_turn": 1, "person": "ana", "repo": "acme/app",

@@ -49,7 +49,8 @@ def _run_row(r: dict) -> flatten.Row:
             "task_id": x.get("task"), "variant": x.get("variant"), "trial": x.get("trial"), "model_id": r.get("model"),
             "reason": r.get("outcome_reason"), "cost_usd": u.get("cost_usd"), "cost_source": u.get("cost_source"),
             "input_tokens": u.get("input_tokens"), "output_tokens": u.get("output_tokens"),
-            "cache_read_tokens": u.get("cache_read_tokens"), "started_at": flatten._ts(r.get("started_at")),
+            "cache_read_tokens": u.get("cache_read_tokens"), "cache_write_tokens": u.get("cache_write_tokens"),
+            "started_at": flatten._ts(r.get("started_at")),
             "finished_at": flatten._ts(r.get("finished_at")), "verify_passed": (r.get("verify") or {}).get("passed"),
             "pr_url": pr.get("url"), "pr_number": pr.get("number"), "steers": (r.get("steers") or {}).get("n")}
 

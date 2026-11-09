@@ -6,6 +6,9 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Data plane:** job and session ingest fill `runs.harness_digest`, `environment_digest` and `job_state` from the
+  trace's turn and job spans, and a new nullable `runs.cache_write_tokens` holds cache writes. The outbox's
+  `run.json` still wins where both have a value (KAN-309).
 - **Budget:** the counted-line limit is 3,850, up from 3,785, so the step-label and process-integrity work fit
   together ([ADR 0009](https://sean-koval.github.io/flightdeck/decisions/0009-label-and-integrity-budget/), KAN-175).
 - **Behavior specs:** opt-in `conservative-v1` distinguishes witnessed forbidden tools from missing evidence on truncated exports. Legacy defaults stay unchanged; stored results and alerts retain policy identity.

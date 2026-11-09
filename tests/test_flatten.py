@@ -4,6 +4,7 @@ from pathlib import Path
 import jsonschema
 import pyarrow.parquet as pq
 import pytest
+from hangar_outbox import failed_job_trace
 
 from flightdeck.dataplane import flatten, schema
 from flightdeck.dataplane.ingest import _vendored as SCHEMAS
@@ -67,6 +68,16 @@ def test_job_trace_runs_and_test_cases() -> None:
     # job-level spans and events belong to the job, not a turn
     root = next(s for s in rows["spans"] if s["kind"] == "job")
     assert root["run_id"] == "job-fixture01"
+
+
+def test_job_trace_fills_digests_job_state_and_cache_writes() -> None:
+    (run,) = flatten.flatten_trace(load("trace_job.json"))["runs"]
+    assert (run["job_state"], run["cache_write_tokens"], run["harness_digest"]) == ("succeeded", 0, None)
+    (run,) = flatten.flatten_trace(failed_job_trace())["runs"]
+    assert run["harness_digest"] == "sha256:" + "h" * 64 and run["environment_digest"] == "sha256:" + "e" * 64
+    assert run["job_state"] == "failed" and run["cache_write_tokens"] == 1200 and run["cache_read_tokens"] == 5000
+    root = next(s for s in flatten.flatten_trace(failed_job_trace())["spans"] if s["kind"] == "job")
+    assert json.loads(root["attrs"])["hangar.job.reason"] == "verify failed"  # no runs column; kept on the span
 
 
 def test_untrusted_collect_only_does_not_count_as_testing() -> None:

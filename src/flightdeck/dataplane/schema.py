@@ -1,9 +1,9 @@
 """`flightdeck.parquet/v1`: the tables flightdeck reads hangar's runs from.
 
 Wide, denormalized rows partitioned by `dt=YYYY-MM-DD/`. Additive within v1, like hangar's interfaces: a new optional
-column is not a new version; removing or renaming one is. Columns hangar doesn't emit yet (`harness_digest`,
-`environment_digest`, `knowledge_snapshot`, `grader_digest`, `outcome_class`) are nullable and fill in as
-soon as hangar emits them. Every row carries `run_id`, `source` and `dt`.
+column is not a new version; removing or renaming one is. Columns hangar doesn't emit everywhere yet
+(`harness_digest`, `environment_digest`, `cache_write_tokens`, `knowledge_snapshot`, `grader_digest`, `outcome_class`)
+are nullable and fill in as soon as hangar emits them. Every row carries `run_id`, `source` and `dt`.
 """
 
 from __future__ import annotations
@@ -32,7 +32,8 @@ RUNS = _schema("runs", """
     job_id session_id turn:int experiment_id trial_key task_id variant trial:int person repo environment harness
     harness_version model_id outcome reason outcome_class infra_reason excluded:bool attempt:int config_digest
     harness_digest environment_digest manifest_digest base_sha
-    cost_usd:float cost_source input_tokens:int output_tokens:int cache_read_tokens:int started_at:ts finished_at:ts
+    cost_usd:float cost_source input_tokens:int output_tokens:int cache_read_tokens:int cache_write_tokens:int
+    started_at:ts finished_at:ts
     verify_passed:bool pr_url pr_number:int merged:bool merged_by diff_files:strs drift:strs truncated:bool
     task_invalid:bool contaminated:bool grade_trust job_source job_turn:int job_state
     steers:int questions:int untrusted:bool tainted:bool task_digest variant_digest variant_description""")
