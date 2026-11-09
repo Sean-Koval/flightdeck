@@ -129,6 +129,55 @@ def test_job_and_session_ingest_over_rest(tmp_path: Path, no_proxy: None) -> Non
     assert con.sql("select digest from manifests").fetchall() == [("sha256:" + "1" * 64,)]
 
 
+@pytest.mark.parametrize("args, trace, manifests", [
+    (["job", "job-fixture01"], "trace_job.json", ["manifest_turn.json"]),
+    (["session", "dev-a-s1", "--turn", "1"], "trace_session_good.json", []),
+])
+def test_file_ingest_writes_the_rows_rest_ingest_writes(
+    args: list[str], trace: str, manifests: list[str], tmp_path: Path, no_proxy: None
+) -> None:
+    """MCP clients read hangar://jobs/<id>/trace and /manifest; saved, they ingest without HANGAR_URL or a token."""
+    routes = {"/api/jobs/job-fixture01/trace": FIX / "trace_job.json",
+              "/api/jobs/job-fixture01/manifest?turn=1": FIX / "manifest_turn.json",
+              "/api/sessions/dev-a-s1/trace?turn=1": FIX / "trace_session_good.json"}
+    rest, saved = tmp_path / "rest", tmp_path / "file"
+    with Recorded(routes) as hangar:
+        result = CliRunner().invoke(app, ["ingest", *args, "--hangar", hangar.url, "--out", str(rest)])
+    assert result.exit_code == 0, result.output
+    cmd = ["ingest", "file", str(FIX / trace), *(a for m in manifests for a in ("--manifest", str(FIX / m)))]
+    for _ in range(2):  # re-ingesting the file replaces its rows by run_id
+        result = CliRunner(env={"HANGAR_URL": None, "HANGAR_TOKEN": None}).invoke(app, [*cmd, "--out", str(saved)])
+        assert result.exit_code == 0, result.output
+    assert tables(str(saved)) == tables(str(rest))
+    assert tables(str(saved))["runs"] and len(tables(str(saved))["manifests"]) == len(manifests)
+
+
+def test_file_ingest_into_the_rest_unit_replaces_a_jobs_rows(tmp_path: Path, no_proxy: None) -> None:
+    routes = {"/api/jobs/job-fixture01/trace": FIX / "trace_job.json"}
+    with Recorded(routes) as hangar:
+        result = CliRunner().invoke(app, ["ingest", "job", "job-fixture01", "--hangar", hangar.url, "--out",
+                                          str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    before = sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*.parquet"))
+    result = CliRunner().invoke(app, ["ingest", "file", str(FIX / "trace_job.json"), "--out", str(tmp_path)])
+    assert result.exit_code == 0 and result.output.startswith("job-job-fixture01: 1 runs"), result.output
+    assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*.parquet")) == before  # the same part-job-<id>
+    assert connect(str(tmp_path)).sql("select count(*) from runs").fetchone() == (1,)
+
+
+def test_file_ingest_warns_on_a_manifest_schema_mismatch_and_refuses_a_non_trace(tmp_path: Path, entry: Any) -> None:
+    bad = tmp_path / "manifest.json"
+    m = json.loads((FIX / "manifest_turn.json").read_text())
+    del m["resources"]  # required by hangar.manifest/v1; the flattener doesn't read it
+    bad.write_text(json.dumps(m))
+    result = CliRunner().invoke(app, ["ingest", "file", str(FIX / "trace_job.json"), "--manifest", str(bad),
+                                      "--out", str(tmp_path / "plane")])
+    assert result.exit_code == 0, result.output
+    assert "does not match hangar manifest.schema.json" in result.output and "1 manifests" in result.output
+    code, output = entry(["ingest", "file", str(FIX / "manifest_turn.json"), "--out", str(tmp_path / "plane")])
+    assert code == 1 and "not a job or session trace" in output
+
+
 def test_ingest_without_hangar_url_is_a_usage_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("HANGAR_URL", raising=False)
     result = CliRunner().invoke(app, ["ingest", "job", "j", "--out", str(tmp_path)])

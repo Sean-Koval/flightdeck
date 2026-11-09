@@ -5,7 +5,7 @@ Every command, argument and option of `flightdeck`, generated from the code by `
 | Command | What it does | Subcommands | Guide |
 | --- | --- | --- | --- |
 | **Judge a change** | | | |
-| [`ingest`](#flightdeck-ingest) | Pull hangar runs and experiments into the data plane. | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`session`](#flightdeck-ingest-session), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
+| [`ingest`](#flightdeck-ingest) | Pull hangar runs and experiments into the data plane. | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`session`](#flightdeck-ingest-session), [`file`](#flightdeck-ingest-file), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
 | [`stats`](#flightdeck-stats) | Compare the arms of an experiment, paired by task. | [`compare`](#flightdeck-stats-compare) | [Statistics](statistics.md#flightdeck-stats-compare) |
 | [`report`](#flightdeck-report) | The verdict as a report, posted on the pull request. | [`experiment`](#flightdeck-report-experiment), [`post`](#flightdeck-report-post) | [Reports](reports.md) |
 | **Run experiments** | | | |
@@ -85,6 +85,20 @@ flightdeck ingest session [OPTIONS] NAME
 | `NAME` | text | required |  |  |
 | `--turn` | integer |  |  | Only this turn. |
 | `--hangar` | text |  | `HANGAR_URL` | hangar base URL; token from HANGAR_TOKEN. |
+| `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
+
+### `flightdeck ingest file`
+
+Ingest a saved job or session trace (e.g. MCP's hangar://jobs/&lt;id&gt;/trace) and manifests; no token needed.
+
+```
+flightdeck ingest file [OPTIONS] TRACE
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `TRACE` | path | required |  |  |
+| `--manifest` | path, repeatable |  |  | A turn's saved hangar.manifest/v1; repeat for each turn. |
 | `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
 
 ### `flightdeck ingest github`

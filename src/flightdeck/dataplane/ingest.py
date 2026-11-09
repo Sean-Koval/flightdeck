@@ -1,5 +1,5 @@
 """Ingest from hangar without the GCS outbox: an experiment over REST or from `hangar experiment export -o DIR`, or a
-job's or session's trace over REST, into the local `flightdeck.parquet/v1` layout (docs/data-plane.md#ingest).
+job's or session's trace over REST or from a saved file, into `flightdeck.parquet/v1` (docs/data-plane.md#ingest).
 
 REST ingest first writes the same files `hangar experiment export` writes, streamed to `<out>/raw/<id>/`, then reads
 them like an export, so both paths produce identical rows and nothing large is held in memory. Each ingest unit (an
@@ -152,6 +152,7 @@ app = typer.Typer(help="Pull hangar runs and experiments into the data plane.", 
 OUT = typer.Option(DEFAULT_OUT, "--out", envvar="FLIGHTDECK_DATA_URI", help="Data plane directory.")
 HANGAR = typer.Option(None, "--hangar", envvar="HANGAR_URL", help="hangar base URL; token from HANGAR_TOKEN.")
 TURN = typer.Option(None, help="Only this turn.")
+MANIFEST = typer.Option(None, "--manifest", help="A turn's saved hangar.manifest/v1; repeat for each turn.")
 
 
 def _run(unit: str, out: str, load: Any, hangar: str | None = "") -> None:
@@ -187,3 +188,18 @@ def ingest_job(job_id: str, hangar: str = HANGAR, out: str = OUT) -> None:
 def ingest_session(name: str, turn: int = TURN, hangar: str = HANGAR, out: str = OUT) -> None:
     """Ingest a session's trace (or one turn's) and the turns' manifests over REST."""
     _run(f"session-{name}", out, lambda url, tok: fetch_trace("session", name, url, tok, turn), hangar)
+
+
+@app.command("file")
+def ingest_file(trace: Path, manifest: list[Path] | None = MANIFEST, out: str = OUT) -> None:
+    """Ingest a saved job or session trace (e.g. MCP's hangar://jobs/<id>/trace) and manifests; no token needed."""
+    otlp = json.loads(trace.read_text(encoding="utf-8"))
+    res = flatten.otlp_attrs(((otlp.get("resourceSpans") or [{}])[0].get("resource") or {}).get("attributes", []))
+    kind = "job" if res.get("hangar.job.id") else "session"
+    if not (name := res.get("hangar.job.id") or res.get("hangar.session.name") or res.get("hangar.session.id")):
+        raise ValueError(f"{trace}: not a job or session trace (no hangar.job.id or hangar.session.id)")
+    rows: Tables = {t: [] for t in schema.TABLES} | flatten.flatten_trace(otlp)
+    for p in manifest or []:
+        validate(m := json.loads(p.read_text(encoding="utf-8")), "manifest.schema.json", str(p))
+        rows["manifests"].append(flatten.flatten_manifest(m, kind))
+    _run(f"{kind}-{name}", out, lambda *_: rows)

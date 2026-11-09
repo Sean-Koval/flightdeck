@@ -87,24 +87,28 @@ GitHub, Anthropic/OpenAI, AWS and Slack tokens) as `***`. They clip event text t
 
 ## Ingest
 
-`flightdeck ingest` pulls from hangar directly, for an author who wants one experiment's results now. That covers the
-wait for the night's compaction, and a hangar whose outbox is off. Code: `src/flightdeck/dataplane/ingest.py`.
+`flightdeck ingest` pulls from hangar directly: one experiment's results now, or runs from a hangar whose outbox is
+off. Code: `src/flightdeck/dataplane/ingest.py`.
 
 ```sh
 flightdeck ingest export DIR                                  # files from `hangar experiment export <id> -o DIR`
 flightdeck ingest experiment <id> --hangar URL                # REST; bearer token from HANGAR_TOKEN
 flightdeck ingest job <id> --hangar URL                       # GET /api/jobs/{id}/trace + /manifest?turn=N
 flightdeck ingest session <name> [--turn N] --hangar URL      # GET /api/sessions/{name}/trace + /manifest?turn=N
+flightdeck ingest file TRACE.json [--manifest M.json ...]     # saved job or session trace; no HANGAR_URL or token
 ```
 
 All write to `--out` (default `~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`), with `source` = `experiment`, `job` or
 `session`.
 
+`ingest file` reads a trace and manifests saved from MCP (`hangar://jobs/<id>/trace`, `/manifest`). It writes the rows
+`ingest job` would, as unit `job-<id>`; a session's is `session-<hangar.session.name>`.
+
 ### REST and export are one path
 
 REST ingest streams the index and each trial's `links.manifest` and `links.trace` to `<out>/raw/<id>/`, in
 `hangar experiment export`'s layout (`index.json`, `trials/<task>__<variant>__<n>[~<attempt>]/*.json`). Then it reads
-that directory like an export. Both produce identical tables, and nothing large is held in memory.
+that directory like an export: identical tables, and nothing large held in memory.
 
 ### Experiments
 
@@ -124,8 +128,7 @@ Drifted trials (`trials[].drift`) are kept, with `drift` set; `flightdeck stats 
 ### Idempotent
 
 Each unit (an experiment, a job, a session) owns one Parquet part per table and day, `part-<unit>.parquet`.
-Re-ingesting replaces the unit's rows by `run_id`, so it adds no duplicates. A trial that finished on a later day
-moves partitions instead of staying behind.
+Re-ingesting replaces its rows by `run_id`, adding no duplicates; a trial finished on a later day moves partitions.
 
 ### Validation
 
@@ -142,8 +145,7 @@ hangar scopes every record to its owner (spec 0014 §1). A member token sees its
 an admin token sees everyone's; a `jobs` token sees what it submitted. A 404 means missing *or not yours*, and is
 reported that way.
 
-A report on your own experiment needs only your member token. A team-wide report needs an admin token, kept in the
-operator's environment.
+A report on your own experiment needs your member token; a team-wide one needs an admin token, kept by the operator.
 
 ## Compactor
 
