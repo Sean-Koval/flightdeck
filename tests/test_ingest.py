@@ -129,6 +129,35 @@ def test_job_and_session_ingest_over_rest(tmp_path: Path, no_proxy: None) -> Non
     assert con.sql("select digest from manifests").fetchall() == [("sha256:" + "1" * 64,)]
 
 
+def test_file_ingest_matches_rest_ingest_for_jobs_and_sessions(tmp_path: Path, no_proxy: None) -> None:
+    routes = {"/api/jobs/job-fixture01/trace": FIX / "trace_job.json",
+              "/api/jobs/job-fixture01/manifest?turn=1": FIX / "manifest_turn.json",
+              "/api/sessions/s1/trace": FIX / "trace_session_good.json"}
+    rest, local = tmp_path / "rest", tmp_path / "file"
+    with Recorded(routes) as hangar:
+        for args in (["job", "job-fixture01"], ["session", "s1"]):
+            result = CliRunner().invoke(app, ["ingest", *args, "--hangar", hangar.url, "--out", str(rest)])
+            assert result.exit_code == 0, result.output
+    for args in ([str(FIX / "trace_job.json"), "--manifest", str(FIX / "manifest_turn.json")],
+                 [str(FIX / "trace_session_good.json")], [str(FIX / "trace_job.json"), "--manifest",
+                                                          str(FIX / "manifest_turn.json")]):
+        result = CliRunner().invoke(app, ["ingest", "file", *args, "--out", str(local)], env={"HANGAR_URL": ""})
+        assert result.exit_code == 0, result.output
+    assert "job-job-fixture01:" in result.output
+    assert tables(str(local)) == tables(str(rest))  # same rows, and re-ingesting the job file replaced its own
+    assert sorted(p.name for p in (local / "runs").rglob("*.parquet")) == sorted(
+        p.name for p in (rest / "runs").rglob("*.parquet"))
+
+
+def test_file_ingest_warns_on_a_manifest_that_does_not_match_the_schema(tmp_path: Path) -> None:
+    bad = json.loads((FIX / "manifest_turn.json").read_text(encoding="utf-8"))
+    bad["warnings"] = "none"  # an array in hangar.manifest/v1
+    (tmp_path / "m.json").write_text(json.dumps(bad), encoding="utf-8")
+    result = CliRunner().invoke(app, ["ingest", "file", str(FIX / "trace_job.json"), "--manifest",
+                                      str(tmp_path / "m.json"), "--out", str(tmp_path / "plane")])
+    assert result.exit_code == 0 and "warning:" in result.output and "does not match hangar" in result.output
+
+
 def test_ingest_without_hangar_url_is_a_usage_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("HANGAR_URL", raising=False)
     result = CliRunner().invoke(app, ["ingest", "job", "j", "--out", str(tmp_path)])

@@ -95,6 +95,7 @@ flightdeck ingest export DIR                                  # files from `hang
 flightdeck ingest experiment <id> --hangar URL                # REST; bearer token from HANGAR_TOKEN
 flightdeck ingest job <id> --hangar URL                       # GET /api/jobs/{id}/trace + /manifest?turn=N
 flightdeck ingest session <name> [--turn N] --hangar URL      # GET /api/sessions/{name}/trace + /manifest?turn=N
+flightdeck ingest file TRACE.json [--manifest M.json]        # a saved job or session trace, no token
 ```
 
 All write to `--out` (default `~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`), with `source` = `experiment`, `job` or

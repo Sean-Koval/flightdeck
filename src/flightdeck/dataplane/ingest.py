@@ -116,21 +116,30 @@ def read_export(d: Path) -> Tables:
     return out
 
 
+def trace_tables(otlp: dict, manifest: Any, what: str) -> Tables:
+    """Rows from a job's or session's trace, with the manifest `manifest(turn)` gives for each turn (None: skip)."""
+    rows = flatten.flatten_trace(otlp)
+    out: Tables = {name: [] for name in schema.TABLES} | rows
+    for run in rows["runs"]:
+        if run.get("turn") is None or (m := manifest(run["turn"])) is None:
+            continue
+        validate(m, "manifest.schema.json", f"{what} turn {run['turn']} manifest")
+        out["manifests"].append(flatten.flatten_manifest(m, rows["runs"][0]["source"]))
+    return out
+
+
 def fetch_trace(kind: str, name: str, base: str, token: str | None, turn: int | None = None) -> Tables:
     """Rows from a job's or session's trace over REST, with the manifest of each turn it holds."""
     path = f"/api/{kind}s/{urllib.parse.quote(name, safe='')}"
-    rows = flatten.flatten_trace(_get(base, f"{path}/trace" + (f"?turn={turn}" if turn else ""), token))
-    out: Tables = {name: [] for name in schema.TABLES} | rows
-    for run in rows["runs"]:
-        if run.get("turn") is None:
-            continue
+
+    def manifest(t: int) -> Any:
         try:
-            m = _get(base, f"{path}/manifest?turn={run['turn']}", token)
+            return _get(base, f"{path}/manifest?turn={t}", token)
         except NotFound:
-            continue
-        validate(m, "manifest.schema.json", f"{kind} {name} turn {run['turn']} manifest")
-        out["manifests"].append(flatten.flatten_manifest(m, rows["runs"][0]["source"]))
-    return out
+            return None
+
+    return trace_tables(_get(base, f"{path}/trace" + (f"?turn={turn}" if turn else ""), token), manifest,
+                        f"{kind} {name}")
 
 
 def write_unit(tables: Tables, out: str, unit: str) -> dict[str, int]:
@@ -152,6 +161,7 @@ app = typer.Typer(help="Pull hangar runs and experiments into the data plane.", 
 OUT = typer.Option(DEFAULT_OUT, "--out", envvar="FLIGHTDECK_DATA_URI", help="Data plane directory.")
 HANGAR = typer.Option(None, "--hangar", envvar="HANGAR_URL", help="hangar base URL; token from HANGAR_TOKEN.")
 TURN = typer.Option(None, help="Only this turn.")
+MANIFEST = typer.Option([], help="A turn's manifest (hangar://jobs/<id>/manifest); repeat for each turn.")
 
 
 def _run(unit: str, out: str, load: Any, hangar: str | None = "") -> None:
@@ -187,3 +197,15 @@ def ingest_job(job_id: str, hangar: str = HANGAR, out: str = OUT) -> None:
 def ingest_session(name: str, turn: int = TURN, hangar: str = HANGAR, out: str = OUT) -> None:
     """Ingest a session's trace (or one turn's) and the turns' manifests over REST."""
     _run(f"session-{name}", out, lambda url, tok: fetch_trace("session", name, url, tok, turn), hangar)
+
+
+@app.command("file")
+def ingest_file(trace: Path, manifest: list[Path] = MANIFEST, out: str = OUT) -> None:
+    """Ingest a job's or session's trace saved to a file (hangar://jobs/<id>/trace), with its turns' manifests."""
+    otlp = json.loads(trace.read_text(encoding="utf-8"))
+    res = flatten.otlp_attrs(otlp["resourceSpans"][0].get("resource", {}).get("attributes", []))
+    docs = [json.loads(p.read_text(encoding="utf-8")) for p in manifest]
+    ms = {(m.get("subject") or {}).get("turn"): m for m in docs}
+    unit = f"job-{res['hangar.job.id']}" if res.get("hangar.job.id") else \
+        f"session-{res.get('hangar.session.name') or res.get('hangar.session.id')}"
+    _run(unit, out, lambda *_: trace_tables(otlp, ms.get, str(trace)))
