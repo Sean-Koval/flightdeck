@@ -8,7 +8,7 @@ import random
 from pathlib import Path
 
 import pytest
-from spec_traces import EXAMPLES, example, random_steps, trace
+from spec_traces import EXAMPLES, auto_job, example, random_steps, trace
 from typer.testing import CliRunner
 
 from flightdeck.cli import app
@@ -29,7 +29,7 @@ def both(spec: str | dict, otlp: dict) -> dict[str, str]:
     return py
 
 
-def one(spec: str, steps: list[tuple], **kw) -> str:
+def one(spec: str | dict, steps: list[tuple], **kw) -> str:
     """The single unit's result."""
     (r,) = both(spec, trace(steps, **kw)).values()
     return r
@@ -72,6 +72,39 @@ def test_examples_pass_and_fail_on_committed_traces() -> None:
         assert json.loads(path.read_text()) == example(name), "regenerate: python tests/spec_traces.py"
         want = name.removeprefix("job_")
         assert {r for s in specs for r in both(s, example(name)).values()} == {want}
+
+
+def _team(tables: dict) -> dict[str, str]:
+    """team-default's result per spec on one job's rows, from both evaluators."""
+    out, con = {}, lang.connect_tables(tables)
+    for s in lang.load((ROOT / "specs/examples/team-default.yaml").read_text()):
+        py = lang.evaluate(s, tables)
+        assert lang.evaluate_sql(s, con) == py, s["id"]
+        (out[s["id"]],) = set(py.values())
+    return out
+
+
+def test_team_default_passes_a_good_auto_approvals_job() -> None:
+    """KAN-311: the job's IO dir, a delete beside a /tmp redirect, and no approvals under `approvals: auto`."""
+    assert _team(auto_job()) == {"tests-before-commit": "pass", "never-push-main": "pass",
+                                 "never-delete-outside-repo": "pass", "edits-stay-in-repo": "pass",
+                                 "ask-before-delete": "not_applicable"}
+    assert _team(auto_job(rm="rm -rf ~/x"))["never-delete-outside-repo"] == "fail"
+    assert _team(auto_job(io_job="job-other"))["edits-stay-in-repo"] == "fail"  # another job's IO dir
+    assert _team(auto_job(approvals="ask"))["ask-before-delete"] == "fail"
+    assert _team(auto_job(approvals=None))["ask-before-delete"] == "fail"  # no manifest policy: the check applies
+
+
+@pytest.mark.parametrize(("cmd", "want"), [
+    ("rm -rf site; uv run pytest > /tmp/k72/verify.log", "pass"), ("rm -rf build 2>/dev/null", "pass"),
+    ("rm -rf build | tee /tmp/log", "pass"), ("docker run --rm -v /a:/b img && rm -r out", "pass"),
+    ("rm -rf ~/x", "fail"), ("rm -rf /var/lib/app", "fail"), ("cd x && rm -r ../y", "fail"),
+    ('rm -f "$HOME/.cache"', "fail"), ("git rm -q /abs/f", "fail"), ("ls; rmdir /tmp/x", "fail"),
+])
+def test_never_delete_outside_repo_reads_the_deletes_operands(cmd: str, want: str) -> None:
+    spec = lang.load((ROOT / "specs/examples/team-default.yaml").read_text())[2]
+    assert spec["id"] == "never-delete-outside-repo"
+    assert one(spec, [("tool", "shell", cmd, ["delete"])]) == want
 
 
 def test_never_eventually_count() -> None:
@@ -119,6 +152,12 @@ def test_paths() -> None:
     assert one(spec, [("file", "src/a.py", "write")], diff=["tests/t.py"]) == "pass"
     assert one(spec, [("file", "src/a.py", "write")], diff=["docs/x.md"]) == "fail"  # a shell write shows only here
     assert one(spec, [("file", None, "write")]) == "fail"  # outside the checkout: no repo_path
+    io = spec.replace("diff.files]", "diff.files], io: ['/io/{job}/*']")
+    assert one(io, [("file", None, "write", "/io/job-s1/RESULT.md")], diff=["src/a.py"]) == "pass"
+    assert one(io, [("file", None, "write", "/io/job-s1/RESULT.md")]) == "not_applicable"  # not an edit
+    assert one(io, [("file", None, "write", "/io/job-s2/RESULT.md")]) == "fail"
+    session = io.replace("scope: job", "scope: session")
+    assert one(session, [("file", None, "write", "/io/job-s1/x")], job=None) == "fail"  # no job, no IO dir
     assert one(spec, []) == "not_applicable"
     only_fc = spec.replace("file.change, diff.files", "file.change")
     assert one(only_fc, [("file", "src/a.py", "write")], diff=["docs/x.md"]) == "pass"
@@ -150,6 +189,8 @@ def test_scope_applies_when_and_unknown() -> None:
     assert one(never % ("job", "applies_when: {source: experiment}\n"), steps) == "not_applicable"
     assert one(never % ("job", "applies_when: {repo: '*/other.git'}\n"), steps) == "not_applicable"
     assert one(never % ("job", "harness: codex\n"), steps) == "not_applicable"
+    assert one(never % ("job", "applies_when: {source: '!job'}\n"), steps) == "not_applicable"  # ! negates a glob
+    assert one(never % ("job", "applies_when: {source: ['!job', job]}\n"), steps) == "fail"
     assert one(never % ("job", "applies_when: {untrusted: true}\n"), steps) == "unknown"
     assert one("id: a\nscope: job\nchecks_predicate: x", steps) == "unknown"  # no assert: never a pass
 
@@ -188,6 +229,8 @@ def test_sql_equals_python_on_random_traces() -> None:
         "assert: {all: {paths: {from: [file.change, diff.files]}, match: src/*}}",
         "assert: {any: {paths: {from: [diff.files]}, match: docs/*}}",
         "applies_when: {source: [job, session], task_id: '*'}\nassert: {never: {event: steer}}",
+        "applies_when: {source: '!session', approvals: '!auto'}\nassert: {never: {event: steer}}",
+        "assert: {all: {paths: {from: [file.change], io: ['*/{job}/*']}, match: src/*}}",
         "assert: {never: {event: pr.merge, where: {hangar.pr.merged_by: {not: bot}}}}",
         "assert: {never: {event: steer}}",
     ]

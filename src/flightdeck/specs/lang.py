@@ -24,7 +24,7 @@ SCHEMA = "flightdeck.spec/v1"
 KINDS = {"shell", "edit", "read", "search", "web", "mcp", "skill", "plan", "other"}
 OPS = {"test", "git.commit", "git.push", "pr.open", "delete"}
 SCOPES = {"turn": "run_id", "job": "job_id", "session": "session_id"}
-UNIT_KEYS = ("source", "repo", "task_id", "variant")  # applies_when keys: runs columns, globs
+UNIT_KEYS = ("source", "repo", "task_id", "variant", "approvals")  # applies_when globs: runs columns, the manifest's
 CMP = {"gt": (operator.gt, ">"), "gte": (operator.ge, ">="), "lt": (operator.lt, "<"), "lte": (operator.le, "<=")}
 PASS, FAIL, NA, UNKNOWN = "pass", "fail", "not_applicable", "unknown"
 # Item columns, from each data-plane table's columns. Items also carry k (tool|approval|event), ids, turn and attrs.
@@ -187,11 +187,11 @@ def plan(s: Spec) -> tuple[str, dict[str, Any]]:
             raise SpecError(f"within: {{seq: N}} or {{turns: N}}: {w!r}")
         return "each", {"b": m(a["each"]), "a": m(a["requires_prior"]), "w": w}
     if "all" in a or "any" in a:
-        q = a.get("all") or a.get("any") or {}
-        src, g = (q.get("paths") or {}).get("from", ["file.change", "diff.files"]), q.get("match")
-        if not g or set(src) - {"file.change", "diff.files"}:
-            raise SpecError("all|any: {paths: {from: [file.change, diff.files]}, match: <glob or list>}")
-        return "paths", {"from": src, "match": [g] if isinstance(g, str) else g, "any": "all" not in a}
+        ps = (q := a.get("all") or a.get("any") or {}).get("paths") or {}
+        src, io, g = ps.get("from", ["file.change", "diff.files"]), ps.get("io") or [], q.get("match")
+        if not g or set(src) - {"file.change", "diff.files"} or not isinstance(io, list):
+            raise SpecError("all|any: {paths: {from: [file.change, diff.files], io: [globs]}, match: <glob or list>}")
+        return "paths", {"from": src, "match": [g] if isinstance(g, str) else g, "any": "all" not in a, "io": io}
     raise SpecError(f"{s.get('id')}: unknown operator in {sorted(a)}")
 
 
@@ -263,7 +263,9 @@ def _eval(op: str, a: dict, its: list[Item], u: dict) -> str:
         unk = lambda b: ("seq" in a["w"] and b["seq"] is None) or ("turns" in a["w"] and b["turn"] is None)  # noqa: E731
         return NA if not bs else PASS if not missed else UNKNOWN if all(map(unk, missed)) else FAIL
     if op == "paths":
-        ps = [i["path"] for i in its if i["k"] == "event" and i["name"] == "file.change" and "file.change" in a["from"]]
+        fc = [i for i in its if i["k"] == "event" and i["name"] == "file.change" and "file.change" in a["from"]]
+        ps = [i["path"] for i in fc if i["path"] is not None or not any(fnmatchcase(  # the job's IO dir: not an edit
+            i["attrs"].get("hangar.file.path", ""), g.replace("{job}", i["job_id"] or "")) for g in a["io"])]
         ps += u["diff"] if "diff.files" in a["from"] else []
         ok = (any if a["any"] else all)(isinstance(p, str) and any(fnmatchcase(p, g) for g in a["match"]) for p in ps)
         return NA if not ps else PASS if ok else FAIL
@@ -274,7 +276,7 @@ def _applies(s: Spec, u: dict) -> bool | None:
     """Whether a unit is in scope: applies_when's UNIT_KEYS and the harness name. None: unknowable from the plane."""
     if set(s.get("applies_when") or {}) - set(UNIT_KEYS):
         return None
-    return all(any(fnmatchcase(u[k] or "", g) for g in gs) for k, gs in _scope(s).items())
+    return all(any(fnmatchcase(u[k] or "", g.lstrip("!")) != (g[:1] == "!") for g in gs) for k, gs in _scope(s).items())
 
 
 def _scope(s: Spec) -> dict[str, list[str]]:
@@ -333,6 +335,8 @@ def evaluate(s: Spec, tables: dict[str, list[dict]]) -> dict[str, str]:
     """Results per unit of one flattened export (`flatten_trace` output)."""
     op, a = plan(s)
     col, its = SCOPES[s.get("scope", "turn")], None
+    man = {m.get("digest"): m.get("approvals") for m in tables.get("manifests", [])}  # approvals: the run's manifest's
+    tables = {**tables, "runs": [{**r, "approvals": man.get(r.get("manifest_digest"))} for r in tables.get("runs", [])]}
     conservative = s.get("observation_policy", "legacy-v1") == "conservative-v1"
     safe = _observations_consistent(tables) if conservative else False
     out = {}
@@ -408,7 +412,9 @@ def sql(s: Spec) -> str:
         res = (f"case when {agg('count(*)', a['b'][1]('i'))} = 0 then '{NA}' when exists (select 1 {missed} and not "
                f"({unk})) then '{FAIL}' when exists (select 1 {missed}) then '{UNKNOWN}' else '{PASS}' end")
     elif op == "paths":
-        fc = (agg("coalesce(list(i.path), [])", "i.k = 'event' and i.name = 'file.change'")
+        io = "".join(f" and not coalesce(i.path is null and json_extract_string(i.attrs, '$.\"hangar.file.path\"')"
+                     f" glob replace({_q(g)}, '{{job}}', coalesce(i.job_id, '')), false)" for g in a["io"])
+        fc = (agg("coalesce(list(i.path), [])", f"i.k = 'event' and i.name = 'file.change'{io}")
               if "file.change" in a["from"] else "[]::varchar[]")
         ps = f"list_concat({fc}, {'u.diff' if 'diff.files' in a['from'] else '[]::varchar[]'})"
         globs = " or ".join(f"x glob {_q(g)}" for g in a["match"])
@@ -417,7 +423,8 @@ def sql(s: Spec) -> str:
             f"else '{FAIL}' end"
     else:
         res = f"'{UNKNOWN}'"
-    applies = " and ".join("(" + " or ".join(f"coalesce(u.{k}, '') glob {_q(g)}" for g in gs) + ")"
+    applies = " and ".join("(" + " or ".join(f"(coalesce(u.{k}, '') glob {_q(g.lstrip('!'))}) <> {_q(g[:1] == '!')}"
+                                             for g in gs) + ")"
                            for k, gs in _scope(s).items()) if not set(s.get("applies_when") or {}) - set(UNIT_KEYS) \
         else "null"
     partial, known = f"when trunc and res in ('{PASS}', '{NA}') then '{UNKNOWN}'", "true"
@@ -428,10 +435,10 @@ def sql(s: Spec) -> str:
                    f"or applies is null then '{UNKNOWN}' when not applies then '{NA}' "
                    f"when res = '{FAIL}' and {_q(_witness(s, op, a))} then '{FAIL}' else '{UNKNOWN}' end")
     return f"""with u as (select {col} as unit, bool_or(coalesce(truncated, false)) as trunc,
-        {known} as known,
-        {", ".join(f"any_value({k}) as {k}" for k in (*UNIT_KEYS, "harness"))},
-        flatten(list(coalesce(diff_files, []))) as diff
-        from _runs where {col} is not null group by 1),
+        {known} as known, {", ".join(f"any_value({k}) as {k}" for k in (*UNIT_KEYS, "harness"))},
+        flatten(list(coalesce(diff_files, []))) as diff from _runs left join (select digest as manifest_digest,
+        any_value(approvals) as approvals from _manifests group by 1) using (manifest_digest)
+        where {col} is not null group by 1),
       r as (select unit, trunc, known, {applies} as applies, {res} as res from u)
       select unit, case {partial if s.get('observation_policy', 'legacy-v1') == 'conservative-v1' else ''}
         when applies is null then '{UNKNOWN}' when not applies then '{NA}'

@@ -60,7 +60,11 @@ Job-level events sit on the job span. So a spec about `test.run`, `git.commit` e
 
 `harness` matches the run's `hangar.harness` as a glob. `applies_when` takes globs (one or a list) over four `runs`
 columns: `source` (`job`, `session`, `experiment`, `shadow`, `local`), `repo` (the job's repo URL), `task_id` and
-`variant`.
+`variant`. A fifth key, `approvals`, is the run manifest's approvals mode. A glob starting with `!` (quoted in YAML)
+matches what it does not.
+
+So `applies_when: {approvals: "!auto"}` makes `ask-before-delete` a policy check: `not_applicable` under
+`approvals: auto`, where hangar records no approval. A run without a manifest is still judged.
 
 `task_id` and `variant` are an experiment trial's task and variant. So a spec can judge one task's candidate arm, as
 imported ai-dlc workflow assertions do.

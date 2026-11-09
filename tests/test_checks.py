@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 import pyarrow.parquet as pq
-from spec_traces import example, trace
+from spec_traces import auto_job, example, trace
 from typer.testing import CliRunner
 
 from flightdeck.cli import app
@@ -78,6 +78,18 @@ def test_check_run_writes_spec_results(tmp_path: Path) -> None:
     assert "not-yet" not in out.output  # proposed ADR
     again = CliRunner().invoke(app, ["check", "run", "--data", str(plane), "--date", day, "--adrs", str(ADRS)])
     assert again.exit_code == 0 and "ALERT" not in again.output  # rerun replaces the day's partition
+
+
+def test_check_run_passes_a_good_auto_approvals_job(tmp_path: Path) -> None:
+    """KAN-311: every applicable team-default spec passes a good job under `approvals: auto`."""
+    tables = auto_job()
+    for name, rows in tables.items():
+        write_partitioned(name, rows, str(tmp_path))
+    out = CliRunner().invoke(app, ["check", "run", "--data", str(tmp_path), "--date", tables["runs"][0]["dt"],
+                                   "--specs", str(ROOT / "specs/examples/team-default.yaml")])
+    assert out.exit_code == 0, out.output
+    assert "5 specs over 1 units: 0 failed, 0 unknown" in out.output
+    assert re.search(r"^ask-before-delete +— +— +— +0 +not applied$", out.output, re.M), out.output
 
 
 def _day(d: int, n: int, k: int, digest: str) -> list[dict]:

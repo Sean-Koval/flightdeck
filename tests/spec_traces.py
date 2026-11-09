@@ -31,7 +31,8 @@ def trace(steps: list[tuple], job: str | None = "job-s1", session: str = "ses-s1
           truncated: bool = False, repo: str = "https://github.com/example/app.git", runs: str = "run") -> dict:
     """Steps, in order (each one second later, unless a step gives `t`):
 
-    ("turn",) starts the next turn; ("tool", kind, input, ops); ("approval", ops, status); ("file", repo_path, op);
+    ("turn",) starts the next turn; ("tool", kind, input, ops); ("approval", ops, status);
+    ("file", repo_path, op[, absolute path]);
     ("event", name, attrs) on the job span (or the turn when there is no job); ("test", trusted, total) a test.run;
     ("steer",) an event without hangar.seq. A trailing {"t": n, "noseq": True} dict overrides time or drops seq.
     """
@@ -73,6 +74,7 @@ def trace(steps: list[tuple], job: str | None = "job-s1", session: str = "ses-s1
                                                 "hangar.approval.status": step[2], "hangar.seq": s})})
         elif kind in ("file", "steer"):
             a = {"hangar.kind": "file.change", "hangar.file.repo_path": step[1], "hangar.file.op": step[2],
+                 "hangar.file.path": step[3] if len(step) > 3 and isinstance(step[3], str) else None,
                  "hangar.seq": s} if kind == "file" else {"hangar.kind": "steer", "hangar.text": "stop"}
             cur["events"].append({"timeUnixNano": str(t), "name": a["hangar.kind"], "attributes": _attrs(a)})
         else:
@@ -136,6 +138,24 @@ EXAMPLES: dict[str, dict] = {
         ("tool", "shell", "git commit -qam wip && git push origin main", ["git.commit", "git.push"]),
         ("event", "git.commit", {}), ("event", "pr.open", {"hangar.pr.number": 8})], "diff": ["src/app.py"]},
 }
+
+
+def auto_job(rm: str = "rm -rf site; mkdir -p /tmp/k72 && uv run pytest -q > /tmp/k72/verify.log 2>&1",
+             io_job: str = "job-k72", approvals: str | None = "auto") -> dict[str, list[dict]]:
+    """Flattened rows of a good job under `approvals: auto` (KAN-311): the agent writes RESULT.md in the job's IO dir
+    and runs one compound command that deletes a repo directory and redirects into /tmp. With its manifest row."""
+    steps = [("tool", "edit", "src/app.py", []), ("file", "src/app.py", "update", "/workspace/app/src/app.py"),
+             ("tool", "shell", rm, ["delete", "test"]), ("tool", "shell", "git commit -qam fix", ["git.commit"]),
+             ("tool", "edit", "RESULT.md", []), ("file", None, "write", f"/home/agent/.hangar/jobs/{io_job}/RESULT.md"),
+             ("event", "verify", {"hangar.verify.phase": "after_turn", "hangar.verify.passed": True}),
+             ("test", True, 12), ("event", "git.commit", {}), ("event", "pr.open", {"hangar.pr.number": 9})]
+    from flightdeck.dataplane.flatten import flatten_trace
+
+    tables = flatten_trace(trace(steps, job="job-k72", session="ses-k72", diff=["src/app.py", "site/index.html"]))
+    tables["runs"] = [{**r, "manifest_digest": "sha256:m-k72"} for r in tables["runs"]]
+    tables["manifests"] = [{"run_id": r["run_id"], "source": "job", "dt": r["dt"], "digest": "sha256:m-k72",
+                            "job_id": "job-k72", "approvals": approvals} for r in tables["runs"]]
+    return tables
 
 
 def example(name: str) -> dict:
