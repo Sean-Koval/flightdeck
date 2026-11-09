@@ -455,7 +455,7 @@ def paired_by_task() -> str:
 
 # ---------------------------------------------------------------------------------------------------- main
 # ------------------------------------------------------------------------------------------------------- the clip
-# The demo clip (KAN-75): about 20 s at 640 px and 2x, so it reads at a docs column's width and on a phone. It opens on
+# The demo clip (KAN-75): 19 s at 640 px and 2x, so it reads at a docs column's width and on a phone. It opens on
 # `stats compare` in a terminal (the poster is that first frame), types `report` and its verdict, then shows the same
 # report as the pull-request comment: its verdict, the experiment, the rule and the Outcome table.
 # `clip-{dark,light}.html` is the page, which plays its own timeline; the MP4s
@@ -550,7 +550,7 @@ async function play() {
   await wait(3600);
   say('3', 'The same report, posted on the pull request as one comment');
   document.querySelector('.s1').classList.add('off'); document.querySelector('.s2').classList.remove('off');
-  await wait(6400);
+  await wait(7600);  // the comment holds to 19 s in all (KAN-75: a clip runs 18 to 20 s)
   window.clipDone = true;
 }
 document.fonts.ready.then(prepare);  // the recorder sizes the window to clipHeight, then calls play()
@@ -588,8 +588,8 @@ def record_clip(pages: dict[str, str]) -> None:
                 shots.append((path, tab.evaluate("performance.now()") / 1000))
             tab.context.close()
             seconds = shots[-1][1] - shots[0][1]
-            if not 15 <= seconds <= 25:
-                sys.exit(f"build: {name} runs {seconds:.1f} s; a clip runs 15 to 25 s")
+            if not 18 <= seconds <= 20:
+                sys.exit(f"build: {name} runs {seconds:.1f} s; a clip runs 18 to 20 s")
             listing = Path(d) / f"{name}.txt"
             rows = []
             for (path, t), (_, nxt) in zip(shots, [*shots[1:], (None, shots[-1][1] + 0.1)], strict=True):
