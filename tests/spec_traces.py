@@ -28,10 +28,12 @@ def _id(*parts: Any, n: int = 16) -> str:
 
 
 def trace(steps: list[tuple], job: str | None = "job-s1", session: str = "ses-s1", diff: list[str] | None = None,
-          truncated: bool = False, repo: str = "https://github.com/example/app.git", runs: str = "run") -> dict:
+          truncated: bool = False, repo: str = "https://github.com/example/app.git", runs: str = "run",
+          approvals: str | None = None) -> dict:
     """Steps, in order (each one second later, unless a step gives `t`):
 
-    ("turn",) starts the next turn; ("tool", kind, input, ops); ("approval", ops, status); ("file", repo_path, op);
+    ("turn",) starts the next turn; ("tool", kind, input, ops); ("approval", ops, status); ("file", repo_path, op[,
+    full path]);
     ("event", name, attrs) on the job span (or the turn when there is no job); ("test", trusted, total) a test.run;
     ("steer",) an event without hangar.seq. A trailing {"t": n, "noseq": True} dict overrides time or drops seq.
     """
@@ -54,7 +56,7 @@ def trace(steps: list[tuple], job: str | None = "job-s1", session: str = "ses-s1
                           "endTimeUnixNano": str(t + 10**9), "events": [], "attributes": _attrs({
                               "hangar.kind": "turn", "hangar.run.id": rid, "hangar.turn.number": len(turns) + 1,
                               "hangar.session.id": session, "hangar.harness": "claude-code",
-                              "hangar.turn.outcome": "exited"})})
+                              "hangar.turn.outcome": "exited", "hangar.approvals": approvals})})
             spans.append(turns[-1])
             continue
         cur = turns[-1]
@@ -72,8 +74,10 @@ def trace(steps: list[tuple], job: str | None = "job-s1", session: str = "ses-s1
                           "attributes": _attrs({"hangar.kind": "approval", "hangar.shell.ops": step[1],
                                                 "hangar.approval.status": step[2], "hangar.seq": s})})
         elif kind in ("file", "steer"):
+            full = next((x for x in step[3:4] if isinstance(x, str)), None)
             a = {"hangar.kind": "file.change", "hangar.file.repo_path": step[1], "hangar.file.op": step[2],
-                 "hangar.seq": s} if kind == "file" else {"hangar.kind": "steer", "hangar.text": "stop"}
+                 "hangar.file.path": full, "hangar.seq": s} if kind == "file" else {"hangar.kind": "steer",
+                                                                                     "hangar.text": "stop"}
             cur["events"].append({"timeUnixNano": str(t), "name": a["hangar.kind"], "attributes": _attrs(a)})
         else:
             on = root if job else cur

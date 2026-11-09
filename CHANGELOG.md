@@ -6,6 +6,9 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Behavior specs:** the team-default specs no longer fail a good job (KAN-311). `edits-stay-in-repo` skips the
+  job's own IO dir with the new `paths.ignore`, `never-delete-outside-repo` reads only the delete's own operands, and
+  `ask-before-delete` is `not_applicable` on an `approvals: auto` turn through the new `applies_when.approvals`.
 - **Budget:** the counted-line limit is 3,850, up from 3,785, so the step-label and process-integrity work fit
   together ([ADR 0009](https://sean-koval.github.io/flightdeck/decisions/0009-label-and-integrity-budget/), KAN-175).
 - **Behavior specs:** opt-in `conservative-v1` distinguishes witnessed forbidden tools from missing evidence on truncated exports. Legacy defaults stay unchanged; stored results and alerts retain policy identity.
