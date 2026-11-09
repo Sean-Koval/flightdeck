@@ -1,5 +1,5 @@
 """Ingest from hangar without the GCS outbox: an experiment over REST or from `hangar experiment export -o DIR`, or a
-job's or session's trace over REST, into the local `flightdeck.parquet/v1` layout (docs/data-plane.md#ingest).
+job's or session's trace over REST or from a saved file, into the local `flightdeck.parquet/v1` layout.
 
 REST ingest first writes the same files `hangar experiment export` writes, streamed to `<out>/raw/<id>/`, then reads
 them like an export, so both paths produce identical rows and nothing large is held in memory. Each ingest unit (an
@@ -35,8 +35,8 @@ class NotFound(ValueError):
     Reported as one line by the entry point (`cli.run`), like any other wrong id or path."""
 
 
-def _get(base: str, path: str, token: str | None, dest: Path | None = None) -> Any:
-    """GET a hangar REST path as JSON, or stream it to `dest` (returns None then)."""
+def _get(base: str, path: str, token: str | None, dest: Path | None = None, missing: bool = False) -> Any:
+    """GET a hangar REST path as JSON, or stream it to `dest` (returns None then, and on a 404 when `missing`)."""
     req = urllib.request.Request(base.rstrip("/") + path, headers={"Accept": "application/json"})
     if token:
         req.add_header("Authorization", f"Bearer {token}")
@@ -48,6 +48,8 @@ def _get(base: str, path: str, token: str | None, dest: Path | None = None) -> A
             with dest.open("wb") as f:
                 shutil.copyfileobj(resp, f)
     except urllib.error.HTTPError as e:
+        if e.code == 404 and missing:
+            return None
         if e.code == 404:
             raise NotFound(f"{path}: not found, or not visible to this token (a member token sees only its "
                            "owner's records)") from None
@@ -116,21 +118,31 @@ def read_export(d: Path) -> Tables:
     return out
 
 
+def with_manifests(rows: Tables, manifests: Any) -> Tables:
+    """A trace's rows and its turns' manifests (`(manifest, where)` pairs), as `ingest job|session|file` write them."""
+    out: Tables = {name: [] for name in schema.TABLES} | rows
+    for m, what in manifests:
+        validate(m, "manifest.schema.json", what)
+        out["manifests"].append(flatten.flatten_manifest(m, rows["runs"][0]["source"] if rows["runs"] else "session"))
+    return out
+
+
 def fetch_trace(kind: str, name: str, base: str, token: str | None, turn: int | None = None) -> Tables:
     """Rows from a job's or session's trace over REST, with the manifest of each turn it holds."""
     path = f"/api/{kind}s/{urllib.parse.quote(name, safe='')}"
     rows = flatten.flatten_trace(_get(base, f"{path}/trace" + (f"?turn={turn}" if turn else ""), token))
-    out: Tables = {name: [] for name in schema.TABLES} | rows
-    for run in rows["runs"]:
-        if run.get("turn") is None:
-            continue
-        try:
-            m = _get(base, f"{path}/manifest?turn={run['turn']}", token)
-        except NotFound:
-            continue
-        validate(m, "manifest.schema.json", f"{kind} {name} turn {run['turn']} manifest")
-        out["manifests"].append(flatten.flatten_manifest(m, rows["runs"][0]["source"]))
-    return out
+    got = ((_get(base, f"{path}/manifest?turn={n}", token, missing=True), f"{kind} {name} turn {n} manifest")
+           for n in [r["turn"] for r in rows["runs"] if r.get("turn") is not None])
+    return with_manifests(rows, ((m, what) for m, what in got if m is not None))
+
+
+def read_trace_file(trace: Path, manifests: list[Path]) -> tuple[str, Tables]:
+    """A saved trace and manifests as REST ingest loads them, and their unit: `job-<id>` or else `session-<id>`."""
+    doc = json.loads(trace.read_text(encoding="utf-8"))
+    res = flatten.otlp_attrs(((doc.get("resourceSpans") or [{}])[0].get("resource") or {}).get("attributes", []))
+    job = res.get("hangar.export.scope", "job") == "job" and res.get("hangar.job.id")
+    return f"job-{job}" if job else f"session-{res.get('hangar.session.id')}", with_manifests(
+        flatten.flatten_trace(doc), [(json.loads(p.read_text(encoding="utf-8")), str(p)) for p in manifests])
 
 
 def write_unit(tables: Tables, out: str, unit: str) -> dict[str, int]:
@@ -152,6 +164,7 @@ app = typer.Typer(help="Pull hangar runs and experiments into the data plane.", 
 OUT = typer.Option(DEFAULT_OUT, "--out", envvar="FLIGHTDECK_DATA_URI", help="Data plane directory.")
 HANGAR = typer.Option(None, "--hangar", envvar="HANGAR_URL", help="hangar base URL; token from HANGAR_TOKEN.")
 TURN = typer.Option(None, help="Only this turn.")
+MANIFEST = typer.Option([], help="A manifest of one of the trace's turns; repeatable.")
 
 
 def _run(unit: str, out: str, load: Any, hangar: str | None = "") -> None:
@@ -181,6 +194,14 @@ def ingest_experiment(exp_id: str, hangar: str = HANGAR, out: str = OUT) -> None
 def ingest_job(job_id: str, hangar: str = HANGAR, out: str = OUT) -> None:
     """Ingest a job's trace and its turns' manifests over REST."""
     _run(f"job-{job_id}", out, lambda url, tok: fetch_trace("job", job_id, url, tok), hangar)
+
+
+@app.command("file")
+def ingest_file(trace: Path, manifest: list[Path] = MANIFEST, out: str = OUT) -> None:
+    """Ingest a saved job or session trace (`hangar://jobs/<id>/trace`, an offline `hangar.trace/v1` file) without
+    hangar: the rows `ingest job` or `ingest session` writes. Without `--manifest`, ids come from the trace."""
+    unit, tables = read_trace_file(trace, manifest)
+    _run(unit, out, lambda *_: tables)
 
 
 @app.command("session")

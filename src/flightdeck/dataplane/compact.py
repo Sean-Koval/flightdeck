@@ -26,7 +26,8 @@ PART = "part-0.parquet"
 ROW_GROUP_BYTES = 64 << 20
 RUN_KEYS = ("person", "repo", "environment", "harness", "harness_version", "outcome", "config_digest", "harness_digest",
             "environment_digest", "manifest_digest", "base_sha", "diff_files", "truncated", "outcome_class",
-            "infra_reason", "job_source", "job_turn", "job_state", "questions", "untrusted", "tainted", "attempt")
+            "infra_reason", "job_source", "job_turn", "job_state", "job_reason", "questions", "untrusted", "tainted",
+            "attempt")
 
 
 def _read(fs: Any, path: str) -> tuple[Any, str]:
@@ -49,7 +50,8 @@ def _run_row(r: dict) -> flatten.Row:
             "task_id": x.get("task"), "variant": x.get("variant"), "trial": x.get("trial"), "model_id": r.get("model"),
             "reason": r.get("outcome_reason"), "cost_usd": u.get("cost_usd"), "cost_source": u.get("cost_source"),
             "input_tokens": u.get("input_tokens"), "output_tokens": u.get("output_tokens"),
-            "cache_read_tokens": u.get("cache_read_tokens"), "started_at": flatten._ts(r.get("started_at")),
+            "cache_read_tokens": u.get("cache_read_tokens"), "cache_write_tokens": u.get("cache_write_tokens"),
+            "started_at": flatten._ts(r.get("started_at")),
             "finished_at": flatten._ts(r.get("finished_at")), "verify_passed": (r.get("verify") or {}).get("passed"),
             "pr_url": pr.get("url"), "pr_number": pr.get("number"), "steers": (r.get("steers") or {}).get("n")}
 
