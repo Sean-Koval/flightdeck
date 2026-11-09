@@ -408,7 +408,7 @@ async function play() {
   await wait(3600);
   say('3', 'The same report, posted on the pull request as one comment');
   document.querySelector('.s1').classList.add('off'); document.querySelector('.s2').classList.remove('off');
-  await wait(6400);
+  await wait(7600);  // the comment holds to 19 s in all (KAN-75: a clip runs 18 to 20 s)
   window.clipDone = true;
 }
 document.fonts.ready.then(prepare);  // the recorder sizes the window to clipHeight, then calls play()
