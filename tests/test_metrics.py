@@ -81,6 +81,26 @@ def test_revert_detection_from_body_sha_and_title() -> None:
     assert rows[101] == 8 and rows[102] == 8 and rows[103] == 9 and rows[1] is None
 
 
+def test_github_rest_honours_github_api_url_for_enterprise_hosts(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[str] = []
+
+    class Resp:
+        def __enter__(self) -> Resp:
+            return self
+
+        def __exit__(self, *_: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b"[]"
+
+    monkeypatch.setattr(github.urllib.request, "urlopen", lambda req, timeout: seen.append(req.full_url) or Resp())
+    github._get("/repos/acme/app/pulls", None)
+    monkeypatch.setenv("GITHUB_API_URL", "https://ghe.example.com/api/v3/")
+    github._get("/repos/acme/app/pulls", None)
+    assert seen == ["https://api.github.com/repos/acme/app/pulls", "https://ghe.example.com/api/v3/repos/acme/app/pulls"]
+
+
 def test_every_metric_on_a_synthetic_week(plane: str) -> None:
     m = weekly.build(plane, WEEK)["metrics"]
     assert (m["yield"]["k"], m["yield"]["n"]) == (3, 5)  # job-4 infra_error and job-5 never-started are left out
