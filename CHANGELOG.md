@@ -6,6 +6,7 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **GitHub Enterprise:** `ingest github` reads `GITHUB_API_URL`, as `report post` already did, so `prs` fills from a GitHub Enterprise Server host (KAN-357).
 - **Budget:** the counted-line limit is 3,850, up from 3,785, so the step-label and process-integrity work fit
   together ([ADR 0009](https://sean-koval.github.io/flightdeck/decisions/0009-label-and-integrity-budget/), KAN-175).
 - **Behavior specs:** opt-in `conservative-v1` distinguishes witnessed forbidden tools from missing evidence on truncated exports. Legacy defaults stay unchanged; stored results and alerts retain policy identity.
