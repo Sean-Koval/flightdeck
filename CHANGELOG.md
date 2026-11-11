@@ -7,6 +7,15 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 ## Unreleased
 
 - **GitHub Enterprise:** `ingest github` reads `GITHUB_API_URL`, as `report post` already did, so `prs` fills from a GitHub Enterprise Server host (KAN-357).
+- **Ingest:** `flightdeck ingest file TRACE.json [--manifest M.json]` loads a saved job or session trace (an MCP
+  client's `hangar://jobs/<id>/trace`, an offline `hangar.trace/v1` export) with no hangar URL or token. It writes
+  the rows `ingest job` or `ingest session` writes and replaces them by `run_id`; a manifest that misses hangar's
+  schema warns. Without a manifest, ids come from the trace: a turn with no run id is `<session>/turn/<n>`, and a
+  trace with no turns is one run ([Data plane: ingest](https://sean-koval.github.io/flightdeck/data-plane/#ingest), KAN-312).
+- **Data plane:** trace ingest fills `runs.harness_digest` and `environment_digest` from the turn span, and
+  `job_state` and the new `job_reason` from the job span. The new `runs.cache_write_tokens` comes from
+  `gen_ai.usage.cache_write.input_tokens`, or the outbox's `usage.cache_write_tokens`. Still `flightdeck.parquet/v1`;
+  the outbox wins where both have a value, and per-call usage on tool spans stays in `spans.attrs` (KAN-309).
 - **Budget:** the counted-line limit is 3,850, up from 3,785, so the step-label and process-integrity work fit
   together ([ADR 0009](https://sean-koval.github.io/flightdeck/decisions/0009-label-and-integrity-budget/), KAN-175).
 - **Behavior specs:** opt-in `conservative-v1` distinguishes witnessed forbidden tools from missing evidence on truncated exports. Legacy defaults stay unchanged; stored results and alerts retain policy identity.
