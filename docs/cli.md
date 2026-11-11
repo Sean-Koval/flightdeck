@@ -5,7 +5,7 @@ Every command, argument and option of `flightdeck`, generated from the code by `
 | Command | What it does | Subcommands | Guide |
 | --- | --- | --- | --- |
 | **Judge a change** | | | |
-| [`ingest`](#flightdeck-ingest) | Pull hangar runs and experiments into the data plane. | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`session`](#flightdeck-ingest-session), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
+| [`ingest`](#flightdeck-ingest) | Pull hangar runs and experiments into the data plane. | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`file`](#flightdeck-ingest-file), [`session`](#flightdeck-ingest-session), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
 | [`stats`](#flightdeck-stats) | Compare the arms of an experiment, paired by task. | [`compare`](#flightdeck-stats-compare) | [Statistics](statistics.md#flightdeck-stats-compare) |
 | [`report`](#flightdeck-report) | The verdict as a report, posted on the pull request. | [`experiment`](#flightdeck-report-experiment), [`post`](#flightdeck-report-post) | [Reports](reports.md) |
 | **Run experiments** | | | |
@@ -70,6 +70,20 @@ flightdeck ingest job [OPTIONS] JOB_ID
 | --- | --- | --- | --- | --- |
 | `JOB_ID` | text | required |  |  |
 | `--hangar` | text |  | `HANGAR_URL` | hangar base URL; token from HANGAR_TOKEN. |
+| `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
+
+### `flightdeck ingest file`
+
+Ingest a saved job or session trace (`hangar://jobs/<id>/trace`, an offline `hangar.trace/v1` file) without hangar: the rows `ingest job` or `ingest session` writes. Without `--manifest`, ids come from the trace.
+
+```
+flightdeck ingest file [OPTIONS] TRACE
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `TRACE` | path | required |  |  |
+| `--manifest` | path, repeatable |  |  | A manifest of one of the trace's turns; repeatable. |
 | `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
 
 ### `flightdeck ingest session`
