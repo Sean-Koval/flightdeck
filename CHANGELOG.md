@@ -6,6 +6,7 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **GitHub Enterprise:** `ingest github` reads `GITHUB_API_URL`, as `report post` already did, so `prs` fills from a GitHub Enterprise Server host (KAN-357).
 - **Behavior specs:** the team-default specs no longer fail a good job (KAN-311). `edits-stay-in-repo` skips the
   job's own IO dir with the new `paths.ignore`, `never-delete-outside-repo` reads only the delete's own operands, and
   `ask-before-delete` is `not_applicable` on an `approvals: auto` turn through the new `applies_when.approvals`.

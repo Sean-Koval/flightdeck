@@ -47,7 +47,8 @@ ENVIRONMENT = [
     ("HANGAR_TOKEN", "Bearer token for hangar REST: `ingest experiment|job|session`, `experiment run|status|collect`."),
     ("GITHUB_TOKEN", "`report post` and `report experiment --post` (`issues:write` / `pull_requests:write`; `gist` "
      "for `--gist`), and `ingest github` (read-only)."),
-    ("GITHUB_API_URL", "GitHub API root for posting reports (default `https://api.github.com`)."),
+    ("GITHUB_API_URL", "GitHub API root for `report post` and `ingest github` (default `https://api.github.com`; "
+     "GitHub Enterprise Server: `https://<host>/api/v3`)."),
     ("FLIGHTDECK_AUTHOR", "Also read by `mutate run`, whose cost gate charges that author's sub-cap."),
 ]
 

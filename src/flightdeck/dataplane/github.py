@@ -21,7 +21,8 @@ REVERTS = re.compile(r"\bReverts [\w.-]+/[\w.-]+#(\d+)|\bThis reverts commit ([0
 
 
 def _get(path: str, token: str | None) -> Any:
-    req = urllib.request.Request(API + path, headers={"Accept": "application/vnd.github+json"})
+    root = os.environ.get("GITHUB_API_URL", API).rstrip("/")  # GitHub Enterprise: https://<host>/api/v3
+    req = urllib.request.Request(root + path, headers={"Accept": "application/vnd.github+json"})
     if token:
         req.add_header("Authorization", f"Bearer {token}")
     with urllib.request.urlopen(req, timeout=60) as resp:
@@ -70,7 +71,7 @@ def prs(
     days: int = typer.Option(30, help="Rewrite the PRs closed in the last N days (revert detection looks back 14)."),
     out: str = typer.Option(..., "--out", envvar="FLIGHTDECK_DATA_URI", help="Data plane root."),
 ) -> None:
-    """Fill the `prs` table from GitHub REST (token from GITHUB_TOKEN)."""
+    """Fill the `prs` table from GitHub REST (token from GITHUB_TOKEN, host from GITHUB_API_URL)."""
     since = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days)
     rows = [r for repo in repos.split(",") if repo.strip()
             for r in pr_rows(repo.strip(), fetch(repo.strip(), os.environ.get("GITHUB_TOKEN"), since), since)]
