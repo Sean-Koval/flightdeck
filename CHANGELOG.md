@@ -6,6 +6,7 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **GitHub Enterprise:** `ingest github` reads `GITHUB_API_URL`, as `report post` already did, so `prs` fills from a GitHub Enterprise Server host (KAN-357).
 - **Ingest:** `flightdeck ingest file TRACE.json [--manifest M.json]` loads a saved job or session trace (an MCP
   client's `hangar://jobs/<id>/trace`, an offline `hangar.trace/v1` export) with no hangar URL or token. It writes
   the rows `ingest job` or `ingest session` writes and replaces them by `run_id`; a manifest that misses hangar's
