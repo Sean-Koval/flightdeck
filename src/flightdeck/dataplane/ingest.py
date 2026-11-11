@@ -37,9 +37,8 @@ class NotFound(ValueError):
 
 def _get(base: str, path: str, token: str | None, dest: Path | None = None, missing: bool = False) -> Any:
     """GET a hangar REST path as JSON, or stream it to `dest` (returns None then, and on a 404 when `missing`)."""
-    req = urllib.request.Request(base.rstrip("/") + path, headers={"Accept": "application/json"})
-    if token:
-        req.add_header("Authorization", f"Bearer {token}")
+    headers = {"Accept": "application/json"} | ({"Authorization": f"Bearer {token}"} if token else {})
+    req = urllib.request.Request(base.rstrip("/") + path, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=300) as resp:
             if dest is None:
