@@ -16,6 +16,11 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
   `job_state` and the new `job_reason` from the job span. The new `runs.cache_write_tokens` comes from
   `gen_ai.usage.cache_write.input_tokens`, or the outbox's `usage.cache_write_tokens`. Still `flightdeck.parquet/v1`;
   the outbox wins where both have a value, and per-call usage on tool spans stays in `spans.attrs` (KAN-309).
+- **Behavior specs:** the team-default specs no longer fail a good job (KAN-311). `edits-stay-in-repo` skips the
+  job's own IO dir with the new `paths.ignore`, `never-delete-outside-repo` reads only the delete's own operands, and
+  `ask-before-delete` is `not_applicable` on an `approvals: auto` turn through the new `applies_when.approvals`.
+- **Budget:** the counted-line limit is 3,875, up from 3,850, so the team-default spec fixes fit; the next growth
+  pays with a cut ([ADR 0010](https://sean-koval.github.io/flightdeck/decisions/0010-default-specs-budget/), KAN-386).
 - **Budget:** the counted-line limit is 3,850, up from 3,785, so the step-label and process-integrity work fit
   together ([ADR 0009](https://sean-koval.github.io/flightdeck/decisions/0009-label-and-integrity-budget/), KAN-175).
 - **Behavior specs:** opt-in `conservative-v1` distinguishes witnessed forbidden tools from missing evidence on truncated exports. Legacy defaults stay unchanged; stored results and alerts retain policy identity.
