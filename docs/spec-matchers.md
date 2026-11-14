@@ -38,7 +38,7 @@ common subset of Python `re` and RE2 (DuckDB): no lookaround or backreferences.
 | `before: {first: A, then: B}` | `not_applicable` without a B; pass if the first A precedes the first B; fail otherwise (no A included) |
 | `order: [M1, M2, ...]` | pass if every Mi occurs and their first occurrences are in that order |
 | `each: B`, `requires_prior: A`, `within: {seq: N}` or `{turns: N}` | for every B an A earlier in order and at most N log positions (or turns) before it; `not_applicable` without a B |
-| `all: {paths: {from: [file.change, diff.files]}, match: <glob or list>}` | every path matches; a `file.change` outside the checkout has no repo path and fails; `not_applicable` with no paths |
+| `all: {paths: {from: [file.change, diff.files], ignore: <glob or list>}, match: <glob or list>}` | every path matches; a `file.change` outside the checkout has no repo path and fails. `ignore` skips a `file.change` whose `hangar.file.path` matches; `{job_id}` in it is the job's id. `not_applicable` with no paths |
 | `any: {paths: {from: [...]}, match: <glob or list>}` | at least one path matches (a delivered file, for ai-dlc's `path-committed`); `not_applicable` with no paths |
 
 ## Order

@@ -5,7 +5,7 @@ Every command, argument and option of `flightdeck`, generated from the code by `
 | Command | What it does | Subcommands | Guide |
 | --- | --- | --- | --- |
 | **Judge a change** | | | |
-| [`ingest`](#flightdeck-ingest) | Pull hangar runs and experiments into the data plane. | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`session`](#flightdeck-ingest-session), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
+| [`ingest`](#flightdeck-ingest) | Pull hangar runs and experiments into the data plane. | [`export`](#flightdeck-ingest-export), [`experiment`](#flightdeck-ingest-experiment), [`job`](#flightdeck-ingest-job), [`file`](#flightdeck-ingest-file), [`session`](#flightdeck-ingest-session), [`github`](#flightdeck-ingest-github) | [Data plane: ingest](data-plane.md#ingest) |
 | [`stats`](#flightdeck-stats) | Compare the arms of an experiment, paired by task. | [`compare`](#flightdeck-stats-compare) | [Statistics](statistics.md#flightdeck-stats-compare) |
 | [`report`](#flightdeck-report) | The verdict as a report, posted on the pull request. | [`experiment`](#flightdeck-report-experiment), [`post`](#flightdeck-report-post) | [Reports](reports.md) |
 | **Run experiments** | | | |
@@ -72,6 +72,20 @@ flightdeck ingest job [OPTIONS] JOB_ID
 | `--hangar` | text |  | `HANGAR_URL` | hangar base URL; token from HANGAR_TOKEN. |
 | `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
 
+### `flightdeck ingest file`
+
+Ingest a saved job or session trace (`hangar://jobs/<id>/trace`, an offline `hangar.trace/v1` file) without hangar: the rows `ingest job` or `ingest session` writes. Without `--manifest`, ids come from the trace.
+
+```
+flightdeck ingest file [OPTIONS] TRACE
+```
+
+| Argument or option | Type | Default | Environment | Description |
+| --- | --- | --- | --- | --- |
+| `TRACE` | path | required |  |  |
+| `--manifest` | path, repeatable |  |  | A manifest of one of the trace's turns; repeatable. |
+| `--out` | text | `~/.flightdeck/data` | `FLIGHTDECK_DATA_URI` | Data plane directory. |
+
 ### `flightdeck ingest session`
 
 Ingest a session's trace (or one turn's) and the turns' manifests over REST.
@@ -89,7 +103,7 @@ flightdeck ingest session [OPTIONS] NAME
 
 ### `flightdeck ingest github`
 
-Fill the `prs` table from GitHub REST (token from GITHUB_TOKEN).
+Fill the `prs` table from GitHub REST (token from GITHUB_TOKEN, host from GITHUB_API_URL).
 
 ```
 flightdeck ingest github [OPTIONS]
@@ -676,5 +690,5 @@ Besides the options' environment variables above, flightdeck reads these directl
 | --- | --- |
 | `HANGAR_TOKEN` | Bearer token for hangar REST: `ingest experiment|job|session`, `experiment run|status|collect`. |
 | `GITHUB_TOKEN` | `report post` and `report experiment --post` (`issues:write` / `pull_requests:write`; `gist` for `--gist`), and `ingest github` (read-only). |
-| `GITHUB_API_URL` | GitHub API root for posting reports (default `https://api.github.com`). |
+| `GITHUB_API_URL` | GitHub API root for `report post` and `ingest github` (default `https://api.github.com`; GitHub Enterprise Server: `https://<host>/api/v3`). |
 | `FLIGHTDECK_AUTHOR` | Also read by `mutate run`, whose cost gate charges that author's sub-cap. |

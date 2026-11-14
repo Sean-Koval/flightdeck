@@ -24,7 +24,8 @@ SCHEMA = "flightdeck.spec/v1"
 KINDS = {"shell", "edit", "read", "search", "web", "mcp", "skill", "plan", "other"}
 OPS = {"test", "git.commit", "git.push", "pr.open", "delete"}
 SCOPES = {"turn": "run_id", "job": "job_id", "session": "session_id"}
-UNIT_KEYS = ("source", "repo", "task_id", "variant")  # applies_when keys: runs columns, globs
+UNIT_KEYS = ("source", "repo", "task_id", "variant", "approvals")  # applies_when keys: runs columns, globs
+TURN_KEYS = {"approvals": "hangar.approvals"}  # unit keys read from the turn span's attributes, not a runs column
 CMP = {"gt": (operator.gt, ">"), "gte": (operator.ge, ">="), "lt": (operator.lt, "<"), "lte": (operator.le, "<=")}
 PASS, FAIL, NA, UNKNOWN = "pass", "fail", "not_applicable", "unknown"
 # Item columns, from each data-plane table's columns. Items also carry k (tool|approval|event), ids, turn and attrs.
@@ -188,10 +189,12 @@ def plan(s: Spec) -> tuple[str, dict[str, Any]]:
         return "each", {"b": m(a["each"]), "a": m(a["requires_prior"]), "w": w}
     if "all" in a or "any" in a:
         q = a.get("all") or a.get("any") or {}
-        src, g = (q.get("paths") or {}).get("from", ["file.change", "diff.files"]), q.get("match")
-        if not g or set(src) - {"file.change", "diff.files"}:
-            raise SpecError("all|any: {paths: {from: [file.change, diff.files]}, match: <glob or list>}")
-        return "paths", {"from": src, "match": [g] if isinstance(g, str) else g, "any": "all" not in a}
+        ps = q.get("paths") or {}
+        src, g, ign = ps.get("from", ["file.change", "diff.files"]), q.get("match"), ps.get("ignore") or []
+        ign = [ign] if isinstance(ign, str) else ign
+        if not g or set(src) - {"file.change", "diff.files"} or set(ps) - {"from", "ignore"}:
+            raise SpecError("all|any: {paths: {from: [file.change, diff.files], ignore: <globs>}, match: <globs>}")
+        return "paths", {"from": src, "match": [g] if isinstance(g, str) else g, "any": "all" not in a, "ignore": ign}
     raise SpecError(f"{s.get('id')}: unknown operator in {sorted(a)}")
 
 
@@ -224,9 +227,15 @@ def items(tables: dict[str, list[dict]]) -> list[Item]:
     return out
 
 
+def _runs(tables: dict[str, list[dict]]) -> list[dict]:
+    """`runs` rows plus TURN_KEYS, from each run's (first) turn span's attributes."""
+    t = {s["run_id"]: json.loads(s["attrs"] or "{}") for s in reversed(tables.get("spans", [])) if s["kind"] == "turn"}
+    return [{**{k: t.get(r["run_id"], {}).get(f) for k, f in TURN_KEYS.items()}, **r} for r in tables.get("runs", [])]
+
+
 def _units(tables: dict[str, list[dict]], scope: str) -> dict[str, dict]:
     out: dict[str, dict] = {}
-    for r in tables.get("runs", []):
+    for r in _runs(tables):
         if (key := r.get(SCOPES[scope])) is None:
             continue
         u = out.setdefault(key, {"truncated": False, "diff": [], **{k: r.get(k) for k in (*UNIT_KEYS, "harness")}})
@@ -263,11 +272,18 @@ def _eval(op: str, a: dict, its: list[Item], u: dict) -> str:
         unk = lambda b: ("seq" in a["w"] and b["seq"] is None) or ("turns" in a["w"] and b["turn"] is None)  # noqa: E731
         return NA if not bs else PASS if not missed else UNKNOWN if all(map(unk, missed)) else FAIL
     if op == "paths":
-        ps = [i["path"] for i in its if i["k"] == "event" and i["name"] == "file.change" and "file.change" in a["from"]]
+        ps = [i["path"] for i in its if i["k"] == "event" and i["name"] == "file.change" and "file.change" in a["from"]
+              and not _ignored(i, a["ignore"])]
         ps += u["diff"] if "diff.files" in a["from"] else []
         ok = (any if a["any"] else all)(isinstance(p, str) and any(fnmatchcase(p, g) for g in a["match"]) for p in ps)
         return NA if not ps else PASS if ok else FAIL
     return UNKNOWN
+
+
+def _ignored(i: Item, globs: list[str]) -> bool:
+    """A file.change whose full path (`hangar.file.path`) matches an `ignore` glob; `{job_id}` is the item's job."""
+    full = i["attrs"].get("hangar.file.path")
+    return isinstance(full, str) and any(fnmatchcase(full, g.replace("{job_id}", i["job_id"] or "")) for g in globs)
 
 
 def _applies(s: Spec, u: dict) -> bool | None:
@@ -339,7 +355,7 @@ def evaluate(s: Spec, tables: dict[str, list[dict]]) -> dict[str, str]:
     for key, u in _units(tables, s.get("scope", "turn")).items():
         applies = _applies(s, u)
         if conservative and u["truncated"]:
-            values = [{r.get(k) for r in tables.get("runs", []) if r.get(col) == key} for k in _scope(s)]
+            values = [{r.get(k) for r in _runs(tables) if r.get(col) == key} for k in _scope(s)]
             known = safe and all(len(v) == 1 and None not in v and "" not in v for v in values)
             witnessed = known and applies is True and _witness(s, op, a) and any(
                 a["m"][0]({"k": "tool", "tool_kind": r.get("tool_kind"), "ops": r.get("shell_ops")})
@@ -408,7 +424,10 @@ def sql(s: Spec) -> str:
         res = (f"case when {agg('count(*)', a['b'][1]('i'))} = 0 then '{NA}' when exists (select 1 {missed} and not "
                f"({unk})) then '{FAIL}' when exists (select 1 {missed}) then '{UNKNOWN}' else '{PASS}' end")
     elif op == "paths":
-        fc = (agg("coalesce(list(i.path), [])", "i.k = 'event' and i.name = 'file.change'")
+        full = "json_extract_string(i.attrs, '$.\"hangar.file.path\"')"
+        ign = "".join(f" and not coalesce({full} glob replace({_q(g)}, '{{job_id}}', coalesce(i.job_id, '')), false)"
+                      for g in a["ignore"])
+        fc = (agg("coalesce(list(i.path), [])", f"i.k = 'event' and i.name = 'file.change'{ign}")
               if "file.change" in a["from"] else "[]::varchar[]")
         ps = f"list_concat({fc}, {'u.diff' if 'diff.files' in a['from'] else '[]::varchar[]'})"
         globs = " or ".join(f"x glob {_q(g)}" for g in a["match"])
@@ -427,11 +446,13 @@ def sql(s: Spec) -> str:
         partial = (f"when trunc then case when not known or not ({_observations_consistent_sql()}) "
                    f"or applies is null then '{UNKNOWN}' when not applies then '{NA}' "
                    f"when res = '{FAIL}' and {_q(_witness(s, op, a))} then '{FAIL}' else '{UNKNOWN}' end")
+    turn = ", ".join(f"json_extract_string(attrs, '$.\"{f}\"') as {k}" for k, f in TURN_KEYS.items())
     return f"""with u as (select {col} as unit, bool_or(coalesce(truncated, false)) as trunc,
         {known} as known,
         {", ".join(f"any_value({k}) as {k}" for k in (*UNIT_KEYS, "harness"))},
         flatten(list(coalesce(diff_files, []))) as diff
-        from _runs where {col} is not null group by 1),
+        from _runs left join (select run_id, {turn} from _spans where kind = 'turn' qualify row_number() over
+          (partition by run_id order by start_ns) = 1) using (run_id) where {col} is not null group by 1),
       r as (select unit, trunc, known, {applies} as applies, {res} as res from u)
       select unit, case {partial if s.get('observation_policy', 'legacy-v1') == 'conservative-v1' else ''}
         when applies is null then '{UNKNOWN}' when not applies then '{NA}'

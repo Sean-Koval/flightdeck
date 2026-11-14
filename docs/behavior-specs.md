@@ -62,6 +62,9 @@ Job-level events sit on the job span. So a spec about `test.run`, `git.commit` e
 columns: `source` (`job`, `session`, `experiment`, `shadow`, `local`), `repo` (the job's repo URL), `task_id` and
 `variant`.
 
+It also takes `approvals` (`auto`, `ask`, `deny-risky`), the turn's `hangar.approvals`. A turn without it
+reads as `""`. An `auto` turn records no approvals, so an approval rule lists `[ask, deny-risky, ""]`.
+
 `task_id` and `variant` are an experiment trial's task and variant. So a spec can judge one task's candidate arm, as
 imported ai-dlc workflow assertions do.
 

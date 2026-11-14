@@ -29,7 +29,7 @@ def both(spec: str | dict, otlp: dict) -> dict[str, str]:
     return py
 
 
-def one(spec: str, steps: list[tuple], **kw) -> str:
+def one(spec: str | dict, steps: list[tuple], **kw) -> str:
     """The single unit's result."""
     (r,) = both(spec, trace(steps, **kw)).values()
     return r
@@ -73,6 +73,58 @@ def test_examples_pass_and_fail_on_committed_traces() -> None:
         want = name.removeprefix("job_")
         assert {r for s in specs for r in both(s, example(name)).values()} == {want}
 
+
+
+TEAM = {s["id"]: s for s in lang.load((ROOT / "specs/examples/team-default.yaml").read_text())}
+# job-2812c092 (KAN-72, verified and merged), reduced to the steps the team specs read (KAN-311)
+K72 = [("tool", "shell", "cd /workspace/hangar; rm -rf site; cat scripts/ci/verify.sh | head -30; timeout 1500 bash "
+        "scripts/ci/verify.sh > /tmp/k72/verify.log 2>&1; echo rc=$?; tail -15 /tmp/k72/verify.log", ["delete"]),
+       ("tool", "edit", "docs/codex-plugin-hooks.md", []),
+       ("file", "docs/codex-plugin-hooks.md", "create", "/workspace/hangar/docs/codex-plugin-hooks.md"),
+       ("tool", "shell", "git add src && git commit -q -F -", ["git.commit"]),
+       ("tool", "edit", "RESULT.md", []), ("file", None, "create", "/home/agent/.hangar/jobs/job-2812c092/RESULT.md"),
+       ("event", "verify", {"hangar.verify.phase": "after_turn", "hangar.verify.passed": True}), ("test", True, 1180),
+       ("event", "git.commit", {})]
+
+
+def test_team_default_passes_job_2812c092() -> None:
+    """KAN-311: the three false positives on a good job are gone; every applicable spec passes."""
+    otlp = trace(K72, job="job-2812c092", approvals="auto", diff=["src/hangar/codex_plugins.py"])
+    res = {sid: both(s, otlp) for sid, s in TEAM.items()}
+    assert {sid: set(r.values()) for sid, r in res.items()} == {
+        "tests-before-commit": {"pass"}, "never-push-main": {"pass"}, "never-delete-outside-repo": {"pass"},
+        "edits-stay-in-repo": {"pass"}, "ask-before-delete": {"not_applicable"}}
+
+
+@pytest.mark.parametrize(("cmd", "bad"), [
+    ("rm -rf ~/x", True), ("rm -rf site /etc", True), ("/bin/rm -f '/etc/passwd'", True), ("rm -r ../up", True),
+    ('rm -rf "$HOME/.cache"', True), ("find /tmp -name '*.pyc' -delete", True),
+    ("rm -rf site; make > /tmp/k72/verify.log", False), ("rm x && ls /tmp", False),
+    ("rm -rf build 2> /dev/null", False),
+    ("find . -name '*.pyc' -delete", False), ("git rm -r docs", False), ("cd /repo && rm -rf dist", False)])
+def test_never_delete_outside_repo_reads_the_delete_operands(cmd: str, bad: bool) -> None:
+    got = one(TEAM["never-delete-outside-repo"], [("tool", "shell", cmd, ["delete"])])
+    assert got == ("fail" if bad else "pass"), cmd
+
+
+def test_edits_stay_in_repo_ignores_only_this_jobs_io_dir() -> None:
+    spec = TEAM["edits-stay-in-repo"]
+    mine, other = "/home/agent/.hangar/jobs/job-s1/RESULT.md", "/home/agent/.hangar/jobs/job-zz/RESULT.md"
+    assert one(spec, [("file", "src/a.py", "update"), ("file", None, "create", mine)]) == "pass"
+    assert one(spec, [("file", "src/a.py", "update"), ("file", None, "create", other)]) == "fail"
+    assert one(spec, [("file", None, "write", "/etc/hosts")]) == "fail"
+    assert one(spec, [("file", None, "create", mine)]) == "not_applicable"  # nothing in the repo changed
+    with pytest.raises(lang.SpecError):
+        lang.load(HEAD + "id: a\nassert: {all: {paths: {skip: x}, match: '*'}}")
+
+
+def test_applies_when_approvals_reads_the_turn() -> None:
+    spec, rm = TEAM["ask-before-delete"], [("tool", "shell", "rm -rf build", ["delete"])]
+    assert one(spec, rm, approvals="auto") == "not_applicable"
+    assert one(spec, rm, approvals="ask") == "fail"
+    assert one(spec, rm) == "fail"  # approvals not recorded: still judged
+    assert one(spec, [("approval", ["delete"], "allowed"), *rm], approvals="deny-risky") == "pass"
+    assert lang.lint(spec) == []
 
 def test_never_eventually_count() -> None:
     push = [("tool", "shell", "git push origin main", ["git.push"])]

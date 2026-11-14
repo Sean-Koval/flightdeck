@@ -138,23 +138,22 @@ def flatten_trace(otlp: dict[str, Any], source: str | None = None, run_id: str |
         spans = [(s, otlp_attrs(s.get("attributes", []))) for ss in rs.get("scopeSpans", []) for s in ss["spans"]]
         by_id = {s["spanId"]: (s, a) for s, a in spans}
 
-        def turn_of(span: dict[str, Any], by_id: dict = by_id, root_run: str | None = root_run) -> str | None:
+        def turn_of(span: dict[str, Any], by_id: dict = by_id, root_run: str | None = root_run,
+                    session_id: str | None = session_id) -> str | None:
             seen = set()
             while span is not None and span["spanId"] not in seen:
                 seen.add(span["spanId"])
                 attrs = by_id[span["spanId"]][1]
-                if attrs.get("hangar.kind") == "turn":
-                    return attrs.get("hangar.run.id") or root_run
+                if attrs.get("hangar.kind") == "turn":  # no run id (an offline import): hangar's own turn key
+                    sid, n = attrs.get("hangar.session.id") or session_id, attrs.get("hangar.turn.number")
+                    return attrs.get("hangar.run.id") or (f"{sid}/turn/{n}" if sid and n else root_run)
                 span = by_id.get(span.get("parentSpanId", ""), (None, None))[0]
             return root_run
 
         workflow = next((a for _, a in spans if a.get("hangar.kind") in ("job", "session")), {})
-        wf_events = [
-            (e, otlp_attrs(e.get("attributes", [])))
-            for s, a in spans
-            if a.get("hangar.kind") in ("job", "session")
-            for e in s.get("events", [])
-        ]
+        wf_events = [(e, otlp_attrs(e.get("attributes", []))) for s, a in spans
+                     if a.get("hangar.kind") in ("job", "session") for e in s.get("events", [])]
+        no_turns = not any(a.get("hangar.kind") == "turn" for _, a in spans)  # then the root span is the one run
         for span, attrs in spans:
             rid = turn_of(span)
             day = _dt(int(span["startTimeUnixNano"]) / 1e9)
@@ -184,15 +183,13 @@ def flatten_trace(otlp: dict[str, Any], source: str | None = None, run_id: str |
                         "name": ev["name"], "time_ns": int(ev["timeUnixNano"]), **ecols, "attrs": erest,
                     }
                 )
-            if attrs.get("hangar.kind") == "turn":
+            if attrs.get("hangar.kind") == "turn" or (attrs is workflow and no_turns):
                 out["runs"].append(_turn_row(span, attrs, res, workflow, wf_events, rid, src, day, truncated))
     return out
 
 
-def _turn_row(
-    span: dict, a: dict, res: dict, wf: dict, wf_events: list, rid: str | None, src: str, day: str | None,
-    truncated: bool,
-) -> Row:
+def _turn_row(span: dict, a: dict, res: dict, wf: dict, wf_events: list, rid: str | None, src: str, day: str | None,
+              truncated: bool) -> Row:
     after = [ea for e, ea in wf_events if e["name"] == "verify" and ea.get("hangar.verify.phase") == "after_turn"]
     merges = [ea for e, ea in wf_events if e["name"] == "pr.merge"]
     prs = [ea for e, ea in wf_events if e["name"] == "pr.open"]
@@ -204,9 +201,12 @@ def _turn_row(
         "model_id": a.get("gen_ai.response.model") or a.get("gen_ai.request.model"),
         "outcome": a.get("hangar.turn.outcome"), "outcome_class": a.get("hangar.outcome.class"),
         "infra_reason": a.get("hangar.outcome.infra_reason"), "manifest_digest": a.get("hangar.manifest.digest"),
+        "harness_digest": a.get("hangar.harness.digest"), "environment_digest": a.get("hangar.environment.digest"),
+        "job_state": wf.get("hangar.job.state"), "job_reason": wf.get("hangar.job.reason"),
         "cost_usd": a.get("hangar.cost_usd"), "cost_source": a.get("hangar.cost_source"),
         "input_tokens": a.get("gen_ai.usage.input_tokens"), "output_tokens": a.get("gen_ai.usage.output_tokens"),
         "cache_read_tokens": a.get("gen_ai.usage.cache_read.input_tokens"),
+        "cache_write_tokens": a.get("gen_ai.usage.cache_write.input_tokens"),
         "started_at": _ts(int(span["startTimeUnixNano"]) / 1e9), "finished_at": _ts(int(span["endTimeUnixNano"]) / 1e9),
         "verify_passed": after[-1].get("hangar.verify.passed") if after else None,
         "pr_url": wf.get("hangar.pr.url") or (prs[-1].get("hangar.pr.url") if prs else None),

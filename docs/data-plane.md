@@ -69,8 +69,8 @@ digest and the rubric's calibration status ([Judges](judges.md)).
 
 ### Nullable until hangar emits them
 
-`harness_digest`, `environment_digest`, `knowledge_snapshot` and `grader_digest` are nullable now and fill with no
-schema change once hangar emits them.
+`knowledge_snapshot` and `grader_digest` stay null until hangar emits them. Traces fill `harness_digest`,
+`environment_digest`, `job_state`, `job_reason` and `cache_write_tokens`; where `run.json` has one too, it wins.
 
 `runs.outcome_class` is `agent`, `infra_error`, `cancelled` or `human`, and null for records from before hangar#166.
 It and `infra_reason` come from the trial, or from the turn span's `hangar.outcome.class` and
@@ -95,6 +95,7 @@ flightdeck ingest export DIR                                  # files from `hang
 flightdeck ingest experiment <id> --hangar URL                # REST; bearer token from HANGAR_TOKEN
 flightdeck ingest job <id> --hangar URL                       # GET /api/jobs/{id}/trace + /manifest?turn=N
 flightdeck ingest session <name> [--turn N] --hangar URL      # GET /api/sessions/{name}/trace + /manifest?turn=N
+flightdeck ingest file TRACE.json [--manifest M.json]         # a saved trace: the same rows, no hangar or token
 ```
 
 All write to `--out` (default `~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`), with `source` = `experiment`, `job` or
@@ -182,9 +183,8 @@ Rows are sorted by `run_id, seq`, so a rebuild of the same inputs is byte-identi
 ### Late arrivals
 
 `<out>/_compactor/{date}.json` records the date's input objects: path, size, GCS generation and, for what was read,
-sha256. Each night looks back `--lookback` days (3) and recompacts a date only when its listing changed. That is a
-late `run.json`, a `grade.json` that followed its run, or a deleted run. One prefix listing per date, no per-object
-metadata calls.
+sha256. Each night looks back `--lookback` days (3) and recompacts a date only when its listing changed: a late
+`run.json` or `grade.json`, or a deleted run. One prefix listing per date, no per-object metadata calls.
 
 ### Identity
 
@@ -239,7 +239,7 @@ flightdeck query "select variant, count(*) from runs join grades using (run_id) 
 `duck.connect(uri)` registers one view per table (`read_parquet(..., hive_partitioning=true, union_by_name=true)`).
 A table without files is an empty view of its schema. Timestamps are shown in UTC.
 
-For `gs://`, install the `gcs` extra (`uv sync --extra gcs`, or `pip install 'flightdeck[gcs]'`). DuckDB then reads
+For `gs://`, install the `gcs` extra (below, or `pip install 'flightdeck[gcs]'`). DuckDB then reads
 through gcsfs with your Google application-default credentials (`gcloud auth application-default login`). Without it,
 DuckDB's `httpfs` is loaded and the caller supplies a DuckDB GCS secret (HMAC keys). flightdeck holds no credentials
 either way.
