@@ -6,6 +6,10 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **On hangar:** tasks with different grader commands run as one experiment. The shared command runs the most
+  common one and dispatches the rest on `$HANGAR_TASK`. A suite over hangar's 64 grader files or 1 MB becomes several
+  experiments instead of being refused. A task with its workspace in `environment/workspace/` and no source repo is
+  refused rather than run on the environment's repo ([Tasks: on hangar](https://sean-koval.github.io/flightdeck/tasks/#on-hangar), KAN-192).
 - **GitHub Enterprise:** `ingest github` reads `GITHUB_API_URL`, as `report post` already did, so `prs` fills from a GitHub Enterprise Server host (KAN-357).
 - **Ingest:** `flightdeck ingest file TRACE.json [--manifest M.json]` loads a saved job or session trace (an MCP
   client's `hangar://jobs/<id>/trace`, an offline `hangar.trace/v1` export) with no hangar URL or token. It writes

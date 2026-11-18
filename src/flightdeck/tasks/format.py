@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shlex
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -158,7 +159,7 @@ def to_hangar(tasks: list[Task]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
 
     Each task's tests go to `<id>/tests/...` in `Grader.files`; the command runs the task's own command from
     `$HANGAR_HIDDEN_TESTS/<id>`, the task's pristine copy, chosen by `$HANGAR_TASK`."""
-    out, files, commands, timeout = [], {}, set(), 30
+    out, files, commands, timeout = [], {}, {}, 30
     for t in tasks:
         hid, src = hangar_id(t), t.flightdeck.get("source") or {}
         if any(x["id"] == hid for x in out):
@@ -179,19 +180,22 @@ def to_hangar(tasks: list[Task]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
                 files[f"{hid}/tests/{rel}"] = data.decode("utf-8")
             except UnicodeDecodeError:
                 raise TaskError(f"task {t.id}: tests/{rel} is binary; hangar's grader files are text") from None
-        commands.add(t.grader.get("command") or DEFAULT_COMMAND)
+        commands[hid] = t.grader.get("command") or DEFAULT_COMMAND
         timeout = max(timeout, int((t.config.get("verifier") or {}).get("timeout_sec") or 600))
-    if len(commands) > 1:
-        raise TaskError(f"these tasks' grader commands differ ({sorted(commands)}); hangar runs one per experiment: "
-                        "submit them as separate experiments")
     if len(files) > MAX_GRADER_COUNT:
         raise TaskError(f"the tests are {len(files)} files; hangar's grader takes at most {MAX_GRADER_COUNT}")
     size = sum(len(v.encode()) for v in files.values())
     if size > MAX_GRADER_FILES:
         raise TaskError(f"the tests total {size:,} bytes; hangar's grader takes at most 1 MB in all "
                         "(MAX_GRADER_FILES, hangar experiments.py)")
-    command = f'cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && {commands.pop() if commands else DEFAULT_COMMAND}'
-    return out, {"command": command, "timeout_seconds": min(timeout, 3600), "files": files}
+    # hangar runs one grader command per experiment (KAN-192). Tasks whose commands differ share one: the most common
+    # command, and a `case` on `$HANGAR_TASK` that `eval`s each other task's own, quoted so it runs as written. hangar
+    # refuses a command over 4,000 characters (Grader.command); then submit the tasks as separate experiments.
+    common = max(dict.fromkeys(vals := list(commands.values()) or [DEFAULT_COMMAND]), key=vals.count)
+    arms = "".join(f"{k}) eval {shlex.quote(c)} ;; " for k, c in commands.items() if c != common)
+    run = f'case "$HANGAR_TASK" in {arms}*) eval {shlex.quote(common)} ;; esac' if arms else common
+    return out, {"command": f'cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && {run}', "timeout_seconds": min(timeout, 3600),
+                 "files": files}
 
 
 def to_hangar_task(task: Task) -> tuple[dict[str, Any], dict[str, Any]]:

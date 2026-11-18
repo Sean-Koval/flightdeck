@@ -18,7 +18,7 @@ from typing import Any, Protocol
 import yaml
 
 from flightdeck.ported.modelpolicy import concreteness
-from flightdeck.tasks.format import Task, hangar_id, load_task, to_hangar
+from flightdeck.tasks.format import MAX_GRADER_COUNT, MAX_GRADER_FILES, Task, hangar_id, load_task, to_hangar
 
 MAX_TASKS, MAX_VARIANTS, MAX_TRIALS, MAX_TOTAL = 100, 8, 20, 200  # hangar ExperimentSpec; HANGAR_EXPERIMENT_MAX_TRIALS
 VARIANT_KEYS = {"environment", "harness", "model", "approvals", "skills", "skills_remove", "instructions",
@@ -97,7 +97,16 @@ def build_specs(plan: TrialPlan, max_total: int = MAX_TOTAL) -> list[dict[str, A
     per = min(MAX_TASKS, max_total // (v * n))
     if per < 1:
         raise RunnerError(f"{v} variants x {n} trials is over hangar's {max_total} trials per experiment")
-    chunks = [plan.tasks[i:i + per] for i in range(0, len(plan.tasks), per)]
+    if lost := [t.id for t in plan.tasks if not (t.flightdeck.get("source") or {}).get("repo")
+                and any(k.startswith("workspace/") for k in t.environment)]:
+        raise RunnerError(f"{', '.join(lost)}: the workspace is in environment/workspace/ and there's no "
+                          "[flightdeck.source] repo, so hangar would run the environment's repo (docs/tasks.md)")
+    chunks: list[list[Task]] = [[]]
+    for t in plan.tasks:  # a new experiment when one is full: `per` tasks, or hangar's 64 grader files or 1 MB in all
+        c = chunks[-1] + [t]
+        full = len(c) > per or sum(len(x.tests) for x in c) > MAX_GRADER_COUNT or sum(
+            len(b) for x in c for b in x.tests.values()) > MAX_GRADER_FILES
+        chunks[-1:] = [chunks[-1], [t]] if full and len(c) > 1 else [c]
     specs = []
     for i, chunk in enumerate(chunks):
         tasks, grader = to_hangar(chunk)
@@ -200,12 +209,10 @@ class HangarBatchBackend:
         self.url, self.token, self.out = url.rstrip("/"), token, out
 
     def _call(self, method: str, path: str, body: Any = None) -> dict[str, Any]:
-        req = urllib.request.Request(self.url + path, method=method, headers={"Accept": "application/json"},
-                                     data=None if body is None else json.dumps(body).encode())
-        if body is not None:
-            req.add_header("Content-Type", "application/json")
-        if self.token:
-            req.add_header("Authorization", f"Bearer {self.token}")
+        data = None if body is None else json.dumps(body).encode()
+        headers = {"Accept": "application/json"} | ({"Content-Type": "application/json"} if data else {})
+        headers |= {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        req = urllib.request.Request(self.url + path, data, headers, method=method)
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.load(resp)

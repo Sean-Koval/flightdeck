@@ -82,16 +82,19 @@ it, so a changed hidden test is always a deliberate, reviewed edit.
 
 ## On hangar
 
-`to_hangar(tasks)` builds the `tasks` and `grader` of a `hangar.experiment/v1` spec (hangar
-`src/hangar/experiments.py`, `Task` and `Grader`). hangar runs one grader per experiment. So every task's tests go
-into its `Grader.files` as `<id>/tests/...`, and the command is
-`cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && <command>`. Each trial runs its own task's command from that task's
-pristine copy.
+`to_hangar(tasks)` builds a `hangar.experiment/v1` spec's `tasks` and its one `grader` (hangar `experiments.py`).
+Each task's tests go into `Grader.files` as `<id>/tests/...`. The command starts
+`cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK"`, its task's pristine copy.
 
-hangar's limits are checked before submitting. Task ids match `^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$` (a longer Harbor
-id gets a stable short form). Instructions run up to 64,000 characters. Grader files are at most 64 and 1 MB in all
-(`MAX_GRADER_FILES`), text only; a reference patch is up to 1 MB. Tasks whose grader commands differ go in separate
-experiments.
+Grader commands may differ: the shared command (4,000 characters at most) runs the most common, and a `case` on
+`$HANGAR_TASK` `eval`s the rest.
+
+Ids match `^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$` (longer ones get a stable short form). Instructions take 64,000
+characters, a reference patch 1 MB. Grader files are text: 64 and 1 MB per experiment, or the suite is split
+([Runners](runners.md)).
+
+A task with `environment/workspace/` and no `[flightdeck.source] repo` is refused: hangar would run the
+environment's repo instead.
 
 hangar runs the grader in a sealed sandbox (no credential, egress `none`), writes the files outside the repo and adds
 a canary comment to each. A `test.sh` command is recorded as `trust: low`, since hangar can only vouch for its own
