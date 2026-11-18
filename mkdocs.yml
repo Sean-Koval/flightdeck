@@ -110,3 +110,4 @@ nav:
           - "0008: Cleanup after the ports": decisions/0008-cleanup-after-the-ports.md
           - "0009: The label and integrity budget": decisions/0009-label-and-integrity-budget.md
           - "0010: The default specs budget": decisions/0010-default-specs-budget.md
+          - "0011: The first decision (plugin A/B)": decisions/0011-first-decision-plugin-ab.md
