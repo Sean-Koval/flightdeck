@@ -229,6 +229,15 @@ SDLC = [
     ("bash", "gh pr review 7 --comment -b 'one nit'", ["review"]),
     ("bash", "gh issue view 34", ["tracker"]),
     ("bash", "acli jira workitem view KAN-1", ["tracker"]),
+    ("mcp__github__get_pull_request_status", '{"pullNumber": 7}', ["ci_wait"]),
+    ("mcp__github__create_pull_request_review", '{"pullNumber": 7, "event": "APPROVE"}', ["review"]),
+    ("mcp__github__get_issue", '{"issue_number": 4}', ["tracker"]),
+    ("mcp__jira__get_issue", '{"key": "KAN-1"}', ["tracker"]),
+    ("github.create_pull_request", '{"title": "KAN-1: fix"}', ["pr"]),
+    ("mcp__Atlassian__getConfluenceContent", '{"title": "Jira workflow"}', ["other"]),
+    ("bash", "until gh pr checks 7; do sleep 10; done", ["ci_wait"]),
+    ("bash", "timeout 600 gh run watch 1", ["ci_wait"]),
+    ("bash", "gh api repos/o/r/pulls/${PR}/requested_reviewers", ["review"]),
     ("bash", "echo 'gh pr merge 7'", ["other"]),
     ("bash", "sleep 300", ["other"]),
 ]
@@ -244,7 +253,7 @@ def test_process_metrics_count_sdlc_steps(tmp_path: Path) -> None:
     con = connect(str(plane(tmp_path, build([(n, i, "", True) for n, i, _ in SDLC]))))
     (got,) = rows(con, "select pr_steps, ci_wait_steps, review_steps, tracker_steps from process_metrics")
     want = {k: sum(k.removesuffix("_steps") in w for _, _, w in SDLC) for k in got}
-    assert got == want == {"pr_steps": 5, "ci_wait_steps": 6, "review_steps": 5, "tracker_steps": 5}
+    assert got == want == {"pr_steps": 6, "ci_wait_steps": 9, "review_steps": 7, "tracker_steps": 7}
 
 
 def test_a_call_that_writes_and_tests_is_an_edit_and_a_test_run(tmp_path: Path) -> None:

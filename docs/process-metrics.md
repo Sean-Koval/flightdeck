@@ -25,10 +25,10 @@ first. A call that writes files, runs the tests and runs the program has all thr
 | `edit` | An `edit` tool, or a shell write: `cat >`, `tee`, `sed -i`, `perl -pi`, `git apply`, python that writes or rewrites a file, a redirect into a source file |
 | `setup` | A shell installing or syncing dependencies (`pip install`, `uv sync`, `npm ci`, `apt-get install`) |
 | `plan` | A `plan` tool |
-| `pr` | Opening, updating, merging or reading a pull request: an MCP tool such as `create_pull_request`, or `gh pr create`, `view` or `merge`, or `gh api` on `pulls/N` |
+| `pr` | Opening, updating, merging or reading a pull request: an MCP tool such as `create_pull_request`, `gh pr view` or `merge`, or `gh api` on `pulls/N` |
 | `ci_wait` | Waiting on CI: an MCP tool such as `actions_list` or `subscribe_pr_activity`, or `gh pr checks`, `gh run watch` or `gh api` on `actions/runs` or `check-runs`. A `sleep` alone is not one |
 | `review` | Reading or answering a review: an MCP tool such as `pull_request_review_write`, or `gh pr review` or `gh api` on `pulls/N/comments` |
-| `tracker` | A Jira or GitHub issue: an MCP tool with `jira` in its name or Atlassian input, an `issue_*` tool, `gh issue` or `jira` |
+| `tracker` | A Jira or GitHub issue: an MCP tool with `jira` in its name or operation name, an issue tool, `gh issue` or `jira` |
 | `explore` | A `read` or `search` tool, or a shell `ls`, `cat`, `find`, `grep`, `rg`, `head`, `tail`, `wc`, `tree` or `sed -n`. Also a look around: `which`, `--version`, `pip list`, `python -c "import x; print(x.__file__)"` |
 | `verify` | A shell running `python`, `python3` or `node` (not inside quotes, not `-m pytest`, not a look around) |
 | `other` | Anything else |
@@ -37,9 +37,8 @@ The rules key on `hangar.tool.kind` and `hangar.shell.ops` ([hangar's taxonomy](
 They read the command text where those don't say enough. A runner counts at a command position: a line or segment start,
 a loop's `do`, or behind wrappers like `uv run --project x`.
 
-The SDLC labels read an MCP tool by the last part of its name, so any server prefix works. `pull_request_read`
-goes by its `method`: `get_check_runs` is `ci_wait`, `get_reviews` is `review`, `get_diff` is `pr`. Calls that only
-coordinate agents stay `other`.
+The SDLC labels read an MCP tool by the part of its name after the last `__` or `.`. `pull_request_read` goes by
+its `method`. `gh` counts in a polling loop too. A bare `gh pr create` is `vcs` first (hangar's `pr.open`).
 
 hangar clips long inputs, so labels read from text are a lower bound. [Label gold sets](label-gold-sets.md) measure
 how often they are right. `idx` is the call's position in its run, from

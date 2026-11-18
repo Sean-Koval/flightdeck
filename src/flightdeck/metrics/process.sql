@@ -46,12 +46,17 @@ create or replace macro step_re_write() as
     || '|(?s:python[\d.]*\s+-\s*<<.*(read_text\(|\.read\(\)).*\.replace\()';
 
 -- SDLC steps (KAN-359): a pull request, waiting on CI, review and the tracker. MCP calls key on the tool's name (its
--- last `__` part: `mcp__github__create_pull_request`, `mcp__<uuid>__getJiraIssue`); `pull_request_read` on its
--- method. Shell calls key on `gh` and `gh api` paths at a command position; a `sleep` alone waits on anything.
-create or replace macro step_mcp_name(name) as lower(regexp_replace(coalesce(name, ''), '^.*__', ''));
+-- last `__` or `.` part: `mcp__github__create_pull_request`, `github.get_issue`); `pull_request_read` on its method.
+-- Shell calls key on `gh` and `gh api` paths at a command position, a polling loop's test included
+-- (`until gh pr checks 7; do sleep 10; done`); a `sleep` alone waits on anything.
+create or replace macro step_mcp_name(name) as lower(regexp_replace(coalesce(name, ''), '^.*(__|\.)', ''));
 create or replace macro step_pr_method(inp) as regexp_extract(inp, '"method"\s*:\s*"(\w+)"', 1);
-create or replace macro step_re_gh() as '(^|[;&|(\n]|\bdo\s|\bthen\s|\$\()\s*(\w+=\S*\s+)*gh\s+';
+create or replace macro step_re_gh() as
+    '(^|[;&|(\n!]|\bdo\s|\bthen\s|\$\(|\b(while|until|if|elif)\s|\bwatch(\s+-\S+(\s+\d+)?)*\s)\s*(\w+=\S*\s+)*'
+    || '((sudo|command|time|nice|env|timeout(\s+-\S+)*\s+\d+[smh]?)\s+)*(\S*/)?gh\s+';
 create or replace macro step_re_gh_api() as step_re_gh() || 'api\b[^\n;|]*';
+-- A pull request's number in a `gh api` path: 7, $PR or ${PR}.
+create or replace macro step_re_num() as '(\d+|\$\{?\w+\}?)';
 
 -- The labels of each tool call (the step taxonomy of hangar 0007 §5.5, plus `setup` and the SDLC labels), in
 -- classify.rule()'s order with the SDLC labels before `explore`:
@@ -77,32 +82,38 @@ with c as (
         case when sh and regexp_matches(cmd, step_re_setup()) then 'setup' end,
         case when tool_kind = 'plan' then 'plan' end,
         case when (tool_kind = 'mcp' and (regexp_matches(step_mcp_name(tool_name),
-                '^((create|update|merge)_pull_request|list_pull_requests|update_pull_request_branch'
-                || '|(enable|disable)_pr_auto_merge|search_pull_requests)$')
+                '^((create|update|merge|get)_pull_request|list_pull_requests|update_pull_request_branch'
+                || '|get_pull_request_(diff|files)|(enable|disable)_pr_auto_merge|search_pull_requests)$')
             or (step_mcp_name(tool_name) = 'pull_request_read'
                 and step_pr_method(inp) in ('get', 'get_diff', 'get_files', 'get_commits'))))
             or (sh and (regexp_matches(inp, step_re_gh() || 'pr\s+(create|edit|merge|view|diff|list|ready|close|reopen|checkout|status)\b')
-                or regexp_matches(inp, step_re_gh_api() || '/pulls(/\d+|/\$\w+)?(/(files|commits|merge))?([\s"''?]|$)')))
+                or regexp_matches(inp, step_re_gh_api() || '/pulls(/' || step_re_num() || ')?(/(files|commits|merge))?([\s"''?]|$)')))
             then 'pr' end,
         case when (tool_kind = 'mcp' and (regexp_matches(step_mcp_name(tool_name),
-                '^(actions_(list|get)|get_job_logs|get_check_run|(un)?subscribe_pr_activity)$')
+                '^(actions_(list|get)|get_job_logs|get_check_run|(un)?subscribe_pr_activity|get_pull_request_status'
+                || '|(list|get|rerun)_workflow_runs?|list_workflow_jobs)$')
             or (step_mcp_name(tool_name) = 'pull_request_read' and step_pr_method(inp) in ('get_check_runs', 'get_status'))))
             or (sh and (regexp_matches(inp, step_re_gh() || '(pr\s+checks|run\s+(watch|view|list|rerun))\b')
-                or regexp_matches(inp, step_re_gh_api() || '(actions/(runs|jobs|workflows)|check-runs|check-suites|/status\b)')))
+                or regexp_matches(inp, step_re_gh_api() || '(actions/(runs|jobs|workflows)|check-runs|check-suites|/status\b'
+                    || '|/statuses/)')))
             then 'ci_wait' end,
         case when (tool_kind = 'mcp' and (regexp_matches(step_mcp_name(tool_name),
                 '^(pull_request_review_write|add_comment_to_pending_review|add_reply_to_pull_request_comment'
-                || '|(un)?resolve_review_thread|request_copilot_review)$')
+                || '|(un)?resolve_review_thread|request_copilot_review|get_pull_request_(reviews|comments)'
+                || '|(create|create_and_submit|submit_pending)_pull_request_review)$')
             or (step_mcp_name(tool_name) = 'pull_request_read'
                 and step_pr_method(inp) in ('get_reviews', 'get_review_comments', 'get_comments'))))
             or (sh and (regexp_matches(inp, step_re_gh() || 'pr\s+(review|comment)\b')
-                or regexp_matches(inp, step_re_gh_api() || '/pulls/(\d+|\$\w+)/(comments|reviews)')))
+                or regexp_matches(inp, step_re_gh_api() || '/pulls/(' || step_re_num()
+                    || '/(comments|reviews|requested_reviewers)|comments/\d+)')))
             then 'review' end,
-        case when (tool_kind = 'mcp' and (regexp_matches(step_mcp_name(tool_name),
-                'jira|^(issue_(read|write)|list_issues|search_issues|add_issue_comment|sub_issue_write|list_issue_types)$')
-            or (regexp_matches(lower(tool_name), 'atlassian') and regexp_matches(inp, '(?i)jira'))))
+        case when (tool_kind = 'mcp' and (regexp_matches(lower(tool_name), 'jira')
+            or regexp_matches(step_mcp_name(tool_name), '^(issue_(read|write)|list_issues|search_issues|sub_issue_write'
+                || '|list_issue_types|(get|create|update)_issue|(add|update)_issue_comment)$')
+            -- Atlassian's generic runners (executeRead): the operation's name, not text that mentions Jira
+            or (regexp_matches(lower(tool_name), 'atlassian') and regexp_matches(inp, '"name"\s*:\s*"[^"]*(?i:jira)'))))
             or (sh and (regexp_matches(inp, step_re_gh() || 'issue\s') or regexp_matches(cmd, step_re_at() || '(acli\s+)?jira\s')
-                or regexp_matches(inp, step_re_gh_api() || '/issues/(\d+|\$\w+)')))
+                or regexp_matches(inp, step_re_gh_api() || '/issues(/' || step_re_num() || '|/comments/\d+)?([\s"''?/]|$)')))
             then 'tracker' end,
         case when tool_kind in ('read', 'search')
             or (sh and regexp_matches(inp, '\b(ls|cat|find|grep|rg|head|tail|wc|tree|sed -n)\b'))
