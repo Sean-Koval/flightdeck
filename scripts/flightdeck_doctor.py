@@ -217,6 +217,8 @@ def check_sessions(env: dict[str, str], uri: str) -> list[Check]:
     if not root.is_dir():
         return [Check("capture-sessions", "warn", f"no {root}: no Claude Code sessions on this laptop",
                       "run Claude Code once, or set CLAUDE_CONFIG_DIR")]
+    if not os.access(root, os.R_OK | os.X_OK):  # glob would see an empty folder
+        return [Check("capture-sessions", "skip", f"can't read {root} (permission denied)")]
     try:
         files = sorted((p for p in root.glob("*/*.jsonl") if p.is_file()), key=lambda p: p.stat().st_mtime)
     except OSError as e:
