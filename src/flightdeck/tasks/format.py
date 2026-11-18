@@ -19,6 +19,7 @@ from typing import Any
 MAX_GRADER_FILES = 1024 * 1024  # hangar experiments.MAX_GRADER_FILES: a grader's files, all together
 MAX_GRADER_COUNT = 64  # hangar experiments.Grader.files: at most 64 files
 MAX_INSTRUCTIONS = 64_000  # hangar experiments.Task.instructions
+MAX_COMMAND = 4000  # hangar experiments.Grader.command
 MAX_REFERENCE_PATCH = 1024 * 1024  # hangar experiments.MAX_REFERENCE_PATCH
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$")  # hangar experiments.NAME: task ids
 SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -29,6 +30,10 @@ DIGEST_LINE = re.compile(r'^(files_digest\s*=\s*)"[^"]*"', re.M)
 
 class TaskError(ValueError):
     """The directory isn't a valid task, or hangar would refuse it."""
+
+
+class CapError(TaskError):
+    """Over one of hangar's caps on an experiment's grader: its files, their bytes or its command."""
 
 
 @dataclass(frozen=True)
@@ -183,19 +188,17 @@ def to_hangar(tasks: list[Task]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         commands[hid] = t.grader.get("command") or DEFAULT_COMMAND
         timeout = max(timeout, int((t.config.get("verifier") or {}).get("timeout_sec") or 600))
     if len(files) > MAX_GRADER_COUNT:
-        raise TaskError(f"the tests are {len(files)} files; hangar's grader takes at most {MAX_GRADER_COUNT}")
-    size = sum(len(v.encode()) for v in files.values())
-    if size > MAX_GRADER_FILES:
-        raise TaskError(f"the tests total {size:,} bytes; hangar's grader takes at most 1 MB in all "
-                        "(MAX_GRADER_FILES, hangar experiments.py)")
+        raise CapError(f"the tests are {len(files)} files; hangar's grader takes at most {MAX_GRADER_COUNT}")
+    if (size := sum(len(v.encode()) for v in files.values())) > MAX_GRADER_FILES:
+        raise CapError(f"the tests total {size:,} bytes; hangar's grader takes at most 1 MB in all (MAX_GRADER_FILES)")
     # hangar runs one grader command per experiment (KAN-192). Tasks whose commands differ share one: the most common
-    # command, and a `case` on `$HANGAR_TASK` that `eval`s each other task's own, quoted so it runs as written. hangar
-    # refuses a command over 4,000 characters (Grader.command); then submit the tasks as separate experiments.
+    # command, and a `case` on `$HANGAR_TASK` that `eval`s each other task's own, quoted so it runs as written.
     common = max(dict.fromkeys(vals := list(commands.values()) or [DEFAULT_COMMAND]), key=vals.count)
     arms = "".join(f"{k}) eval {shlex.quote(c)} ;; " for k, c in commands.items() if c != common)
     run = f'case "$HANGAR_TASK" in {arms}*) eval {shlex.quote(common)} ;; esac' if arms else common
-    return out, {"command": f'cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && {run}', "timeout_seconds": min(timeout, 3600),
-                 "files": files}
+    if len(cmd := f'cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && {run}') > MAX_COMMAND:
+        raise CapError(f"the grader command is {len(cmd):,} characters; hangar takes at most {MAX_COMMAND:,}")
+    return out, {"command": cmd, "timeout_seconds": min(timeout, 3600), "files": files}
 
 
 def to_hangar_task(task: Task) -> tuple[dict[str, Any], dict[str, Any]]:

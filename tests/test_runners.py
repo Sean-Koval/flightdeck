@@ -271,7 +271,7 @@ def test_commands_use_only_the_backend_interface(tmp_path: Path, monkeypatch: py
     assert fake.calls == ["submit smoke 1", "status rs-1", "collect rs-1"]
 
 
-def _many(tmp_path: Path, count: int, tests_per_task: int, commands: int = 1) -> list:
+def _many(tmp_path: Path, count: int, tests_per_task: int, commands: int = 1, pad: int = 0) -> list:
     from flightdeck.tasks.format import load_task
 
     out = []
@@ -283,7 +283,7 @@ def _many(tmp_path: Path, count: int, tests_per_task: int, commands: int = 1) ->
                                         f'.git"\n[flightdeck.grader]\ncommand = "bash tests/test.sh {i % commands}"\n')
         (root / "instruction.md").write_text("Do the thing.\n")
         for j in range(tests_per_task):
-            (root / "tests" / ("test.sh" if j == 0 else f"test_{j}.py")).write_text(f"# {i} {j}\n")
+            (root / "tests" / ("test.sh" if j == 0 else f"test_{j}.py")).write_text(f"# {i} {j}\n" + "#" * pad)
         out.append(load_task(root))
     return out
 
@@ -302,6 +302,21 @@ def test_plans_over_hangars_grader_file_cap_split_into_experiments_that_each_fit
     assert [s["budget"]["max_cost_usd"] for s in specs] == [21.0, 19.0]
     for s in specs:
         jsonschema.validate(s, SPEC_SCHEMA)
+
+
+def test_plans_over_hangars_grader_bytes_or_command_cap_split_and_a_task_over_a_cap_alone_is_refused(
+    tmp_path: Path,
+) -> None:
+    heavy = build_specs(TrialPlan("heavy", _many(tmp_path / "h", 5, 1, pad=400_000), {"a": {}}, 1, "bare"))
+    assert [len(s["tasks"]) for s in heavy] == [2, 2, 1]  # 400 KB each: hangar takes 1 MB per experiment
+    own = build_specs(TrialPlan("own", _many(tmp_path / "o", 100, 1, commands=100), {"a": {}}, 1, "bare"))
+    assert sum(len(s["tasks"]) for s in own) == 100 and len(own) > 1  # one command each: over 4,000 characters
+    assert all(len(s["grader"]["command"]) <= 4000 for s in own)
+    for s in heavy + own:
+        jsonschema.validate(s, SPEC_SCHEMA)
+    with pytest.raises(TaskError, match="at most 64"):
+        build_specs(TrialPlan("wide", _many(tmp_path / "w", 1, 70), {"a": {}}, 1, "bare"))
+    assert build_specs(TrialPlan("none", [], {"a": {}}, 1, "bare", budget_usd=10)) == []
 
 
 def test_a_task_with_its_workspace_inside_and_no_repo_is_refused_for_hangar() -> None:

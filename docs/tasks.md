@@ -86,15 +86,14 @@ it, so a changed hidden test is always a deliberate, reviewed edit.
 Each task's tests go into `Grader.files` as `<id>/tests/...`. The command starts
 `cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK"`, its task's pristine copy.
 
-Grader commands may differ: the shared command (4,000 characters at most) runs the most common, and a `case` on
-`$HANGAR_TASK` `eval`s the rest.
+Grader commands may differ: one shared command `eval`s each task's own, by a `case` on `$HANGAR_TASK`.
 
 Ids match `^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$` (longer ones get a stable short form). Instructions take 64,000
-characters, a reference patch 1 MB. Grader files are text: 64 and 1 MB per experiment, or the suite is split
-([Runners](runners.md)).
+characters, a reference patch 1 MB. A grader takes 64 text files, 1 MB, a 4,000-character command. A larger
+suite is split ([Runners](runners.md)); one task over a cap is refused.
 
 A task with `environment/workspace/` and no `[flightdeck.source] repo` is refused: hangar would run the
-environment's repo instead.
+environment's repo.
 
 hangar runs the grader in a sealed sandbox (no credential, egress `none`), writes the files outside the repo and adds
 a canary comment to each. A `test.sh` command is recorded as `trust: low`, since hangar can only vouch for its own
