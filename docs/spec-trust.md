@@ -3,6 +3,11 @@
 A predicate can be gamed. This page says which test runs a spec counts, and what `spec lint` flags. The grammar is in
 [Matchers and operators](spec-matchers.md).
 
+<figure class="af-figure fd-term" markdown>
+![The output of flightdeck spec lint on hangar's reference specs: two warnings, for tests-before-commit and plan-edit-test-pr, each saying the shell test op is a hint and that proof of testing is event: test.run](assets/spec-lint.svg){ width=660 }
+<figcaption>spec lint on hangar's reference specs: two warnings, both for counting the agent's own test command as proof</figcaption>
+</figure>
+
 ## The trusted-test rule
 
 `event: test.run` matches only a run hangar ran itself and trusts: `hangar.test.run.trusted = true`,
@@ -34,3 +39,8 @@ in-turn commit always precedes hangar's verify. So "tests before the commit" for
 `spec lint` warns on a missing `harness`, a schema other than `flightdeck.spec/v1`, `allow_untrusted` and a missing
 `assert`. It also warns on matching on tool input or output text alone, the shell `test` op, and `applies_when` keys
 the data plane lacks.
+
+## Next
+
+- [Incomplete exports](partial-observations.md): when a missing event should not read as a violation.
+- [Mutation scoring](mutation-scoring.md): whether the suite notices a missing component.

@@ -58,3 +58,8 @@ run, the spec's pass^k falls from 1 to 0 and the mutant is killed. The no-op is 
     Code merged ([#53](https://github.com/Sean-Koval/flightdeck/pull/53)). Issue
     [#16](https://github.com/Sean-Koval/flightdeck/issues/16) stays open until the first live mutation run on hangar
     (at most $40). The acceptance case so far is shown on stored results in tests.
+
+## Next
+
+- [Statistics](statistics.md#mutation-scores): how a mutant is judged killed.
+- [Behavior specs](behavior-specs.md): the specs a mutant has to trip.

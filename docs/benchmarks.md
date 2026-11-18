@@ -100,7 +100,7 @@ benchmark. Never share a sealed set by tag.
 The `flightdeck bench` commands (KAN-191) wait on a scope and line-budget decision,
 [KAN-190](https://seanmkoval.atlassian.net/browse/KAN-190). This page will document them when they land.
 
-## See also
+## Next
 
 - [Tasks](tasks.md): the task format, digests and hangar's limits.
 - [Running experiments](runners.md): suite files, backends and collecting.

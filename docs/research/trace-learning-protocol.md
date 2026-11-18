@@ -67,3 +67,8 @@ Leakage, missing controls or policy violations invalidate that claim.
 
 KAN-25's twenty human-labelled failures remain separate human work. Synthetic fixtures cannot replace them.
 Neither this protocol nor passing integrity tests authorizes paid evaluation, model training, private uploads, worker activation or changes to KAN-31's decision rule.
+
+## Next
+
+- [Process integrity](process-integrity.md): what the existing check establishes.
+- [Decisions](../decisions/index.md): the records this research feeds.
