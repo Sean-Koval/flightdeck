@@ -109,6 +109,7 @@ nav:
           - Weekly metrics: metrics.md
           - Outcome labels: outcome-labels.md
           - Process metrics: process-metrics.md
+          - Where they came from: process-metrics-origins.md
           - Label gold sets: label-gold-sets.md
   - Decisions:
       - decisions/index.md
