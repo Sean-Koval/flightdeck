@@ -10,6 +10,9 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
   input hangar cut to its 200-character preview counts in the new `process_metrics.clipped_calls`, and the report says how many
   trials had one. Still `flightdeck.parquet/v1`: a data plane written before a column was added still opens, and
   that column reads as null ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-274).
+- **flightdeck#20:** `python scripts/decision_run.py preflight|start|finish` checks and runs the pre-registered
+  plugin A/B in one command each. Preflight fails on open egress, an edited `decision.yaml`, a projection over
+  budget or a task that fails `task check`; `start` never spends without `--spend` ([ADR 0011](https://sean-koval.github.io/flightdeck/decisions/0011-first-decision-plugin-ab/), KAN-31).
 - **On hangar:** tasks with different grader commands run as one experiment. The shared command runs the most
   common one and dispatches the rest on `$HANGAR_TASK`. A suite over hangar's 64 grader files, 1 MB or 4,000-character
   command becomes several experiments instead of being refused. A task with its workspace in `environment/workspace/` and no source repo is
