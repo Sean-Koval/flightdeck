@@ -108,7 +108,7 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "candidate
             "### Cost", "", render(compare(trials, "cost_usd", a, b, seed), False), "", "### Behavior specs", ""]
     out += spec_rates(con, [t for t in trials if not exclusion(t, "resolved")], a, b)
     drift = [t for t in trials if t["drift"] and t["variant"] in (a, b)]
-    n = sum(bool(t["clipped_calls"]) for t in trials if t["variant"] in (a, b))  # hangar clips inputs (KAN-274)
+    n = sum(bool(t["clipped_calls"]) for t in trials if t["variant"] in (a, b) and not exclusion(t, "resolved"))
     clip = f" Trials with a clipped tool input: {n} (labels and specs that read input are lower bounds)." if n else ""
     out += ["", "### Exclusions and drift", "", exclusions(outcome, process), f"\n{len(drift)} drifted trial"
             f"{'s'[:len(drift) != 1]} excluded from paired analysis (`--include-drift` keeps "
