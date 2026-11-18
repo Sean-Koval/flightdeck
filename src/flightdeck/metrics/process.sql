@@ -45,7 +45,21 @@ create or replace macro step_re_write() as
     -- a python heredoc that reads a file and replaces text in it: its write is often past the clipped input
     || '|(?s:python[\d.]*\s+-\s*<<.*(read_text\(|\.read\(\)).*\.replace\()';
 
--- The labels of each tool call (the step taxonomy of hangar 0007 §5.5, plus `setup`), in classify.rule()'s order:
+-- SDLC steps (KAN-359): a pull request, waiting on CI, review and the tracker. MCP calls key on the tool's name (its
+-- last `__` or `.` part: `mcp__github__create_pull_request`, `github.get_issue`); `pull_request_read` on its method.
+-- Shell calls key on `gh` and `gh api` paths at a command position, a polling loop's test included
+-- (`until gh pr checks 7; do sleep 10; done`); a `sleep` alone waits on anything.
+create or replace macro step_mcp_name(name) as lower(regexp_replace(coalesce(name, ''), '^.*(__|\.)', ''));
+create or replace macro step_pr_method(inp) as regexp_extract(inp, '"method"\s*:\s*"(\w+)"', 1);
+create or replace macro step_re_gh() as
+    '(^|[;&|(\n!]|\bdo\s|\bthen\s|\$\(|\b(while|until|if|elif)\s|\bwatch(\s+-\S+(\s+\d+)?)*\s)\s*(\w+=\S*\s+)*'
+    || '((sudo|command|time|nice|env|timeout(\s+-\S+)*\s+\d+[smh]?)\s+)*(\S*/)?gh\s+';
+create or replace macro step_re_gh_api() as step_re_gh() || 'api\b[^\n;|]*';
+-- A pull request's number in a `gh api` path: 7, $PR or ${PR}.
+create or replace macro step_re_num() as '(\d+|\$\{?\w+\}?)';
+
+-- The labels of each tool call (the step taxonomy of hangar 0007 §5.5, plus `setup` and the SDLC labels), in
+-- classify.rule()'s order with the SDLC labels before `explore`:
 -- `labels` has every label a call matches, `label` the first. Keyed on hangar.tool.kind and hangar.shell.ops; the
 -- command text is read for what shell_ops doesn't name (read-only git, setup, shell writes and reads, running a
 -- script) and for test runs it misses (loops, wrapper flags, CI scripts). `idx` is the call's 0-based position.
@@ -67,6 +81,40 @@ with c as (
         case when tool_kind = 'edit' or (sh and regexp_matches(inp, step_re_write())) then 'edit' end,
         case when sh and regexp_matches(cmd, step_re_setup()) then 'setup' end,
         case when tool_kind = 'plan' then 'plan' end,
+        case when (tool_kind = 'mcp' and (regexp_matches(step_mcp_name(tool_name),
+                '^((create|update|merge|get)_pull_request|list_pull_requests|update_pull_request_branch'
+                || '|get_pull_request_(diff|files)|(enable|disable)_pr_auto_merge|search_pull_requests)$')
+            or (step_mcp_name(tool_name) = 'pull_request_read'
+                and step_pr_method(inp) in ('get', 'get_diff', 'get_files', 'get_commits'))))
+            or (sh and (regexp_matches(inp, step_re_gh() || 'pr\s+(create|edit|merge|view|diff|list|ready|close|reopen|checkout|status)\b')
+                or regexp_matches(inp, step_re_gh_api() || '/pulls(/' || step_re_num() || ')?(/(files|commits|merge))?([\s"''?]|$)')))
+            then 'pr' end,
+        case when (tool_kind = 'mcp' and (regexp_matches(step_mcp_name(tool_name),
+                '^(actions_(list|get)|get_job_logs|get_check_run|(un)?subscribe_pr_activity|get_pull_request_status'
+                || '|(list|get|rerun)_workflow_runs?|list_workflow_jobs)$')
+            or (step_mcp_name(tool_name) = 'pull_request_read' and step_pr_method(inp) in ('get_check_runs', 'get_status'))))
+            or (sh and (regexp_matches(inp, step_re_gh() || '(pr\s+checks|run\s+(watch|view|list|rerun))\b')
+                or regexp_matches(inp, step_re_gh_api() || '(actions/(runs|jobs|workflows)|check-runs|check-suites|/status\b'
+                    || '|/statuses/)')))
+            then 'ci_wait' end,
+        case when (tool_kind = 'mcp' and (regexp_matches(step_mcp_name(tool_name),
+                '^(pull_request_review_write|add_comment_to_pending_review|add_reply_to_pull_request_comment'
+                || '|(un)?resolve_review_thread|request_copilot_review|get_pull_request_(reviews|comments)'
+                || '|(create|create_and_submit|submit_pending)_pull_request_review)$')
+            or (step_mcp_name(tool_name) = 'pull_request_read'
+                and step_pr_method(inp) in ('get_reviews', 'get_review_comments', 'get_comments'))))
+            or (sh and (regexp_matches(inp, step_re_gh() || 'pr\s+(review|comment)\b')
+                or regexp_matches(inp, step_re_gh_api() || '/pulls/(' || step_re_num()
+                    || '/(comments|reviews|requested_reviewers)|comments/\d+)')))
+            then 'review' end,
+        case when (tool_kind = 'mcp' and (regexp_matches(lower(tool_name), 'jira')
+            or regexp_matches(step_mcp_name(tool_name), '^(issue_(read|write)|list_issues|search_issues|sub_issue_write'
+                || '|list_issue_types|(get|create|update)_issue|(add|update)_issue_comment)$')
+            -- Atlassian's generic runners (executeRead): the operation's name, not text that mentions Jira
+            or (regexp_matches(lower(tool_name), 'atlassian') and regexp_matches(inp, '"name"\s*:\s*"[^"]*(?i:jira)'))))
+            or (sh and (regexp_matches(inp, step_re_gh() || 'issue\s') or regexp_matches(cmd, step_re_at() || '(acli\s+)?jira\s')
+                or regexp_matches(inp, step_re_gh_api() || '/issues(/' || step_re_num() || '|/comments/\d+)?([\s"''?/]|$)')))
+            then 'tracker' end,
         case when tool_kind in ('read', 'search')
             or (sh and regexp_matches(inp, '\b(ls|cat|find|grep|rg|head|tail|wc|tree|sed -n)\b'))
             or (sh and (regexp_matches(cmd, step_re_look()) or regexp_matches(inp, step_re_look_py())))
@@ -115,7 +163,11 @@ with s as (
         count(*) filter (where is_test) as test_runs,
         count(*) filter (where test_failed) as failing_test_runs,
         count(*) filter (where label = 'reference') as reference_lookups,
-        count(*) filter (where answer_key_risk) as answer_key_reads
+        count(*) filter (where answer_key_risk) as answer_key_reads,
+        count(*) filter (where list_contains(labels, 'pr')) as pr_steps,
+        count(*) filter (where list_contains(labels, 'ci_wait')) as ci_wait_steps,
+        count(*) filter (where list_contains(labels, 'review')) as review_steps,
+        count(*) filter (where list_contains(labels, 'tracker')) as tracker_steps
     from s group by run_id, source
 ), counts as (
     select run_id, source, map_from_entries(list({'k': label, 'v': n})) as by_label
@@ -132,6 +184,8 @@ select r.run_id, r.source, r.experiment_id, r.task_id, r.variant, r.trial, r.har
     coalesce(st.test_runs, 0) as test_runs, coalesce(st.failing_test_runs, 0) as failing_test_runs,
     coalesce(l.fix_loops, 0) as fix_loops, coalesce(st.reference_lookups, 0) as reference_lookups,
     coalesce(st.answer_key_reads, 0) as answer_key_reads, c.by_label,
+    coalesce(st.pr_steps, 0) as pr_steps, coalesce(st.ci_wait_steps, 0) as ci_wait_steps,
+    coalesce(st.review_steps, 0) as review_steps, coalesce(st.tracker_steps, 0) as tracker_steps,
     coalesce(t.trusted_test_runs, 0) as trusted_test_runs,
     coalesce(t.failing_trusted_test_runs, 0) as failing_trusted_test_runs,
     r.input_tokens, r.output_tokens, r.cache_read_tokens, r.cost_usd, r.cost_source,
