@@ -331,3 +331,75 @@ def test_doctor_checks_the_repo_it_is_given(tmp_path: Path):
 
 def test_a_locally_installed_icu_may_load_but_nothing_downloads():
     assert doc.NO_DOWNLOAD == {"autoinstall_known_extensions": False, "autoload_known_extensions": True}
+
+
+@posix
+@pytest.mark.parametrize("files", [["raw/vacation/img.cr2"], ["proj/.git/config"], ["runs/.cache/x"],
+                                   ["raw/notes.txt"], ["runs/dt=1/x.parquet", "runs/notes"]])
+def test_setup_refuses_folders_that_only_look_like_a_plane(home: Path, files: list[str]):
+    """R-hangar on PR 115: `raw/` holding photos, or a `.git` folder in a table folder, was accepted and chmodded."""
+    root = home / "Pictures"
+    for f in files:
+        (root / f).parent.mkdir(parents=True, exist_ok=True)
+        (root / f).write_text("x")
+        os.chmod(root / f, 0o644)
+    assert doc.setup(str(root), env={}) == 1
+    assert all(stat.S_IMODE((root / f).stat().st_mode) == 0o644 for f in files)
+    assert not (root / doc.MARKER).exists()
+
+
+@posix
+def test_setup_accepts_its_own_marker_and_keeps_other_env_lines(home: Path):
+    plane = home / "plane"
+    assert doc.setup(str(plane), env={}) == 0
+    (plane / "notes.txt").write_text("mine")  # not a plane's file, but the marker says setup made this folder
+    envf = home / ".flightdeck" / "env"
+    envf.write_text(envf.read_text() + "export GITHUB_TOKEN=keep-me\n")
+    assert doc.setup(str(home / "plane"), env={}) == 0
+    text = envf.read_text()
+    assert "export GITHUB_TOKEN=keep-me" in text and text.count("FLIGHTDECK_DATA_URI=") == 1
+    assert stat.S_IMODE(envf.stat().st_mode) == 0o600
+
+
+@posix
+def test_setup_refuses_a_symlinked_env_file(home: Path):
+    target = home / "dotfiles" / "flightdeck-env"
+    target.parent.mkdir()
+    target.write_text("export KEEP=1\n")
+    os.chmod(target, 0o644)
+    link = home / ".flightdeck" / "env"
+    link.parent.mkdir()
+    link.symlink_to(target)
+    assert doc.setup(str(home / "plane"), env={}) == 1
+    assert target.read_text() == "export KEEP=1\n" and stat.S_IMODE(target.stat().st_mode) == 0o644
+
+
+def test_a_local_path_origin_has_no_host(tmp_path: Path):
+    repo = tmp_path / "work"
+    _git("init", "-q", str(repo))
+    _git("-C", str(repo), "remote", "add", "origin", "/srv/git/x.git")
+    assert doc.remote_host(repo) is None
+
+
+def test_github_api_url_for_another_host_warns():
+    c = by_name(doc.check_github({"GITHUB_API_URL": "https://github.other.com/api/v3"}, "github.acme.com"))
+    assert c["github-host"].status == "warn" and "github.other.com" in c["github-host"].detail
+    ok = by_name(doc.check_github({"GITHUB_API_URL": "https://github.acme.com/api/v3"}, "github.acme.com"))
+    assert ok["github-host"].status == "ok"
+
+
+def test_box_directly_under_home_is_synced(home: Path):
+    assert doc.synced_folder(home / "Box" / "plane") == "Box"
+    assert doc.synced_folder(home / "src" / "Box" / "plane") is None
+
+
+@posix
+@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root reads any folder")
+def test_an_unreadable_projects_folder_is_skipped(home: Path):
+    projects = home / ".claude" / "projects"
+    _session(projects, "aaa")
+    os.chmod(projects, 0)
+    try:
+        assert doc.check_sessions({}, str(home / "plane"))[0].status == "skip"
+    finally:
+        os.chmod(projects, 0o700)

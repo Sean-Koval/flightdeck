@@ -5,13 +5,14 @@
     uv run python scripts/flightdeck_doctor.py setup [--data DIR]       # a private data plane and an env file
 
 `doctor` prints `ok`, `warn`, `fail` or `skip` with the check's name, what it found and, when there is something to
-do, `fix: <command>`. Only the required checks fail: DuckDB works offline, and the data plane is local, private
-(mode 0700), outside any git checkout and outside any cloud-synced folder. Capture, GitHub and Docker only warn,
-because a laptop can use flightdeck without them.
+do, `fix: <command>`. Only the required checks fail: DuckDB works offline, and a local data plane is private
+(mode 0700), outside any git checkout and outside any cloud-synced folder. A remote plane, capture, GitHub and Docker
+only warn, because a laptop can use flightdeck without them.
 
-`setup` creates the data plane with mode 0700 (and tightens one that holds only flightdeck's folders), writes
-`~/.flightdeck/env` for a POSIX shell to source, and prints the next command. It refuses a home folder, a folder
-with other files in it, a git checkout that doesn't ignore the folder, and a cloud-synced folder.
+`setup` creates the data plane with mode 0700 and a `.flightdeck-plane` marker (and tightens one that holds only
+flightdeck's folders), sets `FLIGHTDECK_DATA_URI` in `~/.flightdeck/env` for a POSIX shell to source, keeping the
+file's other lines, and prints the next command. On Windows it prints a `setx` command instead. It refuses a home
+folder, a folder with other files in it, a git checkout that doesn't ignore the folder, and a cloud-synced folder.
 
 It lives here, not under `src/flightdeck/`, because the line budget is spent (scripts/loc_budget.py).
 """
@@ -41,6 +42,8 @@ REMOTE = ("gs://", "s3://", "gcs://", "http://", "https://")
 # ("Dropbox (Acme)", "OneDrive - Acme", "Google Drive (work)"). Case-insensitive, for Windows.
 SYNCED = re.compile(r"(mobile documents|cloudstorage|icloud ?drive|my drive|box sync"
                     r"|(dropbox|onedrive|google drive)([ (_-].*)?)", re.IGNORECASE)
+# Clients whose folder has a common word for a name: synced only directly under the home folder (`src/Box` isn't).
+HOME_SYNCED = re.compile(r"box|nextcloud|pcloud ?drive|synologydrive|synology ?drive", re.IGNORECASE)
 # macOS iCloud "Desktop & Documents" may sync these; doctor can't tell whether it is on, so it warns.
 MAYBE_SYNCED = ("Desktop", "Documents")
 # Downloads stay off; a locally installed icu still loads.
@@ -83,7 +86,12 @@ def git_checkout(path: Path) -> Path | None:
 
 def synced_folder(path: Path) -> str | None:
     """The part of `path` that a cloud sync client owns, if any."""
-    return next((part for part in path.parts if SYNCED.fullmatch(part)), None)
+    if part := next((part for part in path.parts if SYNCED.fullmatch(part)), None):
+        return part
+    home = Path.home().resolve()
+    if path.is_relative_to(home) and path != home and HOME_SYNCED.fullmatch(top := path.relative_to(home).parts[0]):
+        return top
+    return None
 
 
 def maybe_synced(path: Path, platform: str = sys.platform) -> str | None:
@@ -97,6 +105,11 @@ def maybe_synced(path: Path, platform: str = sys.platform) -> str | None:
 def q(path: Path | str) -> str:
     """A path as a shell word, for fix commands and the env file (spaces, `$`, quotes)."""
     return shlex.quote(str(path))
+
+
+def set_env(name: str, value: str) -> str:
+    """The command that sets an environment variable: `setx` on Windows, `export` in a POSIX shell."""
+    return f'setx {name} "{value}"' if os.name == "nt" else f"export {name}={value}"
 
 
 # --- checks ------------------------------------------------------------------------------------------------------
@@ -124,7 +137,7 @@ def check_duckdb() -> Check:
 def check_data_uri(uri: str) -> Check:
     if is_remote(uri):
         return Check("data-location", "warn", f"{urlparse(uri).scheme}:// data plane: run data leaves this laptop",
-                     f"export FLIGHTDECK_DATA_URI={DEFAULT_DATA}, unless your team approved that bucket")
+                     f"{set_env('FLIGHTDECK_DATA_URI', DEFAULT_DATA)}, unless your team approved that bucket")
     return Check("data-location", "ok", "local")
 
 
@@ -139,7 +152,7 @@ def check_data_plane(uri: str) -> list[Check]:
     elif not path.exists():
         out.append(Check("data-plane", "fail", f"{path} does not exist", f"{_self()} setup --data {q(path)}"))
     elif os.name == "nt":
-        out.append(Check("data-plane", "warn", f"{path}: Windows, check that only you can read it by hand"))
+        out.append(Check("data-plane", "warn", f"{path}: Windows ACLs aren't checked; make sure only you can read it"))
     elif (mode := stat.S_IMODE(path.stat().st_mode)) & 0o077:
         out.append(Check("data-plane", "fail", f"{path} is mode {mode:04o}: others can read run data",
                          f"chmod -R go-rwx {q(path)}"))
@@ -149,7 +162,7 @@ def check_data_plane(uri: str) -> list[Check]:
         out.append(Check("data-not-in-git", "fail", f"inside the git checkout {repo}, not ignored there",
                          f"ignore it in {q(repo / '.gitignore')}, or {_self()} setup --data <a folder outside it>"))
     else:
-        out.append(Check("data-not-in-git", "ok", "not inside a git checkout"))
+        out.append(Check("data-not-in-git", "ok", "not in a git checkout, or ignored there"))
     if part := synced_folder(path):
         out.append(Check("data-not-synced", "fail", f"inside a cloud-synced folder ({part})",
                          f"{_self()} setup --data {DEFAULT_DATA}"))
@@ -204,7 +217,10 @@ def check_sessions(env: dict[str, str], uri: str) -> list[Check]:
     if not root.is_dir():
         return [Check("capture-sessions", "warn", f"no {root}: no Claude Code sessions on this laptop",
                       "run Claude Code once, or set CLAUDE_CONFIG_DIR")]
-    files = sorted((p for p in root.glob("*/*.jsonl") if p.is_file()), key=lambda p: p.stat().st_mtime)
+    try:
+        files = sorted((p for p in root.glob("*/*.jsonl") if p.is_file()), key=lambda p: p.stat().st_mtime)
+    except OSError as e:
+        return [Check("capture-sessions", "skip", f"can't read {root} ({type(e).__name__})")]
     if not files:
         return [Check("capture-sessions", "warn", f"{root} holds no session transcripts")]
     newest = datetime.fromtimestamp(files[-1].stat().st_mtime, UTC).date().isoformat()
@@ -227,10 +243,12 @@ def remote_host(repo: Path) -> str | None:
                              text=True, timeout=10).stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
         return None
-    if not url:
+    if not url or url.startswith("file:"):
         return None
     if "://" in url:
         return urlparse(url).hostname
+    if ":" not in url.split("/", 1)[0]:
+        return None  # a local path: /srv/git/x.git, ../x
     return url.split("@", 1)[-1].split(":", 1)[0]  # scp-like: git@host:owner/repo
 
 
@@ -241,16 +259,19 @@ def check_github(env: dict[str, str], host: str | None, repo: Path | None = None
     where = f" (origin of {repo})" if repo else ""
     if host is None:
         out.append(Check("github-host", "skip", f"no git remote{where}: pass --repo <a work checkout>"))
-    elif host == "github.com" or env.get("GITHUB_API_URL"):
+    elif (api := env.get("GITHUB_API_URL")) and urlparse(api).hostname not in (host, f"api.{host}"):
+        out.append(Check("github-host", "warn", f"remote is {host}{where}, but GITHUB_API_URL points to "
+                         f"{urlparse(api).hostname}", set_env("GITHUB_API_URL", f"https://{host}/api/v3")))
+    elif host == "github.com" or api:
         out.append(Check("github-host", "ok", host + (" via GITHUB_API_URL" if host != "github.com" else "") + where))
     else:
         out.append(Check("github-host", "warn", f"remote is {host}{where}, not github.com; GITHUB_API_URL is unset",
-                         f"export GITHUB_API_URL=https://{host}/api/v3"))
+                         set_env("GITHUB_API_URL", f"https://{host}/api/v3")))
     if env.get("GITHUB_TOKEN"):
         out.append(Check("github-token", "ok", "GITHUB_TOKEN is set (not shown)"))
     else:
         out.append(Check("github-token", "warn", "GITHUB_TOKEN is unset: `ingest github` can't read pull requests",
-                         "export GITHUB_TOKEN=<read-only token: Pull requests, Metadata>"))
+                         set_env("GITHUB_TOKEN", "<read-only token: Pull requests, Metadata>")))
     return out
 
 
@@ -279,17 +300,46 @@ def doctor(data: str | None = None, env: dict[str, str] | None = None, repo: Pat
 
 
 TABLE_DIR = re.compile(r"[a-z_]+")
+MARKER = ".flightdeck-plane"
+
+
+def _real_dir(p: Path) -> bool:
+    return p.is_dir() and not p.is_symlink()
 
 
 def looks_like_a_data_plane(path: Path) -> bool:
-    """Empty, or only flightdeck's folders: table folders of `dt=` partitions, and `raw/`. setup changes modes only
-    in such a folder, so a mistyped `--data ~` or `--data .` touches nothing."""
-    for child in path.iterdir():
-        if child.is_symlink() or not child.is_dir() or not TABLE_DIR.fullmatch(child.name):
+    """setup's own marker, or empty, or only flightdeck's folders: table folders holding `dt=` partition folders
+    and dot-files, and `raw/` holding folders beside at least one table. setup changes modes only in such a folder,
+    so a mistyped `--data ~`, `--data .` or `--data ~/Pictures` touches nothing."""
+    if (path / MARKER).is_file():
+        return True
+    children = list(path.iterdir())
+    if children and all(c.name == "raw" for c in children):
+        return False  # raw evidence alone isn't enough to tell a plane from ~/Pictures/raw
+    for child in children:
+        if not _real_dir(child) or not TABLE_DIR.fullmatch(child.name):
             return False
-        if child.name != "raw" and not all(c.name.startswith(("dt=", ".")) for c in child.iterdir()):
-            return False
+        for c in child.iterdir():
+            if child.name == "raw":
+                ok = _real_dir(c) and not c.name.startswith(".")
+            else:
+                ok = (_real_dir(c) and c.name.startswith("dt=")) or (c.is_file() and c.name.startswith("."))
+            if not ok:
+                return False
     return True
+
+
+def write_env_file(envf: Path, path: Path) -> None:
+    """Set FLIGHTDECK_DATA_URI in `envf`, keeping its other lines, through a 0600 temp file and a rename."""
+    line = f"export FLIGHTDECK_DATA_URI={q(path)}"
+    header = "# written by flightdeck_doctor.py setup"
+    keep = envf.read_text(encoding="utf-8").splitlines() if envf.exists() else [header]
+    lines = [x for x in keep if not re.match(r"\s*(export\s+)?FLIGHTDECK_DATA_URI=", x)] + [line]
+    tmp = envf.with_name(f".{envf.name}.{os.getpid()}.tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    os.replace(tmp, envf)
 
 
 def setup(data: str | None = None, env: dict[str, str] | None = None, env_file: str = ENV_FILE) -> int:
@@ -314,22 +364,26 @@ def setup(data: str | None = None, env: dict[str, str] | None = None, env_file: 
     if part := synced_folder(path):
         return refuse(f"{path} is inside a cloud-synced folder ({part})")
     if path.is_dir() and not looks_like_a_data_plane(path):
-        return refuse(f"{path} holds files that aren't a flightdeck data plane")
-    fd_home = Path("~/.flightdeck").expanduser()
-    for d in (fd_home, path):
-        d.mkdir(mode=0o700, parents=True, exist_ok=True)
-    for d in {fd_home, path}:
-        os.chmod(d, 0o700)
+        return refuse(f"{path} holds files that aren't a flightdeck data plane (if it is one, create "
+                      f"{q(path / MARKER)} first)")
+    envf = Path(env_file).expanduser()
+    if os.name != "nt" and envf.is_symlink():
+        return refuse(f"{envf} is a symlink; pass --env-file <a plain file>")
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    (path / MARKER).touch()
+    if os.name == "nt":
+        print(f"data plane: {path} (Windows ACLs aren't checked; make sure only you can read it)")
+        print(f"next: {set_env('FLIGHTDECK_DATA_URI', str(path))}, open a new terminal, then "
+              f"{_self()} --repo <a work checkout>")
+        return 0
+    os.chmod(path, 0o700)
     for p in path.rglob("*"):  # earlier writes were 0644 / 0755 (the Nov 10 review); rglob doesn't follow links
         if not p.is_symlink():
             os.chmod(p, stat.S_IMODE(p.stat().st_mode) & ~0o077)
-    envf = Path(env_file).expanduser()
     envf.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    envf.write_text(f"# written by flightdeck_doctor.py setup\nexport FLIGHTDECK_DATA_URI={q(path)}\n",
-                    encoding="utf-8")
-    os.chmod(envf, 0o600)
-    print(f"data plane: {path} (mode 0700)\nenv file:   {envf}")
-    print(f"next: . {q(envf)} && {_self()}")
+    write_env_file(envf, path)
+    print(f"data plane: {path} (mode 0700)\nenv file:   {envf} (add `. {q(envf)}` to ~/.zshrc or ~/.bashrc)")
+    print(f"next: . {q(envf)} && {_self()} --repo <a work checkout>")
     return 0
 
 
