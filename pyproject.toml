@@ -28,6 +28,7 @@ gcs = [
 
 [dependency-groups]
 assets = [
+    "imageio-ffmpeg>=0.6",
     "markdown-it-py>=3",
     "playwright==1.56.0",
 ]
