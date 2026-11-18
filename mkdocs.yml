@@ -75,6 +75,7 @@ nav:
       - Concepts: concepts.md
   - Guides:
       - Tasks: tasks.md
+      - Mining regression tasks: regression-mining.md
       - Running experiments:
           - runners.md
           - Pins and the cost gate: pins.md
