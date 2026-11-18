@@ -15,3 +15,32 @@
 @media (forced-colors: active) {
   .af-hero__visual > picture > img { box-shadow: none; outline: 1px solid CanvasText; }
 }
+
+/* Tables: a name in the first column (a table, a contract, a metric) stays on one line. On a phone a table of
+   three columns or more keeps a readable width and the theme's wrapper scrolls it, so a cell is never a word wide. */
+.md-typeset table:not([class]) td:first-child code { white-space: nowrap; }
+@media (max-width: 600px) {
+  .md-typeset table:not([class]):has(th:nth-child(3)) { min-width: 30rem; }
+}
+
+/* Diagrams are authored at 720 px with 11 px labels. On a phone they keep 560 px and the figure scrolls sideways,
+   so a label is read, not guessed at; a terminal still without a phone crop does the same. */
+@media (max-width: 600px) {
+  .md-typeset .af-figure:has(svg.fd-d) { overflow-x: auto; }
+  .md-typeset .af-figure svg.fd-d { min-width: 560px; }
+  .md-typeset figure.af-figure.fd-term:not(:has(picture)) { overflow-x: auto; }
+  .md-typeset figure.af-figure.fd-term:not(:has(picture)) > :is(img, p) > img, .md-typeset figure.af-figure.fd-term:not(:has(picture)) > img { min-width: 560px; max-width: none; width: 560px; }
+}
+
+/* A terminal still leads a guide at its native width (80 columns of 13 px mono), never scaled up. */
+.md-typeset figure.af-figure.fd-term { max-width: min(100%, 660px); }
+.md-typeset figure.af-figure.fd-term > img { border-radius: var(--af-radius-card); }
+
+/* Tiles (the vendored af-tools grid): a tile that is not a link does not light on hover; a row of three or of two. */
+.md-typeset .af-tools.fd-tiles { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.md-typeset .af-tools.fd-routes { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+.md-typeset div.af-tool:hover { background: var(--af-raised); }
+.md-typeset .af-tool > code { align-self: flex-start; font-size: .62rem; color: var(--af-fg-muted); }
+
+/* The page's status line under a decision's title, and a "what is on this page" strip: quiet, one line each. */
+.md-typeset .fd-meta { font-size: .68rem; color: var(--af-fg-subtle); margin-top: -.6em; }

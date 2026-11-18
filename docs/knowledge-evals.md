@@ -97,7 +97,7 @@ baselines are scored.
     [#21](https://github.com/Sean-Koval/flightdeck/issues/21) stays open until the 40 questions are written, sealed
     and both baselines scored once in the private data repository.
 
-## See also
+## Next
 
 - [Holdouts](holdouts.md): the custody rules the gold set borrows, and the canary scan.
 - [Judges](judges.md): the calibrated rubric that will replace the two human raters.

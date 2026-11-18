@@ -93,3 +93,9 @@ then require a second reviewer for `checks:loosened` and `checks:removed`. That 
     Code merged ([#41](https://github.com/Sean-Koval/flightdeck/pull/41)). Issue
     [#15](https://github.com/Sean-Koval/flightdeck/issues/15) stays open until one real team ADR carries a `checks:`
     block and the nightly run is scheduled in the private data repository.
+
+## Next
+
+- [Matchers and operators](spec-matchers.md): the grammar a `checks:` block uses.
+- [Mutation scoring](mutation-scoring.md): whether the suite notices a missing component.
+- [Decisions](decisions/index.md): the records that can carry checks.

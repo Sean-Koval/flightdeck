@@ -13,6 +13,11 @@ hangar 0007 §5.5 set. Estimates combine judge and human labels by prediction-po
 
 Code: `src/flightdeck/judges/`, `src/flightdeck/stats/ppi.py`.
 
+<figure class="af-figure" markdown>
+--8<-- "docs/assets/flow-judge.svg"
+<figcaption>Five steps from a blind sample of human labels to an estimate with an interval</figcaption>
+</figure>
+
 ## A rubric version
 
 ```yaml
@@ -32,8 +37,12 @@ rubric's status turns `stale`, and it must be calibrated again.
 
 ### 1. Label
 
-`flightdeck judge label <rubric> --data <plane> --sample 150 --stratify-by variant,task_id --raters 2 --overlap 30
-> sheet.csv` samples runs in proportion to each stratum (seeded) and writes a sheet. The first 30 items go to both
+```sh
+flightdeck judge label <rubric> --data <plane> --sample 150 \
+    --stratify-by variant,task_id --raters 2 --overlap 30 > sheet.csv
+```
+
+It samples runs in proportion to each stratum (seeded) and writes a sheet. The first 30 items go to both
 raters; the rest are shared out.
 
 Variant names stay off the sheet, so raters judge blind. When a rubric compares two outputs side by side, randomize
@@ -77,7 +86,7 @@ refuses to render a verdict unless that rubric is `usable`.
 
 Label drift is visible because every stored label carries its rubric version and judge.
 
-## See also
+## Next
 
 - [Statistics](statistics.md#ppi): prediction-powered inference, and Cohen's κ.
 - [Knowledge evals](knowledge-evals.md): the citation judge, calibrated this way.

@@ -62,3 +62,8 @@ This smaller regression check cannot certify that gate.
 
 [The later evaluation protocol](trace-learning-protocol.md) preserves leakage controls and simple baselines without enabling a production evaluator.
 ADR 0007 remains Proposed. The KAN-31 cost-primary decision gate and EvolveIPI permission-only scope remain unchanged.
+
+## Next
+
+- [The plan for this slice](process-integrity-plan.md): its scope and review focus.
+- [Decisions](../decisions/index.md): the records this research feeds.

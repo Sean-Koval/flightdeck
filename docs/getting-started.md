@@ -3,6 +3,14 @@
 Six commands on the synthetic fixture experiment, then the same three against a real hangar. Requires
 [uv](https://docs.astral.sh/uv/) (it brings Python 3.12) and git; no hangar, no team data.
 
+<figure class="af-figure fd-term">
+<picture>
+<source media="(max-width: 600px)" srcset="assets/demo-phone.svg" width="379" height="401">
+<img src="assets/demo-still.svg" alt="The finished terminal session on the fixture experiment: ingest prints 73 runs, stats compare prints both arms and the paired difference of +21.2 pp, and report prints the verdict, candidate is better than control on resolved" width="660" height="537">
+</picture>
+<figcaption>Where the six commands end: both arms compared, and the verdict on the last lines</figcaption>
+</figure>
+
 ## Six commands
 
 ```sh
@@ -80,7 +88,7 @@ To plan and submit trials, see [Running experiments](runners.md). The
 flightdeck holds no sandbox code and no credentials. It reads hangar's three versioned interfaces and the Parquet
 data plane ([ADR-0001](decisions/0001-boundary-with-hangar.md), [Contracts](contracts.md)).
 
-## See also
+## Next
 
 - [Concepts](concepts.md): the five verdict words, variant, trial, check against grader.
 - [Reports](reports.md): the report's anatomy and the pre-registered rule.

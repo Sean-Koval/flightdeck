@@ -63,3 +63,8 @@ Steer-avoidance counts only corrections: `never: {event: steer, where: {hangar.s
 Steers recorded before hangar#162 have no seq and the class `unclassified`. Analyses that need a fork point
 ([#29](https://github.com/Sean-Koval/flightdeck/issues/29)) take the nearest preceding seq and a judge's class (a
 [calibrated rubric](judges.md)), and say the result is approximate.
+
+## Next
+
+- [Trusted tests and anti-gaming](spec-trust.md): which test runs count.
+- [ADR checks and the nightly runner](adr-checks.md): running specs every night.

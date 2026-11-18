@@ -26,3 +26,8 @@ Keep the source cap and counted total unchanged. Preserve the KAN-31 decision ga
 
 No model calls, paid workers, private traces, production deployment or changed permissions. Dependency setup is separate from the offline test matrix.
 The EvolveIPI permission check and combined KAN-175/KAN-176 preflight remain separate work. Passing these tests does not complete either gate.
+
+## Next
+
+- [What the check establishes](process-integrity.md): the defects reproduced, and the limits.
+- [Decisions](../decisions/index.md): the records this research feeds.

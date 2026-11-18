@@ -87,131 +87,13 @@ GitHub, Anthropic/OpenAI, AWS and Slack tokens) as `***`. They clip event text t
 
 ## Ingest
 
-`flightdeck ingest` pulls from hangar directly, for an author who wants one experiment's results now. That covers the
-wait for the night's compaction, and a hangar whose outbox is off. Code: `src/flightdeck/dataplane/ingest.py`.
-
-```sh
-flightdeck ingest export DIR                                  # files from `hangar experiment export <id> -o DIR`
-flightdeck ingest experiment <id> --hangar URL                # REST; bearer token from HANGAR_TOKEN
-flightdeck ingest job <id> --hangar URL                       # GET /api/jobs/{id}/trace + /manifest?turn=N
-flightdeck ingest session <name> [--turn N] --hangar URL      # GET /api/sessions/{name}/trace + /manifest?turn=N
-flightdeck ingest file TRACE.json [--manifest M.json]         # a saved trace: the same rows, no hangar or token
-```
-
-All write to `--out` (default `~/.flightdeck/data`, or `FLIGHTDECK_DATA_URI`), with `source` = `experiment`, `job` or
-`session`.
-
-### REST and export are one path
-
-REST ingest streams the index and each trial's `links.manifest` and `links.trace` to `<out>/raw/<id>/`, in
-`hangar experiment export`'s layout (`index.json`, `trials/<task>__<variant>__<n>[~<attempt>]/*.json`). Then it reads
-that directory like an export. Both produce identical tables, and nothing large is held in memory.
-
-### Experiments
-
-One `runs` row per trial, from the index. A trial's spans, events and test results take the trial's `run_id`
-(`<experiment>/<task>/<variant>/<n>`), and its run row is `truncated` when its trace was.
-
-A trial hangar retried after an infrastructure error (hangar#166) keeps its row, `excluded`. The retry is a second
-row under the same `trial_key`, with `run_id` `<experiment>/<task>/<variant>/<n>~<attempt>`.
-
-Pins that break hangar's model rule are warned about, as `experiment status` reports them. A trial still pending or
-running has `outcome` null, and statistics leave it out.
-
-Drifted trials (`trials[].drift`) are kept, with `drift` set; `flightdeck stats compare` excludes them unless
-`--include-drift`. hangar's #127 anti-forgery fields land in `runs.task_invalid`, `runs.contaminated` and
-`runs.grade_trust`.
-
-### Idempotent
-
-Each unit (an experiment, a job, a session) owns one Parquet part per table and day, `part-<unit>.parquet`.
-Re-ingesting replaces the unit's rows by `run_id`, so it adds no duplicates. A trial that finished on a later day
-moves partitions instead of staying behind.
-
-### Validation
-
-The index and manifests are checked against hangar's `experiment.schema.json` and `manifest.schema.json`. Those are
-vendored in `src/flightdeck/dataplane/hangar_schemas/` with the hangar commit they came from (`SOURCE.json`);
-`python scripts/sync_hangar_schemas.py --hangar ../hangar` refreshes them.
-
-A mismatch warns and the ingest continues. The flatteners keep what they understand, and the raw JSON stays in the
-export or `raw/` directory.
-
-### Tokens
-
-hangar scopes every record to its owner (spec 0014 §1). A member token sees its own experiments, jobs and sessions;
-an admin token sees everyone's; a `jobs` token sees what it submitted. A 404 means missing *or not yours*, and is
-reported that way.
-
-A report on your own experiment needs only your member token. A team-wide report needs an admin token, kept in the
-operator's environment.
+`flightdeck ingest` pulls one experiment, job or session from hangar now, or reads an export. It is idempotent and
+validated against hangar's schemas. [Ingest](ingest.md) has the commands, the token scopes and the rules.
 
 ## Compactor
 
-`flightdeck compact` turns hangar's outbox into the tables above. Code: `src/flightdeck/dataplane/compact.py`;
-deployment: [`deploy/compactor/`](https://github.com/Sean-Koval/flightdeck/tree/main/deploy/compactor).
-
-It runs as a Cloud Run job at 02:30 ET, inside the pools-off window. The control plane and GCS stay up; the cluster
-doesn't need to.
-
-```sh
-flightdeck compact --input gs://<runs-bucket> --out gs://<team>-flightdeck/parquet/v1     # today and 3 days back
-flightdeck compact --date 2026-11-03 --rebuild                                            # rewrite those dates
-flightdeck compact --input file:///tmp/outbox --out /tmp/plane                            # a local outbox tree
-```
-
-`--input` (`FLIGHTDECK_RUNS_URI`) and `--out` (`FLIGHTDECK_DATA_URI`) take `gs://`, `file://`, a plain path or any
-fsspec URL. `gs://` needs the `gcs` extra.
-
-### Complete runs only
-
-It reads `v1/runs/{date}/{session_id}.{run_id}/` directories that have a `run.json`. hangar uploads that file after
-the run's other objects, so a directory without one is still arriving and waits for a later night.
-
-A run's rows come from `run.json` (the `runs` row, laid over the trace's turn row), `trace.otlp.json` (spans,
-events), `tests.json` (test_cases), `manifest.json` and `grade.json`. Job events come from `v1/jobs/{date}/`.
-Everything passes through the flatteners' credential masking again.
-
-### One partition per date
-
-Each outbox date is one `dt=` partition per table, `part-0.parquet`, rewritten whole. It is written as
-`part-0.parquet.tmp`, then renamed, so readers never see half a file.
-
-Rows are sorted by `run_id, seq`, so a rebuild of the same inputs is byte-identical. Row groups are sized to about
-64 MB.
-
-### Late arrivals
-
-`<out>/_compactor/{date}.json` records the date's input objects: path, size, GCS generation and, for what was read,
-sha256. Each night looks back `--lookback` days (3) and recompacts a date only when its listing changed: a late
-`run.json` or `grade.json`, or a deleted run. One prefix listing per date, no per-object metadata calls.
-
-### Identity
-
-The job's service account has `storage.objectViewer` on the outbox bucket and `storage.objectAdmin` on the
-flightdeck bucket, nothing else. No hangar endpoint or token; a test asserts the module imports no HTTP client.
-
-### Runbook
-
-**Rebuild a date**, after a fix to the flatteners or to pick up something older than the lookback:
-`gcloud run jobs execute flightdeck-compactor --region <r> --args=--date,2026-11-03,--lookback,0,--rebuild`. Or run
-`flightdeck compact --date 2026-11-03 --lookback 0 --rebuild` locally with read access to both buckets.
-
-**Delete a run** (personal data): delete its objects from the outbox with an admin credential
-(`gcloud storage rm -r gs://<runs-bucket>/v1/runs/<date>/<session_id>.<run_id>/`, and its job's event objects). Where
-objects can't be deleted yet, list it in `gs://<runs-bucket>/v1/_deletions/<request>.json` as
-`{"runs": ["<session_id>.<run_id>" or "<run_id>", ...]}`. Then rebuild its date.
-
-Within the lookback window the next night does this on its own, so a deletion is out of Parquet within 24 hours.
-
-**Deploy:**
-`sh deploy/compactor/setup.sh --project <p> --runs-bucket <hangar's run_bucket> --data-bucket <team>-flightdeck`
-([its README](https://github.com/Sean-Koval/flightdeck/tree/main/deploy/compactor#deploy); `--dry-run` first).
-hangar's GKE terraform makes the outbox bucket (output `run_bucket`), and its `deploy/gke/up.sh` turns the outbox on.
-
-**Check a night:** the job's log prints rows per table per date, or `unchanged`.
-`flightdeck query --data gs://<team>-flightdeck/parquet/v1 "select dt, count(*) from runs group by dt"` reads what it
-wrote.
+`flightdeck compact` turns hangar's outbox into these tables every night, as a Cloud Run job.
+[The compactor](compactor.md) has the partitions, late arrivals, its identity and the runbook.
 
 ## `flightdeck.weekly/v1`
 
@@ -231,6 +113,11 @@ additive within v1.
 | `trailing` | the four weeks ending with `week`, oldest first, each `{week, metrics}` |
 
 ## Querying
+
+<figure class="af-figure fd-term" markdown>
+![A flightdeck query on the fixture's data plane: select variant and a count of graded runs, joined with grades and grouped by variant; the result is 35 for candidate and 35 for control, tab-separated](assets/query.svg){ width=660 }
+<figcaption>SQL over the fixture's data plane: 35 graded runs in each arm</figcaption>
+</figure>
 
 ```sh
 flightdeck query "select variant, count(*) from runs join grades using (run_id) group by 1" --data ./plane
@@ -257,7 +144,7 @@ calls, cost, wall time) leave those trials out by default and say so; outcome me
 About 1.5 MiB of OTLP per run gives roughly 1.5 GiB a month as zstd Parquet at the team's volume. DuckDB over Parquet
 is enough until about 1 TB.
 
-## See also
+## Next
 
 - [Contracts](contracts.md): the column tables of `flightdeck.parquet/v1`, generated from the code.
 - [Running experiments](runners.md#collecting): how `collect` fills the plane.

@@ -76,4 +76,7 @@ one trial.
   for a calibrated [judge](judges.md).
 - **Wall time** is the run's start to its end, not its first span to its last.
 
-The semver task itself lives in `tasks/smoke/semver/` ([Tasks](tasks.md#the-semver-smoke-task)).
+## Next
+
+- [Label gold sets](label-gold-sets.md): how often labels are right.
+- [Tasks](task-fixtures.md#the-semver-smoke-task): the semver task.
