@@ -6,6 +6,10 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+## v1.0.0-rc.1: the suite 1.0 release candidate
+
+The release candidate for suite 1.0 (KAN-141, KAN-239). It carries everything merged since v0.1.0.
+
 - **On hangar:** tasks with different grader commands run as one experiment. The shared command runs the most
   common one and dispatches the rest on `$HANGAR_TASK`. A suite over hangar's 64 grader files, 1 MB or 4,000-character
   command becomes several experiments instead of being refused. A task with its workspace in `environment/workspace/` and no source repo is
