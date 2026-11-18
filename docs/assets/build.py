@@ -19,7 +19,7 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
   (verdict, experiment, rule) in GitHub's narrow layout, 358 px wide, for screens under 600 px;
 - `clip.mp4`, `clip-light.mp4` and their `-poster.png`: the demo clip, Night and Day, from `clip-{dark,light}.html`:
   `stats compare` in a terminal, then `report` and its verdict, then the same report as the pull-request comment,
-  about 18 s at 680 px and 2x, the window as tall as its content (needs ffmpeg);
+  about 18 s at 680 px and 2x, the window as tall as its content (ffmpeg on PATH, else the assets group's own);
 - `check-run.svg`, `spec-lint.svg` and `query.svg`: those commands on the fixture as still terminals, each a guide's
   lead figure (`STILLS`);
 - `suite.svg`: where flightdeck sits in the suite, and `flow-data-plane.svg`, `flow-experiment.svg`,
@@ -684,7 +684,11 @@ def record_clip(pages: dict[str, str]) -> None:
     """clip.mp4 / clip-light.mp4 and their posters (the first frame) from the clip pages: {mp4 name: html}."""
     from playwright.sync_api import sync_playwright
 
-    ffmpeg = shutil.which("ffmpeg") or sys.exit("build: the clip needs ffmpeg on PATH")
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:  # CI and a laptop without one: the static build in the assets group's imageio-ffmpeg wheel
+        import imageio_ffmpeg
+
+        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     with sync_playwright() as pw, tempfile.TemporaryDirectory() as d:
         browser = pw.chromium.launch()
         for name, page in pages.items():
