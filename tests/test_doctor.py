@@ -108,7 +108,7 @@ def test_a_data_plane_inside_a_git_checkout_fails(home: Path):
 
 
 SYNCED = ["Library/CloudStorage/OneDrive-Acme", "Library/Mobile Documents/com~apple~CloudDocs", "Dropbox",
-          "OneDrive - Acme", "Google Drive/My Drive"]
+          "OneDrive - Acme", "Google Drive/My Drive", "Dropbox (Acme)", "Google Drive (work)", "onedrive"]
 
 
 @pytest.mark.parametrize("folder", SYNCED)
@@ -252,7 +252,7 @@ def test_setup_refuses_git_checkouts_synced_folders_and_buckets(home: Path, caps
     assert doc.setup(str(home / "Dropbox" / "plane"), env={}) == 1
     assert doc.setup("gs://b/p", env={}) == 1
     assert not (home / "repo" / "plane").exists() and not (home / "Dropbox").exists()
-    assert "refusing" in capsys.readouterr().err
+    assert "setup refused" in capsys.readouterr().err
 
 
 @posix
@@ -261,3 +261,73 @@ def test_doctor_fails_on_a_required_check(home: Path, capsys: pytest.CaptureFixt
     os.chmod(home / "plane", 0o755)
     assert doc.main(["doctor", "--data", str(home / "plane")]) == 1
     assert "1 failed: data-plane" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("folder", ["src/Box", "Dropboxes", "drive", "Documents"])
+def test_ordinary_folders_are_not_called_synced(home: Path, folder: str):
+    assert doc.synced_folder(home / folder / "plane") is None
+
+
+def test_desktop_and_documents_warn_on_a_mac_only(home: Path):
+    assert doc.maybe_synced(home / "Documents" / "plane", "darwin") == "~/Documents"
+    assert doc.maybe_synced(home / "Documents" / "plane", "linux") is None
+    assert doc.maybe_synced(home / "work" / "plane", "darwin") is None
+
+
+def test_a_data_plane_that_is_a_file_fails_in_doctor_and_setup(home: Path):
+    (home / "plane").write_text("x")
+    c = by_name(doc.check_data_plane(str(home / "plane")))["data-plane"]
+    assert c.status == "fail" and "is a file" in c.detail
+    assert doc.setup(str(home / "plane"), env={}) == 1
+
+
+@posix
+@pytest.mark.parametrize("target", ["home", "parent", "other files"])
+def test_setup_changes_no_mode_outside_a_data_plane(home: Path, target: str):
+    (home / "public").mkdir()
+    (home / "public" / "index.html").write_text("hi")
+    os.chmod(home / "public" / "index.html", 0o644)
+    path = {"home": home, "parent": home.parent, "other files": home / "public"}[target]
+    assert doc.setup(str(path), env={}) == 1
+    assert stat.S_IMODE((home / "public" / "index.html").stat().st_mode) == 0o644
+    assert not (home / ".flightdeck").exists()
+
+
+def _git(*args: str) -> None:
+    subprocess.run(["git", *args], check=True, capture_output=True)
+
+
+def test_a_home_kept_in_git_is_fine_when_git_ignores_the_data_plane(home: Path):
+    _git("init", "-q", str(home))
+    assert doc.git_checkout(home / ".flightdeck" / "data") == home
+    (home / ".gitignore").write_text(".flightdeck/\n")
+    assert doc.git_checkout(home / ".flightdeck" / "data") is None
+
+
+@posix
+def test_the_env_file_quotes_a_path_with_spaces_and_dollars(home: Path):
+    plane = home / "my data $(touch pwned)"
+    assert doc.setup(str(plane), env={}) == 0
+    got = subprocess.run(["sh", "-c", f". {home / '.flightdeck' / 'env'} && printf %s \"$FLIGHTDECK_DATA_URI\""],
+                         capture_output=True, text=True, cwd=home, check=True).stdout
+    assert got == str(plane) and not (home / "pwned").exists()
+
+
+@posix
+def test_a_dangling_session_link_is_skipped(home: Path):
+    projects = home / ".claude" / "projects"
+    _session(projects, "aaa")
+    (projects / "-home-me-repo" / "gone.jsonl").symlink_to(home / "nowhere.jsonl")
+    assert "1 session in" in doc.check_sessions({}, str(home / "plane"))[0].detail
+
+
+def test_doctor_checks_the_repo_it_is_given(tmp_path: Path):
+    repo = tmp_path / "work"
+    _git("init", "-q", str(repo))
+    _git("-C", str(repo), "remote", "add", "origin", "git@github.acme.com:team/svc.git")
+    checks = by_name(doc.doctor(str(tmp_path / "plane"), env={}, repo=repo))
+    assert checks["github-host"].status == "warn" and str(repo) in checks["github-host"].detail
+
+
+def test_a_locally_installed_icu_may_load_but_nothing_downloads():
+    assert doc.NO_DOWNLOAD == {"autoinstall_known_extensions": False, "autoload_known_extensions": True}

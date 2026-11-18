@@ -82,12 +82,14 @@ Without `--data` they use `~/.flightdeck/data` (or `FLIGHTDECK_DATA_URI`). Keep 
 ([ADR-0002](decisions/0002-public-code-private-data.md)).
 
 On a new or work laptop, run `uv run python scripts/flightdeck_doctor.py setup` once. It creates that directory with
-mode 0700 and writes `~/.flightdeck/env` to source.
+mode 0700 and writes `~/.flightdeck/env` for a POSIX shell to source. On Windows, set `FLIGHTDECK_DATA_URI` yourself.
 
-Then `uv run python scripts/flightdeck_doctor.py` checks the laptop and sends nothing anywhere. It prints one line
-per check, with the command that fixes it, and exits 1 on a failure. It requires that DuckDB works offline and that
-the data plane is private, outside git checkouts and outside cloud-synced folders. Capture, GitHub and Docker only
-warn.
+Then `uv run python scripts/flightdeck_doctor.py --repo <a work checkout>` checks the laptop. The script sends
+nothing anywhere, though `uv run` may first download flightdeck's dependencies. It prints one line per check, with
+the command that fixes it, and exits 1 on a failure.
+
+It requires that DuckDB works offline and that the data plane is private, outside git checkouts and outside
+cloud-synced folders. Capture, GitHub and Docker only warn. `--repo` names the checkout whose GitHub host it checks.
 
 To plan and submit trials, see [Running experiments](runners.md). The
 [team-harness repo](https://github.com/Sean-Koval/team-harness/tree/main/flightdeck) has a suite, a pre-registered
