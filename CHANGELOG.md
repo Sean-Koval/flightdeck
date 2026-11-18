@@ -6,6 +6,8 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Docs:** [The v0 exit](https://sean-koval.github.io/flightdeck/v0-exit/) checks epic #1's exit criteria against main: the
+  line budget by area (3,875 of 3,875), the boundary, the first decision and each open child (KAN-87).
 - **flightdeck#20:** `python scripts/decision_run.py preflight|start|finish` checks and runs the pre-registered
   plugin A/B in one command each. Preflight fails on open egress, an edited `decision.yaml`, a projection over
   budget or a task that fails `task check`; `start` never spends without `--spend` ([ADR 0011](https://sean-koval.github.io/flightdeck/decisions/0011-first-decision-plugin-ab/), KAN-31).

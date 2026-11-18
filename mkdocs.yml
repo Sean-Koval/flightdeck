@@ -74,6 +74,7 @@ nav:
       - Getting started: getting-started.md
       - Concepts: concepts.md
       - What's shipped: status.md
+      - The v0 exit: v0-exit.md
   - Guides:
       - Write the evaluation:
           - Tasks: tasks.md
