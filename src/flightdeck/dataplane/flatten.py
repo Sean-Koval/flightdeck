@@ -30,6 +30,7 @@ SPAN_COLS = {
     "hangar.tool.ok": "tool_ok", "hangar.shell.ops": "shell_ops", "hangar.file.repo_path": "file_repo_path",
     "hangar.mcp.server": "mcp_server", "hangar.mcp.tool": "mcp_tool", "gen_ai.skill.name": "skill_name",
     "hangar.approval.status": "approval_status", "hangar.approval.by": "approval_by",
+    "hangar.tool.input_clipped": "tool_input_clipped",
 }
 EVENT_COLS = {
     "hangar.seq": "seq", "hangar.file.repo_path": "file_repo_path", "hangar.file.op": "file_op", "hangar.text": "text",

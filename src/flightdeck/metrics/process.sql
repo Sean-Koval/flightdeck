@@ -79,8 +79,8 @@ with c as (
     ], lambda x: x is not null) as found
     from c
 )
-select run_id, source, seq, start_ns, tool_kind, tool_name, tool_input, tool_output, tool_ok, shell_ops,
-    file_repo_path, coalesce(found[1], 'other') as label, if(len(found) = 0, ['other'], found) as labels,
+select run_id, source, seq, start_ns, tool_kind, tool_name, tool_input, tool_input_clipped, tool_output, tool_ok,
+    shell_ops, file_repo_path, coalesce(found[1], 'other') as label, if(len(found) = 0, ['other'], found) as labels,
     -- the agent's answer key: a third-party implementation on disk (pi's pack carried node-semver)
     regexp_matches(inp, 'node_modules|/opt/hangar/harness') as answer_key_risk,
     row_number() over (partition by run_id, source order by seq nulls last, start_ns) - 1 as idx
@@ -115,7 +115,9 @@ with s as (
         count(*) filter (where is_test) as test_runs,
         count(*) filter (where test_failed) as failing_test_runs,
         count(*) filter (where label = 'reference') as reference_lookups,
-        count(*) filter (where answer_key_risk) as answer_key_reads
+        count(*) filter (where answer_key_risk) as answer_key_reads,
+        -- hangar keeps a 200-character preview of an input: a label on a clipped call may miss what came after
+        count(*) filter (where tool_input_clipped) as clipped_calls
     from s group by run_id, source
 ), counts as (
     select run_id, source, map_from_entries(list({'k': label, 'v': n})) as by_label
@@ -131,7 +133,7 @@ select r.run_id, r.source, r.experiment_id, r.task_id, r.variant, r.trial, r.har
     st.tool_calls_before_first_edit, coalesce(st.edit_calls, 0) as edit_calls,
     coalesce(st.test_runs, 0) as test_runs, coalesce(st.failing_test_runs, 0) as failing_test_runs,
     coalesce(l.fix_loops, 0) as fix_loops, coalesce(st.reference_lookups, 0) as reference_lookups,
-    coalesce(st.answer_key_reads, 0) as answer_key_reads, c.by_label,
+    coalesce(st.answer_key_reads, 0) as answer_key_reads, coalesce(st.clipped_calls, 0) as clipped_calls, c.by_label,
     coalesce(t.trusted_test_runs, 0) as trusted_test_runs,
     coalesce(t.failing_trusted_test_runs, 0) as failing_trusted_test_runs,
     r.input_tokens, r.output_tokens, r.cache_read_tokens, r.cost_usd, r.cost_source,

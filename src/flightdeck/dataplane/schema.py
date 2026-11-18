@@ -41,8 +41,8 @@ RUNS = _schema("runs", """
 # One OTLP span. `attrs`: JSON of every attribute without its own column.
 SPANS = _schema("spans", """
     trace_id span_id parent_span_id job_id session_id environment person kind name start_ns:int end_ns:int seq:int
-    seq_end:int status_code:int tool_kind tool_name tool_input tool_output tool_ok:bool shell_ops:strs
-    file_repo_path mcp_server mcp_tool skill_name approval_status approval_by attrs""")
+    seq_end:int status_code:int tool_kind tool_name tool_input tool_input_clipped:bool tool_output tool_ok:bool
+    shell_ops:strs file_repo_path mcp_server mcp_tool skill_name approval_status approval_by attrs""")
 
 # One span event other than test results.
 EVENTS = _schema("events", """
