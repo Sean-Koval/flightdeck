@@ -1,7 +1,7 @@
 # Decisions
 
 Why is flightdeck built this way? Each decision record answers one question, with the options that lost. Two set the
-boundary, one sets holdout custody, and six keep the code small.
+boundary, one sets holdout custody, six keep the code small, and one records the first decision.
 
 ## Boundary and custody
 
@@ -25,6 +25,14 @@ limit, or kept it, and says what the lines bought.
 | [0008](0008-cleanup-after-the-ports.md) | The cleanup drops the local real-client path | 3,785 | Proposed |
 | [0009](0009-label-and-integrity-budget.md) | Step labels and process integrity get room | 3,850 | Accepted |
 | [0010](0010-default-specs-budget.md) | The team-default spec fixes fit | 3,875 | Accepted |
+
+## The first decision
+
+flightdeck v0 must change one real team decision ([#20](https://github.com/Sean-Koval/flightdeck/issues/20)).
+
+| Record | It decides | Status |
+| --- | --- | --- |
+| [0011](0011-first-decision-plugin-ab.md) | Day-one users get the channel the pre-registered plugin A/B decides; `stable` stays r1 until then | Proposed |
 
 ## Proposals and research
 
