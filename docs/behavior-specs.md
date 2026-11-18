@@ -3,6 +3,11 @@
 A behavior spec is a predicate over what an agent did, read from hangar's trace export. It says how the agent worked,
 never whether the task was resolved.
 
+<figure class="af-figure fd-term" markdown>
+![The output of flightdeck check run on the fixture: five specs in a table of applied, passed, failed and unknown counts; never-push-main applied to 72 units and passed 72; ask-before-delete applied to none and reads not applied; the last line says 5 specs over 73 units, 0 failed, 5 unknown](assets/check-run.svg){ width=660 }
+<figcaption>Five specs over a day's 73 units: none failed, and a spec that applied to nothing says so</figcaption>
+</figure>
+
 Specs answer "how did it work?" questions: tests before the commit, no push to `main`, asked before deleting. They do
 not answer "did it work?". **Outcome graders come first.** A task's hidden tests decide whether a trial resolved, and a
 spec never overrides a grader.
@@ -21,6 +26,11 @@ flightdeck spec test specs/examples/team-default.yaml --trace export.json [--eng
 ```
 
 `spec test` prints `spec<TAB>unit<TAB>result` and exits 1 on any `fail` or `unknown`.
+
+<figure class="af-figure" markdown>
+--8<-- "docs/assets/flow-specs.svg"
+<figcaption>A spec reads the trace and gives each unit one of four results</figcaption>
+</figure>
 
 ## Writing a spec
 

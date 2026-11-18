@@ -73,41 +73,60 @@ nav:
   - Get started:
       - Getting started: getting-started.md
       - Concepts: concepts.md
+      - What's shipped: status.md
   - Guides:
-      - Tasks: tasks.md
-      - Mining regression tasks: regression-mining.md
+      - Write the evaluation:
+          - Tasks: tasks.md
+          - The two public tasks: task-fixtures.md
+          - Importing ai-dlc scenarios: task-import.md
+          - Mining regression tasks: regression-mining.md
+          - Share a benchmark: benchmarks.md
+          - Holdouts: holdouts.md
+          - Knowledge evals: knowledge-evals.md
+          - Judges: judges.md
       - Running experiments:
           - runners.md
           - Pins and the cost gate: pins.md
           - The trial cache: cache.md
           - Local runs: local.md
-      - Holdouts: holdouts.md
-      - Knowledge evals: knowledge-evals.md
-      - Judges: judges.md
       - Behavior specs:
           - behavior-specs.md
           - Matchers and operators: spec-matchers.md
           - Trusted tests and anti-gaming: spec-trust.md
+          - Incomplete exports: partial-observations.md
           - ADR checks and the nightly runner: adr-checks.md
           - Mutation scoring: mutation-scoring.md
-      - Reports: reports.md
-      - Share a benchmark: benchmarks.md
+      - Read the result:
+          - Reports: reports.md
+          - Statistics: statistics.md
   - Reference:
       - CLI: cli.md
       - Contracts: contracts.md
-      - Data plane: data-plane.md
-      - Weekly metrics: metrics.md
-      - Outcome labels: outcome-labels.md
-      - Process metrics: process-metrics.md
-      - Label gold sets: label-gold-sets.md
-      - Statistics: statistics.md
-      - Decisions:
+      - Data plane:
+          - data-plane.md
+          - Ingest: ingest.md
+          - The compactor: compactor.md
+      - Metrics:
+          - Weekly metrics: metrics.md
+          - Outcome labels: outcome-labels.md
+          - Process metrics: process-metrics.md
+          - Label gold sets: label-gold-sets.md
+  - Decisions:
+      - decisions/index.md
+      - Boundary and custody:
           - "0001: Boundary with hangar": decisions/0001-boundary-with-hangar.md
           - "0002: Public code, private data": decisions/0002-public-code-private-data.md
+          - "0006: Holdout custody": decisions/0006-holdout-custody.md
+          - "0007: Evaluator evidence contract": decisions/0007-evaluator-contract-foundation.md
+      - The line budget:
           - "0003: The v0 line budget": decisions/0003-line-budget.md
           - "0004: The local runner's budget": decisions/0004-local-runner-budget.md
           - "0005: The post-v0 budget": decisions/0005-post-v0-budget.md
-          - "0006: Holdout custody": decisions/0006-holdout-custody.md
           - "0008: Cleanup after the ports": decisions/0008-cleanup-after-the-ports.md
           - "0009: The label and integrity budget": decisions/0009-label-and-integrity-budget.md
           - "0010: The default specs budget": decisions/0010-default-specs-budget.md
+      - Proposals and research:
+          - Evaluator evidence contract: evaluation-contract-proposal.md
+          - Process integrity: research/process-integrity.md
+          - Process integrity plan: research/process-integrity-plan.md
+          - Trace-learning protocol: research/trace-learning-protocol.md

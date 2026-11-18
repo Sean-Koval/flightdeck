@@ -126,7 +126,7 @@ way.
     from two blind writers, at least 20 regression tasks. The age key pair and its offline backup. A manifest
     `min_hangar_version` naming the first hangar release with grader isolation.
 
-## See also
+## Next
 
 - [ADR 0006: Holdout custody](decisions/0006-holdout-custody.md): the rules this page carries out.
 - [Tasks](tasks.md): the task directory a writer produces, with `sealed = true`.

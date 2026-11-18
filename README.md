@@ -9,10 +9,18 @@
 that from the runs [hangar](https://github.com/Sean-Koval/hangar) already records, as a verdict posted on the
 pull request where the change is reviewed.
 
-> **The verdict** is one of five words: "better", "non-inferior", "worse", "No decision" or "No verdict". It says how
-> the candidate arm did against the control arm on one metric, with the paired difference and its 95% interval:
-> "candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)". The rule that picks
-> the word is committed before the first trial, so nobody moves the goalposts.
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="docs/assets/report-comment-phone-dark.png" width="358" height="368">
+  <source media="(max-width: 600px)" srcset="docs/assets/report-comment-phone-light.png" width="358" height="368">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/report-comment-dark.png">
+  <img alt="The top of the flightdeck report as a pull-request comment: the headline is the verdict, candidate is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment FDK-EXP-0531, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved" src="docs/assets/report-comment-light.png" width="816" height="656">
+</picture>
+
+> **The verdict** is the comment's headline, and one of five words: "better", "non-inferior", "worse", "No decision"
+> or "No verdict". It compares the candidate arm with the control arm on one metric, paired by task. The rule that
+> picks the word is committed before the first trial, so nobody moves the goalposts.
+
+The same run in a terminal, on the synthetic fixture experiment:
 
 <picture>
   <source media="(max-width: 600px)" srcset="docs/assets/demo-phone.svg" width="379" height="401">
@@ -39,11 +47,12 @@ The last line printed is the verdict above. Against a real hangar, ingest with
 
 ## Read next
 
-- [Docs](https://sean-koval.github.io/flightdeck/): what flightdeck is and isn't, where it sits in the
-  [agent factory](https://sean-koval.github.io/agent-factory/), and what is shipped.
-- [Getting started](https://sean-koval.github.io/flightdeck/getting-started/): the six commands explained, then a
-  real hangar.
-- [Reports](https://sean-koval.github.io/flightdeck/reports/): the pre-registered rule and the report's anatomy.
+| You want to | Read |
+| --- | --- |
+| Run it yourself | [Getting started](https://sean-koval.github.io/flightdeck/getting-started/): the six commands explained, then a real hangar |
+| Read a report | [Reports](https://sean-koval.github.io/flightdeck/reports/): the comment's anatomy and the pre-registered rule |
+| Know what it can detect | [Statistics](https://sean-koval.github.io/flightdeck/statistics/): paired by task, with the power table |
+| See what is shipped | [What's shipped](https://sean-koval.github.io/flightdeck/status/), and where flightdeck sits in the [agent factory](https://sean-koval.github.io/agent-factory/) |
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Team data never goes in this repository
 ([ADR-0002](docs/decisions/0002-public-code-private-data.md)).

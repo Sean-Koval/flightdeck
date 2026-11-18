@@ -52,3 +52,8 @@ authors:              # per-author monthly sub-caps; with any set, runs must nam
   dev-a: 300
   dev-b: 300
 ```
+
+## Next
+
+- [The trial cache](cache.md): reuse trials whose inputs haven't changed.
+- [Running experiments](runners.md): the commands that plan and submit.

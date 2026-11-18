@@ -52,3 +52,8 @@ an issue and exits 1.
     Code merged ([#55](https://github.com/Sean-Koval/flightdeck/pull/55)). Issue
     [#24](https://github.com/Sean-Koval/flightdeck/issues/24) stays open until the drift sentinel is scheduled nightly
     in the private data repository.
+
+## Next
+
+- [Local runs](local.md): Docker trials on this machine, for fixtures and CI.
+- [Reports](reports.md): the verdict the cached trials feed.

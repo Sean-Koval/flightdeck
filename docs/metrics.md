@@ -143,7 +143,7 @@ The decision recorded for #6: facts hangar knows come from hangar, facts only Gi
 The issue's alternative, hangar emitting review and revert job events, is half taken: hangar emits `review.first`
 and `revert`, but the revert view still reads `prs`.
 
-## See also
+## Next
 
 - [Data plane](data-plane.md#flightdeckweeklyv1): the `flightdeck.weekly/v1` files this command writes.
 - [Statistics](statistics.md#functions): the Wilson interval on every rate.
