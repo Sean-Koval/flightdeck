@@ -32,8 +32,9 @@ count; `GET /api/experiments/{id}` returns the `hangar.experiment/v1` index.
 refuses subscription logins for experiments and owns API keys and their spend caps.
 
 hangar caps one experiment at 100 tasks, 8 variants, 20 trials per task and variant, and 200 trials in all
-(`HANGAR_EXPERIMENT_MAX_TRIALS`). A larger plan becomes several experiments named `<suite>-<suite_run>-<i>`. Their
-ids joined by `+` are the run-set id, and the plan's `budget_usd` is split between them by task count.
+(`HANGAR_EXPERIMENT_MAX_TRIALS`). Its grader takes 64 files, 1 MB and a 4,000-character command. A larger plan becomes several experiments
+named `<suite>-<suite_run>-<i>`. Their ids joined by `+` are the run-set id, and the plan's `budget_usd` is split
+between them by task count.
 
 hangar does the interleaving, isolation and pinning. Experiments queue as eval-class work (after 20:00, within API
 headroom), so `status` can say `queued` for hours. A trial whose agent asks a question is cancelled, since nobody is

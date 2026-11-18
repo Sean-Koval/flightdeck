@@ -18,7 +18,7 @@ from typing import Any, Protocol
 import yaml
 
 from flightdeck.ported.modelpolicy import concreteness
-from flightdeck.tasks.format import Task, hangar_id, load_task, to_hangar
+from flightdeck.tasks.format import CapError, Task, hangar_id, load_task, to_hangar
 
 MAX_TASKS, MAX_VARIANTS, MAX_TRIALS, MAX_TOTAL = 100, 8, 20, 200  # hangar ExperimentSpec; HANGAR_EXPERIMENT_MAX_TRIALS
 VARIANT_KEYS = {"environment", "harness", "model", "approvals", "skills", "skills_remove", "instructions",
@@ -33,9 +33,7 @@ class RunnerError(Exception):
 def model_problem(model: str | None, allowed: frozenset[str] = frozenset(), harness: str | None = None) -> str | None:
     """Why `model` isn't a concrete id a trial can be pinned to, or None when it is: hangar's rule (#167,
     flightdeck.ported.modelpolicy), so suites, status and ingest refuse what hangar refuses."""
-    if model and model in allowed:
-        return None
-    return {"none": "no model: the environment's default can change between trials",
+    return None if model in allowed else {"none": "no model: the environment's default can change between trials",
             "policy": f"'{model}' is a policy, resolved anew as providers ship models",
             "alias": f"'{model}' is a floating alias",
             "unknown": f"'{model}' names no version or date (a family alias such as opus or gpt-5?)",
@@ -97,17 +95,26 @@ def build_specs(plan: TrialPlan, max_total: int = MAX_TOTAL) -> list[dict[str, A
     per = min(MAX_TASKS, max_total // (v * n))
     if per < 1:
         raise RunnerError(f"{v} variants x {n} trials is over hangar's {max_total} trials per experiment")
-    chunks = [plan.tasks[i:i + per] for i in range(0, len(plan.tasks), per)]
+    if lost := [t.id for t in plan.tasks if not (t.flightdeck.get("source") or {}).get("repo")
+                and any(k.startswith("workspace/") for k in t.environment)]:
+        raise RunnerError(f"{', '.join(lost)}: the workspace is in environment/workspace/ and there's no "
+                          "[flightdeck.source] repo, so hangar would run the environment's repo (docs/tasks.md)")
+    chunks: list[list[Task]] = [[]]
+    for t in plan.tasks:  # a new experiment when one is full: `per` tasks, or over a grader cap (files, bytes, command)
+        c = chunks[-1] + [t]
+        try:
+            full = len(c) > per or not to_hangar(c)
+        except CapError:  # a task over a cap on its own keeps its chunk and fails below, naming the cap
+            full = True
+        chunks[-1:] = [chunks[-1], [t]] if full and len(c) > 1 else [c]
     specs = []
-    for i, chunk in enumerate(chunks):
+    for i, chunk in enumerate(chunks if plan.tasks else []):
         tasks, grader = to_hangar(chunk)
         spec: dict[str, Any] = {"name": f"{plan.suite}-{plan.suite_run}" + (f"-{i + 1}" if len(chunks) > 1 else ""),
                                 "environment": plan.environment, "tasks": tasks, "variants": plan.variants,
                                 "trials": n, "grader": grader}
-        if plan.parallel:
-            spec["parallel"] = plan.parallel
-        if plan.trial_budget_usd:
-            spec["trial_job_budget"] = {"max_cost_usd": plan.trial_budget_usd}
+        spec |= {"parallel": plan.parallel} if plan.parallel else {}
+        spec |= {"trial_job_budget": {"max_cost_usd": plan.trial_budget_usd}} if plan.trial_budget_usd else {}
         if plan.budget_usd:
             spec["budget"] = {"max_cost_usd": round(plan.budget_usd * len(chunk) / len(plan.tasks), 2)}
         specs.append({**spec, "name": spec["name"][:100]})
@@ -200,12 +207,10 @@ class HangarBatchBackend:
         self.url, self.token, self.out = url.rstrip("/"), token, out
 
     def _call(self, method: str, path: str, body: Any = None) -> dict[str, Any]:
-        req = urllib.request.Request(self.url + path, method=method, headers={"Accept": "application/json"},
-                                     data=None if body is None else json.dumps(body).encode())
-        if body is not None:
-            req.add_header("Content-Type", "application/json")
-        if self.token:
-            req.add_header("Authorization", f"Bearer {self.token}")
+        data = None if body is None else json.dumps(body).encode()
+        headers = {"Accept": "application/json"} | ({"Content-Type": "application/json"} if data else {})
+        headers |= {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        req = urllib.request.Request(self.url + path, data, headers, method=method)
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.load(resp)
