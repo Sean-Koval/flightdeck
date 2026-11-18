@@ -20,8 +20,11 @@ temporary directory, under the quickstart's paths (`demo/export`, `demo/plane`),
 - `clip.mp4`, `clip-light.mp4` and their `-poster.png`: the demo clip, Night and Day, from `clip-{dark,light}.html`:
   `stats compare` in a terminal, then `report` and its verdict, then the same report as the pull-request comment,
   about 18 s at 680 px and 2x, the window as tall as its content (needs ffmpeg);
+- `check-run.svg`, `spec-lint.svg` and `query.svg`: those commands on the fixture as still terminals, each a guide's
+  lead figure (`STILLS`);
 - `suite.svg`: where flightdeck sits in the suite, and `flow-data-plane.svg`, `flow-experiment.svg`,
-  `flow-holdout.svg` and `paired-by-task.svg` for the guides, drawn with agent-factory's diagram conventions
+  `flow-holdout.svg`, `flow-judge.svg`, `flow-specs.svg`, `task-anatomy.svg`, `verdict-rule.svg` and
+  `paired-by-task.svg` for the guides, drawn with agent-factory's diagram conventions
   (Airframe tokens with Night fallbacks, so they follow the theme when inlined with `--8<--`), with theme-v12's
   sentence-case sans labels and radii (`radius-card` boxes, `radius-control` steps).
 
@@ -45,6 +48,7 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -63,6 +67,12 @@ COMMANDS = [  # (command, shown in the recording); the paths are the quickstart'
     (f"flightdeck report experiment {EXP} --data demo/plane \\\n"
      "    --decision demo/export/decision.yaml --out demo/report.md", True),  # two lines, as the quickstart shows it
 ]
+STILLS = {  # still terminals for the guides: {asset: (the bar's scope, commands run after COMMANDS, same directory)}
+    "check-run.svg": ("check run", (COMMANDS[1][0].replace(" --specs", " \\\n    --specs"),)),
+    "spec-lint.svg": ("spec lint", ("flightdeck spec lint specs/examples/hangar-reference.yaml",)),
+    "query.svg": ("query", ('flightdeck query --data demo/plane \\\n    "select variant, count(*) as graded from runs '
+                            'join grades using (run_id) \\\n    group by 1 order by 1"',)),
+}
 COLS, ROWS = 80, 30  # terminal size; output lines wrap at COLS
 PHONE_COLS = 44  # the phone still's width: 44 columns read at 13 px in a 360 px column
 HOLD = 5.0  # seconds the finished session (with the verdict) shows before the typing replays
@@ -75,8 +85,9 @@ def esc(s: str) -> str:
 
 
 # ---------------------------------------------------------------------------------------------------- the session
-def session(tmp: Path) -> list[tuple[str, str]]:
-    """Run each command in `tmp` on the fixture experiment; the shown ones as (command, output) pairs."""
+def session(tmp: Path) -> tuple[list[tuple[str, str]], dict[str, str]]:
+    """Run each command in `tmp` on the fixture experiment; the shown ones as (command, output) pairs, and the output
+    of every command, `STILLS`' included, by command."""
     spec = importlib.util.spec_from_file_location("fixture_export", ROOT / "scripts" / "fixture_export.py")
     assert spec and spec.loader
     fixture = importlib.util.module_from_spec(spec)
@@ -86,15 +97,25 @@ def session(tmp: Path) -> list[tuple[str, str]]:
     exe = str(Path(sys.executable).with_name("flightdeck"))
     env = {**os.environ, "COLUMNS": str(COLS), "NO_COLOR": "1", "TERM": "dumb"}
     env.pop("FLIGHTDECK_DATA_URI", None)
-    out = []
-    for cmd, shown in COMMANDS:
-        argv = cmd.replace("\\\n", " ").split()
+    out, every = [], {}
+    for cmd, shown in [*COMMANDS, *((c, False) for _, cmds in STILLS.values() for c in cmds)]:
+        argv = shlex.split(cmd.replace("\\\n", " "))
         argv[0] = exe if argv[0] == "flightdeck" else argv[0]
         res = subprocess.run(argv, cwd=tmp, env=env, capture_output=True, text=True)
         if res.returncode:
             sys.exit(f"build: `{cmd}` failed ({res.returncode}):\n{res.stdout}{res.stderr}")
-        out += [(cmd, (res.stdout + res.stderr).expandtabs(4).rstrip("\n"))] if shown else []
-    return out
+        every[cmd] = (res.stdout + res.stderr).rstrip("\n")
+        out += [(cmd, every[cmd].expandtabs(4))] if shown else []
+    return out, every
+
+
+def still(scope: str, cmds: tuple[str, ...], every: dict[str, str]) -> str:
+    """A still terminal of `cmds` and their output, for a guide's lead figure."""
+    lines: list[tuple[float, str, str]] = []
+    for cmd in cmds:
+        lines += [(0, "cmd" if j == 0 else "cmd2", part) for j, part in enumerate(cmd.split("\n"))]
+        lines += [(0, "out", x) for x in wrap(every[cmd].expandtabs(12))]
+    return terminal(lines, None, f"flightdeck|{scope}")
 
 
 def wrap(text: str, cols: int = COLS) -> list[str]:
@@ -453,6 +474,98 @@ def paired_by_task() -> str:
                  "discordant tasks drive the paired difference, and the interval comes from resampling tasks")
 
 
+def verdict_rule() -> str:
+    """The pre-registered rule as a picture (`flightdeck.report.markdown.verdict`): where the 95% interval of the paired
+    difference sits against zero and the margin picks the word. Intervals are neutral ink; no word takes a color."""
+    d = Diagram("rule", 720, 318, "The verdict rule · where the 95% interval sits picks the word")
+    zero, margin, top, bottom = 350, 290, 58, 214
+    for x, name in ((margin, "margin"), (zero, "0")):
+        dash = ' stroke-dasharray="3 3"' if x == margin else ""
+        d.out.append(f'<path d="M{x} {top} V{bottom}" stroke="{V["line"]}"{dash}/>')
+        d.text(x, top - 8, name, "l", "middle")
+    d.text(160, top - 8, "← worse", "e")
+    d.text(462, top - 8, "better →", "e", "end")
+    rows = (("better", 366, 462, "the whole interval is above zero"),
+            ("non-inferior", 304, 420, "the whole interval is above the margin"),
+            ("No decision", 250, 330, "the interval spans the margin"),
+            ("worse", 160, 276, "the whole interval is below the margin"))
+    for i, (word, lo, hi, why) in enumerate(rows):
+        y = top + 24 + 40 * i
+        d.text(24, y + 5, word, "s")
+        d.out.append(f'<path d="M{lo} {y} H{hi} M{lo} {y - 6} V{y + 6} M{hi} {y - 6} V{y + 6}" fill="none" '
+                     f'stroke="{V["fg"]}" stroke-width="1.5"/><circle cx="{(lo + hi) // 2}" cy="{y}" r="3.5" '
+                     f'fill="{V["fg"]}"/>')
+        d.text(696, y + 4, why, "e", "end")
+    d.out.append(f'<path d="M24 {bottom + 14} H696" stroke="{V["rule"]}"/>')
+    off = (("No decision: underpowered", "fewer paired tasks than min_tasks: the interval is not read"),
+           ("No verdict", "no decision.yaml committed before the first trial finished"))
+    for i, (word, why) in enumerate(off):
+        y = bottom + 42 + 28 * i
+        d.text(24, y, word, "s")
+        d.text(696, y, why, "e", "end")
+    d.text(24, 304, "Drawn with better to the right, whichever direction the rule names. ● the paired difference, "
+           "bars its 95% interval.", "e")
+    return d.svg("The verdict rule: an interval wholly above zero reads better, wholly above the margin non-inferior, "
+                 "wholly below the margin worse, and one that spans the margin No decision; fewer paired tasks than "
+                 "min_tasks is No decision: underpowered, and without a pre-registered decision.yaml there is "
+                 "No verdict")
+
+
+def flow_judge() -> str:
+    d = Diagram("judge", 720, 196, "A rubric judge · used only once it agrees with people")
+    steps = (("label", "people label a", "seeded, blind sample"),
+             ("judge", "the model labels the", "same runs, elsewhere"),
+             ("calibrate", "Cohen's κ against the", "people, with its interval"),
+             ("score", "labels stored with the", "rubric's status"),
+             ("estimate", "PPI: judge and human", "labels, one interval"))
+    for i, (name, a, b) in enumerate(steps):
+        x = 24 + i * 136
+        d.step(x, 52, 120, name, "", 36)
+        d.text(x + 2, 112, a, "e")
+        d.text(x + 2, 127, b, "e")
+        if i < 4:
+            d.edge(f"M{x + 120} 70 H{x + 134}")
+    d.text(24, 164, "usable: κ's lower bound ≥ 0.6 · provisional: only the point estimate is · unusable: below "
+           "that", "b")
+    d.text(24, 182, "Change the rubric's text, examples, prompt or judge model and it is stale: calibrate again.", "e")
+    return d.svg("A rubric judge's lifecycle: people label a blind sample, the judge labels the same runs, "
+                 "calibration computes Cohen's kappa against the people, scores are stored with the rubric's status, "
+                 "and estimates combine judge and human labels by prediction-powered inference")
+
+
+def task_anatomy() -> str:
+    d = Diagram("task", 720, 250, "A task directory · what the agent sees, and what grades it")
+    d.box(24, 52, 208, 174, "", "<task-id>/", ())
+    for i, name in enumerate(("task.toml", "instruction.md", "environment/", "tests/", "solution/")):
+        d.text(38, 104 + 26 * i, name, "k")
+    d.box(288, 52, 408, 76, "The agent sees", "the instruction, in the environment",
+          ("instruction.md verbatim; a sandbox from environment/",))
+    d.box(288, 150, 408, 76, "The grader runs, hidden", "tests/test.sh writes reward.json",
+          ("on the trial's patch, in a clean sandbox the agent never reaches",))
+    d.edge("M176 126 H284")
+    d.edge("M176 178 H284")
+    return d.svg("A task directory: task.toml, instruction.md, environment, tests and an optional solution; the agent "
+                 "sees the instruction in the environment, and the hidden tests grade the trial's patch in a clean "
+                 "sandbox and write reward.json")
+
+
+def flow_specs() -> str:
+    d = Diagram("specs", 720, 226, "A behavior spec · a predicate over the trace, never over the outcome")
+    d.box(24, 52, 176, 132, "", "the trace", ("hangar.trace/v1,", "flattened into the", "data plane: tool calls,",
+                                              "approvals, test runs"))
+    d.box(272, 52, 176, 132, "", "a spec", ("YAML: applies_when,", "a scope (turn, job,", "session), one assert",
+                                            "operator over matchers"), "hub")
+    d.box(520, 52, 176, 132, "", "one result per unit", ())
+    for i, r in enumerate(("pass", "fail", "not_applicable", "unknown")):
+        d.text(534, 104 + 20 * i, r, "k")
+    d.edge("M200 118 H268")
+    d.edge("M448 118 H516")
+    d.text(24, 208, "Two evaluators, Python over one export and SQL over the data plane, give the same results.", "e")
+    return d.svg("A behavior spec: hangar's trace, flattened into the data plane, is judged by a YAML spec with "
+                 "applies_when, a scope and one assert operator; each unit gets one result, pass, fail, "
+                 "not_applicable or unknown, from two evaluators that agree")
+
+
 # ---------------------------------------------------------------------------------------------------- main
 # ------------------------------------------------------------------------------------------------------- the clip
 # The demo clip (KAN-75): 19 s at 640 px and 2x, so it reads at a docs column's width and on a phone. It opens on
@@ -629,7 +742,7 @@ def main() -> None:
     ap.add_argument("--no-png", action="store_true", help="Skip the Playwright screenshots and the clip.")
     args = ap.parse_args()
     with tempfile.TemporaryDirectory() as d:
-        steps = session(Path(d))
+        steps, every = session(Path(d))
         report = (Path(d) / "demo" / "report.md").read_text(encoding="utf-8")
     lines, total = timeline(steps)
     print(f"build: the recording loops every {HOLD + total:.1f} s ({len(lines)} lines, {COLS} columns)")
@@ -647,6 +760,9 @@ def main() -> None:
         **{f"report-comment-phone-{t}.html": comment_page(report, t, True, True) for t in ("dark", "light")},
         "suite.svg": suite(), "flow-data-plane.svg": flow_data_plane(), "flow-experiment.svg": flow_experiment(),
         "flow-holdout.svg": flow_holdout(), "paired-by-task.svg": paired_by_task(),
+        "verdict-rule.svg": verdict_rule(), "flow-judge.svg": flow_judge(), "task-anatomy.svg": task_anatomy(),
+        "flow-specs.svg": flow_specs(),
+        **{name: still(scope, cmds, every) for name, (scope, cmds) in STILLS.items()},
     }
     files.update({f"clip-{t}.html": clip_page(steps, report, t) for t in ("dark", "light")})
     pages = {f"report-comment{k}-{t}.png": (files[f"report-comment{k}-{t}.html"], "div.page")

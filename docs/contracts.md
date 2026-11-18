@@ -134,7 +134,7 @@ Until every trial carries `harness_digest` and `environment_digest`, flightdeck'
 `config_digest`, which mixes the two halves. The cache adds the manifest's `environment.build.id`. See the report's
 Pins table ([Reports](reports.md#anatomy)) and the cache key ([The trial cache](cache.md)).
 
-## See also
+## Next
 
 - [Data plane](data-plane.md): the tables behind `flightdeck.parquet/v1`, and how they are filled.
 - [CLI reference](cli.md): every command and option, generated from the code.

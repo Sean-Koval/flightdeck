@@ -38,3 +38,8 @@ pick PRs for regression tasks or to label failures.
 ```sql
 select job_id, pr_url, survival_at_merge, human_commits from pr_outcomes order by survival_at_merge limit 10;
 ```
+
+## Next
+
+- [Weekly metrics](metrics.md): the scorecard these two metrics belong to.
+- [Process metrics](process-metrics.md): how a run got to its result.

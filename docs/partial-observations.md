@@ -53,3 +53,8 @@ YAML documents inherit the first document's policy unless they override it.
 
 Stored `spec_results` include `observation_policy`. Historical rows with no value mean legacy. Alert histories stay separate by policy; nonlegacy issue titles include it.
 Changing a check's policy is an edit that requires review. The policy is opt-in; no existing spec or nightly configuration is enabled automatically.
+
+## Next
+
+- [Behavior specs](behavior-specs.md): results, units and the legacy behavior.
+- [ADR checks and the nightly runner](adr-checks.md): where specs run every night.

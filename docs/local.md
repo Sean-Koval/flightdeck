@@ -67,3 +67,9 @@ which the agent can't fake.
 So `tests-before-commit` evaluates on local runs. On `tasks/fixtures/local.yaml`, the csv-validator script tests
 before committing (`pass`) and semver's `solve.sh` commits without testing (`fail`). A step that both tests and
 commits counts the test first, unless its command commits first.
+
+## Next
+
+- [Tasks](tasks.md): the task directories a local run builds and grades.
+- [Behavior specs](behavior-specs.md): the specs that read a local run's trace.
+- [Running experiments](runners.md): the hangar backend, for team tasks and model trials.
