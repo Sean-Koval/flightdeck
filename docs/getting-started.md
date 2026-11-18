@@ -81,6 +81,14 @@ Ingest an experiment with `HANGAR_TOKEN=... flightdeck ingest experiment <id> --
 Without `--data` they use `~/.flightdeck/data` (or `FLIGHTDECK_DATA_URI`). Keep that directory private
 ([ADR-0002](decisions/0002-public-code-private-data.md)).
 
+On a new or work laptop, run `uv run python scripts/flightdeck_doctor.py setup` once. It creates that directory with
+mode 0700 and writes `~/.flightdeck/env` to source.
+
+Then `uv run python scripts/flightdeck_doctor.py` checks the laptop and sends nothing anywhere. It prints one line
+per check, with the command that fixes it, and exits 1 on a failure. It requires that DuckDB works offline and that
+the data plane is private, outside git checkouts and outside cloud-synced folders. Capture, GitHub and Docker only
+warn.
+
 To plan and submit trials, see [Running experiments](runners.md). The
 [team-harness repo](https://github.com/Sean-Koval/team-harness/tree/main/flightdeck) has a suite, a pre-registered
 `decision.yaml` and behavior specs to start from; add a task before its `--dry-run` works.
