@@ -136,11 +136,35 @@ def test_tasks_share_one_grader_and_ids_fit_hangars_rule(tmp_path: Path) -> None
     tasks, grader = to_hangar([a, b])
     jsonschema.validate(_spec(tasks, grader), SPEC_SCHEMA)
     assert {k.split("/")[0] for k in grader["files"]} == {"t1", hangar_id(b)}
-    c = load_task(_minimal(tmp_path / "c", '[task]\nname = "org/c"\n[flightdeck.grader]\ncommand = "make grade"\n'))
-    with pytest.raises(TaskError, match="separate experiments"):
-        to_hangar([a, c])
     with pytest.raises(TaskError, match="unique"):
         to_hangar([a, a])
+
+
+def _own_command(root: Path, name: str, command: str | None) -> Path:
+    toml = f'schema_version = "1.4"\n[task]\nname = "org/{name}"\n'
+    _minimal(root, toml + (f"[flightdeck.grader]\ncommand = {json.dumps(command)}\n" if command else ""))
+    (root / "tests" / "test.sh").write_text(f"echo {name} ran its test.sh\n")
+    return root
+
+
+def test_tasks_with_their_own_grader_commands_share_one_command_that_runs_each(tmp_path: Path) -> None:
+    """KAN-192: hangar runs one grader command per experiment; each trial still runs its own task's command."""
+    odd = "printf '%s\\n' \"c;; esac $HANGAR_TASK\"; exit 3"  # quotes, `;;` and `esac` must survive the case
+    names = {"a": None, "b": "echo b ran make-free", "c": odd, "d": None}  # a and d keep the default
+    tasks, grader = to_hangar([load_task(_own_command(tmp_path / n, n, c)) for n, c in names.items()])
+    jsonschema.validate(_spec(tasks, grader), SPEC_SCHEMA)
+    hidden = tmp_path / "hidden"
+    for rel, text in grader["files"].items():
+        (hidden / rel).parent.mkdir(parents=True, exist_ok=True)
+        (hidden / rel).write_text(text)
+    want = {"a": (0, "a ran its test.sh"), "b": (0, "b ran make-free"), "c": (3, "c;; esac c"),
+            "d": (0, "d ran its test.sh")}
+    for task, (code, out) in want.items():
+        r = subprocess.run(["bash", "-c", grader["command"]], capture_output=True, text=True, timeout=30,
+                           env={**os.environ, "HANGAR_HIDDEN_TESTS": str(hidden), "HANGAR_TASK": task})
+        assert (r.returncode, r.stdout.strip()) == (code, out), r.stderr
+    _, one = to_hangar([load_task(_own_command(tmp_path / "e", "e", None))])
+    assert one["command"] == 'cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && bash tests/test.sh'  # one command: no case
 
 
 def _grade(work: Path, out: Path, **env: str) -> subprocess.CompletedProcess:
