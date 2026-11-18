@@ -73,6 +73,7 @@ nav:
   - Get started:
       - Getting started: getting-started.md
       - Concepts: concepts.md
+      - The v0 exit: v0-exit.md
   - Guides:
       - Tasks: tasks.md
       - Running experiments:
