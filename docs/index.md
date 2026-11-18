@@ -23,24 +23,7 @@ hide:
 </figure>
 </div>
 
-<div id="the-verdict" markdown>
-!!! verdict "The verdict"
-    One of five words: "better", "non-inferior", "worse", "No decision" or "No verdict". It says how the candidate
-    arm did against the control arm on one metric, with the paired difference and its 95% interval beside it:
-    "candidate is better than control on resolved: +21.2 pp (95% CI +1.5 to +43.9, margin −5.0)". The rule that picks the word
-    (`decision.yaml`: metric, direction, margin, minimum tasks) is committed before the first trial, so nobody moves
-    the goalposts. [Concepts](concepts.md) has the words; [Reports](reports.md#pre-registration) has the rule.
-</div>
-
-- **Is:** the judge. It reads what hangar recorded and says whether a change helped.
-- **Isn't:** a runner, a dashboard, a leaderboard or a credential holder.
-- **Sees:** changes of about 15 points at 500 trials a month; smaller ones through cost, tool calls and behavior
-  specs ([what flightdeck can tell you](statistics.md#what-flightdeck-can-tell-you)).
-
-## See it work
-
-The verdict, posted as one pull-request comment that is updated in place. This one comes from the synthetic fixture
-experiment (12 tasks × 2 variants × 3 trials):
+## The answer, on the pull request
 
 <figure class="af-figure fd-native" style="--fd-native: 816px">
 <picture>
@@ -54,8 +37,29 @@ experiment (12 tasks × 2 variants × 3 trials):
 <figcaption>The verdict as a pull-request comment: the headline, then experiment FDK-EXP-0531 and its rule</figcaption>
 </figure>
 
-The recording above is the run that produced it: `ingest → stats compare → report`. [Getting started](getting-started.md)
-has the six commands and what each printed.
+One comment, updated in place. This one is the synthetic fixture experiment: 12 tasks × 2 variants × 3 trials. The
+terminal above is the run that wrote it, and [Getting started](getting-started.md) repeats it in six commands.
+
+## Five words, one rule { #the-verdict }
+
+<figure class="af-figure" markdown>
+--8<-- "docs/assets/verdict-rule.svg"
+<figcaption>The verdict is one of five words; where the paired difference's 95% interval sits picks it</figcaption>
+</figure>
+
+The rule lives in `decision.yaml`: metric, direction, margin, minimum tasks. It is committed before the first trial
+finishes, so nobody moves the goalposts. [Reports](reports.md#pre-registration) has the rule in full, and
+[Concepts](concepts.md) has the words.
+
+## What it is, and isn't
+
+<div class="af-tools fd-tiles">
+  <div class="af-tool"><small>Is</small><b>The judge</b><span>It reads what hangar recorded and says whether a change helped.</span></div>
+  <div class="af-tool"><small>Isn't</small><b>A runner or a dashboard</b><span>Nor a leaderboard, nor a credential holder: it has no sandbox code.</span></div>
+  <div class="af-tool"><small>Sees</small><b>About 15 points</b><span>At 500 trials a month. Smaller changes show through cost, tool calls and behavior specs.</span></div>
+</div>
+
+[What flightdeck can tell you](statistics.md#what-flightdeck-can-tell-you) has the numbers behind "about 15 points".
 
 ## Where it sits
 
@@ -67,17 +71,26 @@ has the six commands and what each printed.
 flightdeck holds no sandbox code and no credentials ([ADR-0001](decisions/0001-boundary-with-hangar.md)). It reads
 hangar's versioned interfaces and asks hangar to run the trials it plans.
 
-## Use cases
+## Three decisions it settles
 
-- **Bump the CLI lock with evidence.** Run the regression suite on the old lock and the new one; the canary PR gets one
-  comment with the pre-registered verdict and the cost per resolved task of each.
-- **Decide whether a workflow plugin pays for itself.** A/B the plugin on and off across 30 tasks. Pairing by task
-  means far fewer runs than an unpaired comparison, and the rule was committed before the first trial.
-- **Catch a behavior regression nobody tested for.** Write "never push to main" as a behavior spec. Nightly,
-  `check run` scores every turn and opens an issue when the violation rate jumps, naming the harness digest that changed.
+<div class="af-tools fd-tiles">
+  <div class="af-tool"><small>A version bump</small><b>Bump the CLI lock with evidence</b><span>Run the regression suite on the old lock and the new one. The canary PR gets one comment: the verdict, and each lock's cost per resolved task.</span></div>
+  <div class="af-tool"><small>A plugin</small><b>Does the workflow plugin pay for itself?</b><span>A/B it on and off across 30 tasks. Pairing by task needs far fewer runs than an unpaired comparison.</span></div>
+  <div class="af-tool"><small>A regression</small><b>Catch what nobody tested for</b><span>Write "never push to main" as a behavior spec. Nightly, check run opens an issue when the violation rate jumps.</span></div>
+</div>
 
-## Read next
+## Start from your question
 
-- [Getting started](getting-started.md): six commands on the fixture, what they showed, then a real hangar.
-- [Concepts](concepts.md): the vocabulary, and what is shipped.
-- [Reports](reports.md): the pre-registered rule and the report's anatomy.
+<div class="af-tools fd-routes">
+  <a class="af-tool" href="getting-started/"><small>Try it</small><b>Can I see it run?</b><span>Six commands on the fixture, no hangar and no team data.</span></a>
+  <a class="af-tool" href="reports/"><small>Read</small><b>What does a report say?</b><span>The comment's seven parts and the pre-registered rule.</span></a>
+  <a class="af-tool" href="statistics/"><small>Plan</small><b>How big a change can it see?</b><span>Paired by task, with the power table for this team's scale.</span></a>
+  <a class="af-tool" href="tasks/"><small>Build</small><b>How do I write a task?</b><span>An instruction, an environment and hidden tests, in Harbor's layout.</span></a>
+  <a class="af-tool" href="runners/"><small>Run</small><b>How do trials get run?</b><span>A suite becomes pinned trials, a cost gate, then hangar.</span></a>
+  <a class="af-tool" href="behavior-specs/"><small>Check</small><b>How did the agent work?</b><span>Predicates over traces: tests before the commit, no push to main.</span></a>
+  <a class="af-tool" href="holdouts/"><small>Promote</small><b>Is this number honest?</b><span>Sealed tasks, written blind and scored once.</span></a>
+  <a class="af-tool" href="cli/"><small>Look up</small><b>Which command, which flag?</b><span>Every command and option, generated from the code.</span></a>
+</div>
+
+New to the vocabulary? [Concepts](concepts.md) defines each word once. [What's shipped](status.md) says what runs
+today.

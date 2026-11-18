@@ -36,3 +36,8 @@ Real gold sets are team data: they live in the private data repo, beside the pla
 ([ADR-0002](decisions/0002-public-code-private-data.md)). The repo has a synthetic set,
 `tests/fixtures/labels/gold_calls.jsonl`. Its author also wrote the rules, so it shows known limits, not real accuracy.
 CI fails when the rules score lower on it than before.
+
+## Next
+
+- [Process metrics](process-metrics.md#step-labels): the step labels a gold set scores.
+- [Judges](judges.md): calibrating a model's labels against people.

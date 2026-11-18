@@ -3,6 +3,18 @@
 A decision about a harness change gets made where the change is reviewed: usually a pull request. flightdeck's report
 is a markdown comment there, not a dashboard.
 
+<figure class="af-figure fd-native" style="--fd-native: 816px">
+<picture>
+<source media="(max-width: 600px)" srcset="assets/report-comment-phone-dark.png" width="358" height="368">
+<img src="assets/report-comment-dark.png#only-dark" alt="The top of the flightdeck report as a pull-request comment: the headline is the verdict, candidate is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment FDK-EXP-0531 with its real ID job-expdemo, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task" width="816" height="656">
+</picture>
+<picture>
+<source media="(max-width: 600px)" srcset="assets/report-comment-phone-light.png" width="358" height="368">
+<img src="assets/report-comment-light.png#only-light" alt="The top of the flightdeck report as a pull-request comment: the headline is the verdict, candidate is better than control on resolved, +21.2 pp (95% CI +1.5 to +43.9, margin −5.0); under it the experiment FDK-EXP-0531 with its real ID job-expdemo, what differs between the arms, the pre-registered rule, and the Outcome table with 10 of 32 and 16 of 31 resolved, Wilson intervals and dollars per resolved task" width="816" height="656">
+</picture>
+<figcaption>The top of a report: the verdict as the headline, experiment FDK-EXP-0531, its rule and the Outcome table. <a href="#anatomy">The whole comment</a> is below.</figcaption>
+</figure>
+
 hangar's canary lock-bump PRs are the typical place. Code: `src/flightdeck/report/markdown.py`.
 
 ```sh
@@ -22,13 +34,13 @@ powered off. Its options:
   where the full text lives when a comment is clipped.
 - `--details`: per-task rows and trial links; keep it off for public repositories. `--hangar URL`: the trial links.
 
+## Anatomy
+
 <figure class="af-figure fd-native" style="--fd-native: 816px" markdown>
 [![The whole flightdeck report as a pull-request comment: the verdict as its headline, experiment FDK-EXP-0531 with its real ID and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-dark.png#only-dark){ width=816 height=1659 }](assets/report-comment-full-dark.png)
 [![The whole flightdeck report as a pull-request comment: the verdict as its headline, experiment FDK-EXP-0531 with its real ID and the rule, then the Outcome, Process and Cost tables, the behavior-spec pass rates, the exclusions and drift, and the pins collapsed at the end](assets/report-comment-full-light.png#only-light){ width=816 height=1659 }](assets/report-comment-full-light.png)
 <figcaption>The whole report as a pull-request comment: verdict, Outcome, Process and Cost, behavior specs, exclusions, pins</figcaption>
 </figure>
-
-## Anatomy
 
 ### 1. The verdict is the headline
 
@@ -96,6 +108,11 @@ checkout resets. An uncommitted or locally edited `decision.yaml` gives *No verd
 
 ### The rule
 
+<figure class="af-figure" markdown>
+--8<-- "docs/assets/verdict-rule.svg"
+<figcaption>Where the interval sits against zero and the margin picks the word</figcaption>
+</figure>
+
 Fewer than `min_tasks` paired tasks, or an underpowered interval, is No decision: underpowered. An interval wholly
 above zero is better; wholly above the margin is non-inferior; wholly below it is worse. Anything else is
 No decision.
@@ -119,7 +136,7 @@ Without either, the comment says the full report is not linked; it never points 
 Reports on public repositories must not quote private team code. The default report has counts and intervals only;
 per-task rows and trial links need `--details`.
 
-## See also
+## Next
 
 - [Statistics](statistics.md): where the tables' numbers come from, and the rules they follow.
 - [Concepts](concepts.md): verdict, margin, pp, CI.

@@ -3,6 +3,11 @@
 How flightdeck turns trials into numbers a team can decide on: paired by task, every interval with its n and seed.
 Code: `src/flightdeck/stats/core.py`.
 
+<figure class="af-figure fd-term" markdown>
+![The output of flightdeck stats compare on the fixture experiment: 10 of 32 resolved for control and 16 of 31 for candidate with Wilson intervals and dollars per resolved task, the paired difference of +21.2 pp with its 95% interval, the minimum detectable lift, and the exclusions](assets/stats-compare.svg){ width=660 }
+<figcaption>stats compare on the fixture: each arm's rate, the paired difference, the power line, the exclusions</figcaption>
+</figure>
+
 ## What flightdeck can tell you
 
 At the team's scale, about 500 trials a month, an A/B of a harness change can show:
@@ -193,7 +198,7 @@ Sequential and adaptive designs (no peeking at fixed-n experiments), CUPED and c
 traffic. And mixed-effects models, a random effect per task, as the preferred model once the task bootstrap is in
 routine use.
 
-## See also
+## Next
 
 - [Reports](reports.md): the verdict rule these numbers feed.
 - [Running experiments](runners.md): how many tasks and trials a plan has, and what that costs.
