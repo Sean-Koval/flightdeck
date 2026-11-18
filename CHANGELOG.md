@@ -6,6 +6,9 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Regression v1:** `python scripts/mine_regression.py validate|mine` turns the labelled first failures into
+  tasks: the job's base commit, its instruction and the fix's tests, kept only when fail-to-pass holds three times,
+  with digests and every unmined job's reason in `suites/regression-v1.lock.json` ([Mining regression tasks](https://sean-koval.github.io/flightdeck/regression-mining/), KAN-88).
 - **On hangar:** tasks with different grader commands run as one experiment. The shared command runs the most
   common one and dispatches the rest on `$HANGAR_TASK`. A suite over hangar's 64 grader files, 1 MB or 4,000-character
   command becomes several experiments instead of being refused. A task with its workspace in `environment/workspace/` and no source repo is
