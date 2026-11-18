@@ -1,6 +1,6 @@
 # Contracts
 
-What flightdeck reads, what it writes, the files a team commits for it, and the pin set it judges trials by.
+What flightdeck reads and writes, the files a team commits, and the pin set it judges trials by.
 
 Contracts are additive within their versions. A new optional field is not a new version; removing or renaming
 one is.
@@ -78,7 +78,7 @@ Every table also has `run_id`, `source` and `dt` (`flightdeck.parquet/v1`; `dt` 
 | Flattened from hangar | Columns |
 | --- | --- |
 | `runs` | `job_id`, `session_id`, `turn` int, `experiment_id`, `trial_key`, `task_id`, `variant`, `trial` int, `person`, `repo`, `environment`, `harness`, `harness_version`, `model_id`, `outcome`, `reason`, `outcome_class`, `infra_reason`, `excluded` bool, `attempt` int, `config_digest`, `harness_digest`, `environment_digest`, `manifest_digest`, `base_sha`, `cost_usd` float, `cost_source`, `input_tokens` int, `output_tokens` int, `cache_read_tokens` int, `cache_write_tokens` int, `started_at` timestamp, `finished_at` timestamp, `verify_passed` bool, `pr_url`, `pr_number` int, `merged` bool, `merged_by`, `diff_files` list of strings, `drift` list of strings, `truncated` bool, `task_invalid` bool, `contaminated` bool, `grade_trust`, `job_source`, `job_turn` int, `job_state`, `job_reason`, `steers` int, `questions` int, `untrusted` bool, `tainted` bool, `task_digest`, `variant_digest`, `variant_description` |
-| `spans` | `trace_id`, `span_id`, `parent_span_id`, `job_id`, `session_id`, `environment`, `person`, `kind`, `name`, `start_ns` int, `end_ns` int, `seq` int, `seq_end` int, `status_code` int, `tool_kind`, `tool_name`, `tool_input`, `tool_output`, `tool_ok` bool, `shell_ops` list of strings, `file_repo_path`, `mcp_server`, `mcp_tool`, `skill_name`, `approval_status`, `approval_by`, `attrs` |
+| `spans` | `trace_id`, `span_id`, `parent_span_id`, `job_id`, `session_id`, `environment`, `person`, `kind`, `name`, `start_ns` int, `end_ns` int, `seq` int, `seq_end` int, `status_code` int, `tool_kind`, `tool_name`, `tool_input`, `tool_input_clipped` bool, `tool_output`, `tool_ok` bool, `shell_ops` list of strings, `file_repo_path`, `mcp_server`, `mcp_tool`, `skill_name`, `approval_status`, `approval_by`, `attrs` |
 | `events` | `trace_id`, `span_id`, `span_kind`, `name`, `time_ns` int, `seq` int, `file_repo_path`, `file_op`, `text`, `attrs` |
 | `manifests` | `digest`, `config_digest`, `captured_at` timestamp, `subject_kind`, `session_id`, `turn` int, `job_id`, `person`, `harness_name`, `harness_version`, `harness_locked`, `harness_mode`, `harness_digest`, `model_id`, `model_policy`, `model_provider`, `skills_effective` list of strings, `mcp_servers` list of strings, `hooks` list of strings, `approvals`, `egress_mode`, `environment_name`, `environment_spec_digest`, `environment_digest`, `knowledge_snapshot`, `repo_url`, `base_sha`, `json` |
 | `grades` | `experiment_id`, `trial_key`, `command`, `exit_code` int, `applied` bool, `seconds` float, `error`, `data`, `grader_digest` |

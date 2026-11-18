@@ -5,7 +5,7 @@ worked. These metrics count what each run did, from its trace alone.
 
 They are DuckDB views over the [data plane](data-plane.md), defined in one file:
 [`src/flightdeck/metrics/process.sql`](https://github.com/Sean-Koval/flightdeck/blob/main/src/flightdeck/metrics/process.sql).
-Every connection to the data plane has them, so `flightdeck query` reads them directly:
+Every connection has them, so `flightdeck query` reads them directly:
 
 ```sh
 flightdeck query "from process_metrics where experiment_id = 'exp-1'" --data /tmp/plane
@@ -33,8 +33,7 @@ The rules key on `hangar.tool.kind` and `hangar.shell.ops` ([hangar's taxonomy](
 They read the command text where those don't say enough. A runner counts at a command position: a line or segment start,
 a loop's `do`, or behind wrappers like `uv run --project x`.
 
-hangar clips long inputs, so labels read from text are a lower bound. [Label gold sets](label-gold-sets.md) measure
-how often they are right. `idx` is the call's position in its run, from
+Labels read from a clipped input are a lower bound. [Label gold sets](label-gold-sets.md) measure accuracy. `idx` is the call's position in its run, from
 zero. `answer_key_risk` marks a read of a reference implementation.
 
 ## The metrics
@@ -49,6 +48,7 @@ zero. `answer_key_risk` marks a read of a reference implementation.
 | `test_runs`, `failing_test_runs` | Calls with `test` in `labels`. One fails when its call failed or its output shows `FAILED`, `Error` or `Traceback` |
 | `fix_loops` | A failing test run, then an edit, then the next passing test run with `tool_ok` true (the edit may share its call) |
 | `reference_lookups`, `answer_key_reads` | `reference` calls, and reads of an implementation on disk |
+| `clipped_calls` | Calls hangar marked clipped; their labels are lower bounds |
 | `trusted_test_runs`, `failing_trusted_test_runs` | hangar's own counted checks (trusted, complete, more than zero tests) |
 | `input_tokens`, `output_tokens`, `cache_read_tokens`, `cost_usd`, `wall_s` | From the run itself |
 
@@ -56,7 +56,7 @@ The agent's test runs are its word; trusted runs are hangar's. The two are repor
 None of these counts establishes causal credit.
 
 Exact duplicate rows count once. Two different spans with one identity, or two different run rows, leave that run out.
-Raw tables keep both copies. Missing spans, clipping and forged evidence go undetected; see [integrity limits](research/process-integrity.md).
+Raw tables keep both copies. Missing spans, forged evidence and unmarked clipping go undetected; see [integrity limits](research/process-integrity.md).
 
 ## Where they came from
 

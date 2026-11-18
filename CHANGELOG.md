@@ -6,6 +6,10 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Data plane:** the new `spans.tool_input_clipped` column carries hangar's `hangar.tool.input_clipped`. A call whose
+  input hangar cut to its 200-character preview counts in the new `process_metrics.clipped_calls`, and the report says how many
+  trials had one. Still `flightdeck.parquet/v1`: a data plane written before a column was added still opens, and
+  that column reads as null ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-274).
 - **Local runner:** a span's `shell_ops` finds tests in loops and conditions, behind wrapper flags (`uv run --project svc
   pytest`) and in CI scripts (`bash scripts/ci/verify.sh`), and no longer counts `pytest --version` or `--collect-only`
   as a test run. Quoted text and here-documents are not read as commands. Ported unchanged from hangar (KAN-279).

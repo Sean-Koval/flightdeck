@@ -47,9 +47,8 @@ def verdict(decision: dict[str, Any], c: Comparison) -> str:
     if d is None or d.n_tasks < int(least) or d.note:
         return "No decision: " + ("no task has trials in both arms." if d is None else
                                   f"underpowered ({d.n_tasks} paired tasks, pre-registered minimum {least}).")
-    sign = -1 if decision.get("direction", "higher") == "lower" else 1
+    sign, margin = -1 if decision.get("direction", "higher") == "lower" else 1, -abs(float(decision.get("margin", 0)))
     est, (lo, hi) = sign * d.estimate, sorted((sign * d.low, sign * d.high))
-    margin = -abs(float(decision.get("margin", 0)))
     scale, p = (100, 1) if name == "resolved" else (1, 2 if name == "cost_usd" else 1)
     nums = (f"{fmt(name, est, True)} (95% CI {lo * scale:+.{p}f} to {hi * scale:+.{p}f}, margin "
             f"{margin * scale or 0.0:+.{p}f})").replace("-", "−")
@@ -66,17 +65,16 @@ PINS = (("harness", ("harness", "harness_version")), ("model", ("model_id",)), (
 
 def render_report(con: Any, exp_id: str, a: str = "control", b: str = "candidate", decision: Path | None = None,
                   details: bool = False, hangar: str | None = None, seed: int = 0) -> str:
-    """The report, from Parquet alone: the verdict as its headline, then what differs between the arms, the outcome,
-    process and cost tables, the behavior specs and the exclusions; the pins collapsed at the end. Per-task rows and
-    trial links only with `details` (public PRs: counts only)."""
-    rubric = read_decision(decision).get("rubric") if decision and decision.is_file() else None
+    """The report, from Parquet alone: the verdict, what differs between the arms, outcome, process and cost tables,
+    specs, exclusions, the pins collapsed. Per-task rows and trial links only with `details` (public PRs: counts)."""
+    rule = read_decision(decision) if decision and decision.is_file() else None
+    rubric = (rule or {}).get("rubric")
     if rubric and decision and (st := judges.status(decision.parent / rubric)) != "usable":
         raise ValueError(f"decision.yaml uses rubric {rubric}, which is {st}: only a usable rubric (kappa's "
                          "lower bound >= 0.6, docs/judges.md) may decide")
     trials = load_trials(con, exp_id)
     if not trials:
         raise ValueError(f"no trials of experiment {exp_id!r} in the data plane")
-    rule = read_decision(decision) if decision and decision.is_file() else None
     first = min((t["finished_epoch"] for t in trials if t["finished_epoch"]), default=None)
     when = committed_at(decision) if rule is not None and decision else None
     head = ("No verdict: no pre-registered `decision.yaml`" if rule is None else
@@ -110,9 +108,11 @@ def render_report(con: Any, exp_id: str, a: str = "control", b: str = "candidate
             "### Cost", "", render(compare(trials, "cost_usd", a, b, seed), False), "", "### Behavior specs", ""]
     out += spec_rates(con, [t for t in trials if not exclusion(t, "resolved")], a, b)
     drift = [t for t in trials if t["drift"] and t["variant"] in (a, b)]
+    n = sum(bool(t["clipped_calls"]) for t in trials if t["variant"] in (a, b) and not exclusion(t, "resolved"))
+    clip = f" Trials with a clipped tool input: {n} (labels and specs that read input are lower bounds)." if n else ""
     out += ["", "### Exclusions and drift", "", exclusions(outcome, process), f"\n{len(drift)} drifted trial"
             f"{'s'[:len(drift) != 1]} excluded from paired analysis (`--include-drift` keeps "
-            f"{'them' if len(drift) - 1 else 'it'})."]
+            f"{'them' if len(drift) - 1 else 'it'})." + clip]
     out += [f"- `{t['trial_key']}`: {'; '.join(t['drift'])}" for t in drift] if details else []
     out += ["", "<details><summary>Pins</summary>", "", f"| | {a} | {b} |", "| --- | --- | --- |"]
     out += [f"| {label} | {x} | {y} |" for label, x, y in pins if label in differ]
