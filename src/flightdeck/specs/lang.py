@@ -503,6 +503,6 @@ def lint(s: Spec) -> list[str]:
         if text and not ({"event", "approval", "path"} & set(m) or {"ops", "mcp", "skill"} & set(tool)):
             w.append(f"{sid}: matches on hangar.tool.{min(text)} text alone (a hint that is easy to dodge)")
         if "test" in (tool.get("ops") or []):
-            w.append(f"{sid}: the shell `test` op is a hint (`pytest --collect-only` has it); "
+            w.append(f"{sid}: the shell `test` op is a hint (`pytest -k nothing` has it); "
                      "proof of testing is `event: test.run`")
     return w

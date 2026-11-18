@@ -6,6 +6,9 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Local runner:** a span's `shell_ops` finds tests in loops and conditions, behind wrapper flags (`uv run --project svc
+  pytest`) and in CI scripts (`bash scripts/ci/verify.sh`), and no longer counts `pytest --version` or `--collect-only`
+  as a test run. Quoted text and here-documents are not read as commands. Ported unchanged from hangar (KAN-279).
 - **flightdeck#20:** `python scripts/decision_run.py preflight|start|finish` checks and runs the pre-registered
   plugin A/B in one command each. Preflight fails on open egress, an edited `decision.yaml`, a projection over
   budget or a task that fails `task check`; `start` never spends without `--spend` ([ADR 0011](https://sean-koval.github.io/flightdeck/decisions/0011-first-decision-plugin-ab/), KAN-31).
