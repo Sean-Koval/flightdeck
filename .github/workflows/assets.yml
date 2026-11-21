@@ -27,9 +27,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv sync --locked --group assets
-      - run: uv run --locked --group assets playwright install --with-deps chromium
-      - name: ffmpeg (the demo clip)
-        run: command -v ffmpeg || { sudo apt-get update -q && sudo apt-get install -yq ffmpeg; }
+      # ffmpeg for the demo clip comes from the assets group (imageio-ffmpeg), not apt: the runner's Ubuntu mirror
+      # can take over ten minutes for ffmpeg's 99 packages (KAN-563). Playwright's system libraries still come from apt.
+      - name: Chromium and its system libraries
+        run: uv run --locked --group assets playwright install --with-deps chromium
+        timeout-minutes: 8
       - run: uv run --locked --group assets python docs/assets/build.py
       - name: Committed assets are current (run `uv run --group assets python docs/assets/build.py` and commit)
         run: git diff --exit-code -- docs/assets ':(exclude)docs/assets/*.png' ':(exclude)docs/assets/*.mp4'

@@ -7,6 +7,11 @@ flightdeck's format is [Harbor](https://github.com/harbor-framework/harbor)'s ta
 datasets (Terminal-Bench and others in Harbor's registry) load without a converter, and flightdeck's tasks run on
 Harbor. hangar's spec 0008 chose this format for graded work; flightdeck owns it. Code: `src/flightdeck/tasks/`.
 
+<figure class="af-figure" markdown>
+--8<-- "docs/assets/task-anatomy.svg"
+<figcaption>One directory: the agent gets the instruction and the environment, and the hidden tests grade its patch</figcaption>
+</figure>
+
 ## Layout
 
 ```
@@ -120,101 +125,14 @@ A trial's patch can try to forge its grade. It can write the reward file. Or it 
 Code under test still runs inside the test process and can lie through it. hangar's base-must-fail check (a
 `solution/reference.patch` must pass, the base must fail), canaries and `touched_tests` are the detectors for that.
 
-## The semver smoke task
+## Shipped tasks and imports
 
-`tasks/smoke/semver/`, ported from hangar `evals/semver`: build a Python semver library with node-semver range
-matching. It has 116 hidden unittest cases in 13 categories, generated from node-semver 7.8.5's answers
-(`generator/`: `node oracle.js > oracle.json`, `python3 gen_hidden.py`).
+- <span id="the-semver-smoke-task"></span><span id="the-csv-validator-fixture"></span>[The two public tasks](task-fixtures.md):
+  the semver smoke task and the csv-validator fixture.
+- <span id="importing-ai-dlc-scenarios"></span>[Importing ai-dlc scenarios](task-import.md): `flightdeck task import-aidlc`
+  turns an ai-dlc suite into tasks, specs and a suite file.
 
-`test.sh` copies only `semver.py`, runs the hidden tests with pytest when the environment has it (else unittest),
-writes `reward.json` and prints `RESULT {passed, total, by_category, failed}`. `solution/semver.py` is a reference
-that scores 116 of 116. Every hangar trial so far scored 116 of 116, so it tests the plumbing, not the agents.
-
-To run it on hangar, set `[flightdeck.source] repo` and `base_sha` to an empty repository's first commit. hangar
-applies and grades a trial's patch only on a repo.
-
-## The csv-validator fixture
-
-`tasks/fixtures/csv-validator/` is ai-dlc's evaluation fixture, the one its runner was qualified on: add duplicate-row
-detection to a small CSV validator. It comes from `evaluations/suites/smoke.json`, scenario `csv-duplicate-rows`, at
-ai-dlc's handoff commit `f5be4f4`.
-
-The scenario's fixture is `environment/workspace/`, copied into the image's working directory. Its 10 hidden
-acceptance tests are `tests/test_acceptance.py`, run by `test.sh` on a copy of the agent's `csvcheck/` package only.
-Its reference is `solution/validate.py`.
-
-`solution/deterministic.json` is the local runner's deterministic script: write the reference, run the fixture's own
-tests, commit. `solve.sh` does the same for Harbor's oracle.
-
-It lives under `tasks/fixtures/`, not `tasks/smoke/`, so the hangar smoke suite doesn't grow. It needs
-`[flightdeck.source] repo` and `base_sha` before it can run on hangar. `tasks/fixtures/local.yaml` runs it and the
-semver task on the [local backend](local.md).
-
-It was converted by hand; `flightdeck task import-aidlc` (below) now does the same for any ai-dlc suite.
-
-## Importing ai-dlc scenarios
-
-ai-dlc's scenario contract moved here (#17): `src/flightdeck/ported/aidlc/contracts.py` (`Suite`, `Scenario`,
-`Assertion`) and its JSON Schema, `schemas/aidlc/scenario.schema.json`, from ai-dlc's handoff commit `f5be4f4`.
-
-```sh
-flightdeck task import-aidlc evaluations/suites/smoke.json --out tasks/imported/smoke
-```
-
-It validates the suite with ai-dlc's models. A credential-shaped key or value is refused, naming the field and never
-the value. Ids must be unique, both arms must run, and each fixture must match its digest. It writes nothing unless
-every scenario converts.
-
-### What it writes
-
-`<scenario>/`, a task. `goal` is `instruction.md`. The fixture is `environment/workspace/`, copied into ai-dlc's
-digest-pinned Python image. The hidden fixture's `test_*.py` are `tests/`, run by a generic `test.sh` with unittest,
-as ai-dlc's controller ran them. It runs on an isolated copy of the whole tree; narrow it to the code under test when
-you can.
-
-`answers` become `[flightdeck.agent] answers`: bounded replies, where an unmatched question is needs-input, which
-hangar models as a cancelled trial. `limits` become `[agent] timeout_sec` and `[flightdeck] max_turns`. `answers` sit
-under `[flightdeck]`, not Harbor's `[agent]`, so the task stays valid for Harbor.
-
-`specs/<scenario>.yaml`: one [behavior spec](behavior-specs.md) per assertion that isn't the grader, scoped with
-`applies_when: {task_id: <scenario>}`. Workflow assertions also take `variant: treatment`, since ai-dlc judged
-workflow only in the treatment arm.
-
-`suite.yaml`: the scenarios as tasks and the arms as variants `treatment` and `baseline`. The variants are left empty
-for you to fill with the hangar overlay that makes each arm what ai-dlc meant (with or without ai-dlc).
-
-### Assertions
-
-The command prints the mapping as a table. Assertions map like this, and any other kind fails the import:
-
-| ai-dlc assertion | Becomes |
-| --- | --- |
-| `hidden-tests` | the task's grader (`tests/`) |
-| `commit-present` | `eventually: {event: git.commit}`; with a `path`, `any` delivered file (`diff.files`) matches it |
-| `path-committed` | `any` delivered file (`diff.files`) matches the path |
-| `ordering` | `before`: the first edit of `before`'s path precedes `after`'s. Approximate: hangar's `git.commit` events carry no paths, so this is edit order, not commit order |
-| `artifact-present` | `any` changed or delivered file matches `expect` (refused without `expect`) |
-| quality dimension (`human-review`) | a spec with no `assert` and a `pending` note: always `unknown` until a person records it, or a judge calibrated under #27 |
-| `checkpoints` | dropped, and listed: ai-dlc never observed them |
-
-`diff.files` is the delivered diff on hangar, and the committed plus uncommitted paths on the local runner. So
-`path-committed` means "would be delivered".
-
-### Outcomes
-
-ai-dlc's `ArmReport.outcome` keeps failures apart, and flightdeck keeps them apart the same way. `infrastructure` is
-`outcome_class = infra_error`, excluded from comparisons. `product` is an unresolved grade. `workflow-violation` is a
-failing workflow spec. `unavailable` is `unknown`: a missing grade or a spec without evidence, which never passes.
-
-Transcripts are never evidence. Test runs count only when the controller or hangar ran them (`trusted`).
-
-### Not ported
-
-ai-dlc's `evaluate.py`: its grading is the grader plus the specs above. `planning.py`'s profile and attempt matrix:
-suite files and variants replace them. Its credential tripwire, field-naming validation and the fixture `tree_digest`
-are kept in `ported/aidlc/planning.py`.
-
-## See also
+## Next
 
 - [Running experiments](runners.md): the suite file that names tasks, and the local backend that runs them.
 - [Holdouts](holdouts.md): tasks written blind and sealed, with `sealed = true`.
