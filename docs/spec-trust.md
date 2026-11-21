@@ -18,7 +18,7 @@ A predicate can be gamed. This page says which test runs a spec counts, and what
 The agent's own in-turn runs are untrusted, and `pytest --collect-only` reports 0 tests. A spec may say
 `allow_untrusted: true`, and `spec lint` flags it.
 
-The shell `test` op is a *hint* read from the command text: `uv run pytest --collect-only` has it. Specs that need
+The shell `test` op is a *hint* read from the command text: `uv run pytest -k nothing` has it. Specs that need
 proof of testing use `event: test.run`.
 
 In a job, hangar's verify run precedes every delivered commit (the job's `git.commit` events). The agent's own

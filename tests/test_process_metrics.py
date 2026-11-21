@@ -38,7 +38,8 @@ STEPS = [
     ("bash", "cat nope.txt", "No such file", False),
     ("bash", "git add -A && git commit -qm 'semver'", "", True),
 ]
-# Documented differences (docs/process-metrics.md#differences-from-hangars-kit): plan tools have their own label.
+# Documented differences (docs/process-metrics-origins.md#differences-from-hangars-kit): plan tools have their own
+# label.
 RELABEL = {"plan": "other"}
 
 
@@ -199,6 +200,60 @@ def test_labels_for_shell_commands(tmp_path: Path) -> None:
     con = connect(str(plane(tmp_path, build([("bash", i, "", True) for i, _ in SHELL]))))
     got = rows(con, "select label, labels from step_labels order by idx")
     assert [(r["label"], r["labels"]) for r in got] == [(w[0], w) for _, w in SHELL]
+
+
+# KAN-359: SDLC steps (synthetic, in the shapes of the Nov 10 sample): MCP calls by tool name (and pull_request_read by
+# method), `gh` by command; with every label each should carry, the first being `label`.
+SDLC = [
+    ("mcp__github__create_pull_request", '{"owner": "o", "repo": "r", "title": "KAN-1: fix"}', ["pr"]),
+    ("mcp__github__merge_pull_request", '{"owner": "o", "repo": "r", "pullNumber": 7}', ["pr"]),
+    ("mcp__github__pull_request_read", '{"method": "get_diff", "pullNumber": 7}', ["pr"]),
+    ("mcp__github__pull_request_read", '{"method": "get_check_runs", "pullNumber": 7}', ["ci_wait"]),
+    ("mcp__github__pull_request_read", '{"method": "get_review_comments", "pullNumber": 7}', ["review"]),
+    ("mcp__github__actions_list", '{"method": "list_workflow_runs"}', ["ci_wait"]),
+    ("mcp__claude-code-remote__subscribe_pr_activity", '{"pullNumber": 7}', ["ci_wait"]),
+    ("mcp__github__add_reply_to_pull_request_comment", '{"commentId": 3, "body": "fixed"}', ["review"]),
+    ("mcp__github__pull_request_review_write", '{"method": "create", "event": "COMMENT"}', ["review"]),
+    ("mcp__3f9c1e__createJiraIssue", '{"projectKey": "KAN", "summary": "x"}', ["tracker"]),
+    ("mcp__Atlassian__executeRead", '{"name": "getTransitionsForJiraIssue", "inputs": {}}', ["tracker"]),
+    ("mcp__github__issue_write", '{"method": "update", "issue_number": 4}', ["tracker"]),
+    ("mcp__github__get_me", "{}", ["other"]),
+    ("mcp__claude-code-remote__send_message", '{"message": "see the PR review"}', ["other"]),
+    ("bash", "git push -u origin KAN-1-fix && gh pr create --fill", ["vcs", "pr"]),
+    ("bash", "gh pr view 7 --json mergeable", ["pr"]),
+    ("bash", "gh pr checks 7 --watch", ["ci_wait"]),
+    ("bash", "gh run watch 123 --exit-status", ["ci_wait"]),
+    ("bash", "until [ \"$(gh api repos/o/r/commits/abc/check-runs --jq .total_count)\" -gt 0 ]; do sleep 20; done",
+     ["ci_wait"]),
+    ("bash", "gh api repos/o/r/pulls/7/comments --jq '.[].body'", ["review"]),
+    ("bash", "gh pr review 7 --comment -b 'one nit'", ["review"]),
+    ("bash", "gh issue view 34", ["tracker"]),
+    ("bash", "acli jira workitem view KAN-1", ["tracker"]),
+    ("mcp__github__get_pull_request_status", '{"pullNumber": 7}', ["ci_wait"]),
+    ("mcp__github__create_pull_request_review", '{"pullNumber": 7, "event": "APPROVE"}', ["review"]),
+    ("mcp__github__get_issue", '{"issue_number": 4}', ["tracker"]),
+    ("mcp__jira__get_issue", '{"key": "KAN-1"}', ["tracker"]),
+    ("github.create_pull_request", '{"title": "KAN-1: fix"}', ["pr"]),
+    ("mcp__Atlassian__getConfluenceContent", '{"title": "Jira workflow"}', ["other"]),
+    ("bash", "until gh pr checks 7; do sleep 10; done", ["ci_wait"]),
+    ("bash", "timeout 600 gh run watch 1", ["ci_wait"]),
+    ("bash", "gh api repos/o/r/pulls/${PR}/requested_reviewers", ["review"]),
+    ("bash", "echo 'gh pr merge 7'", ["other"]),
+    ("bash", "sleep 300", ["other"]),
+]
+
+
+def test_labels_for_sdlc_calls(tmp_path: Path) -> None:
+    con = connect(str(plane(tmp_path, build([(n, i, "", True) for n, i, _ in SDLC]))))
+    got = rows(con, "select label, labels from step_labels order by idx")
+    assert [(r["label"], r["labels"]) for r in got] == [(w[0], w) for _, _, w in SDLC]
+
+
+def test_process_metrics_count_sdlc_steps(tmp_path: Path) -> None:
+    con = connect(str(plane(tmp_path, build([(n, i, "", True) for n, i, _ in SDLC]))))
+    (got,) = rows(con, "select pr_steps, ci_wait_steps, review_steps, tracker_steps from process_metrics")
+    want = {k: sum(k.removesuffix("_steps") in w for _, _, w in SDLC) for k in got}
+    assert got == want == {"pr_steps": 6, "ci_wait_steps": 9, "review_steps": 7, "tracker_steps": 7}
 
 
 def test_a_call_that_writes_and_tests_is_an_edit_and_a_test_run(tmp_path: Path) -> None:

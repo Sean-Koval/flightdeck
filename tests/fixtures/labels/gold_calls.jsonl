@@ -38,3 +38,9 @@
 {"tool": "bash", "input": "python3 -c \"import hatchling; print(hatchling.__file__)\"", "label": "explore", "labels": ["explore"], "why": "asks where a module lives: runs none of the project's code"}
 {"tool": "bash", "input": "python3 -m pytest --version; pytest --version", "label": "explore", "labels": ["explore"], "why": "a runner asked for its version: no test runs"}
 {"tool": "bash", "input": "git init && git add . && git status", "label": "vcs", "labels": ["vcs"], "why": ""}
+{"tool": "mcp__github__create_pull_request", "input": "{\"owner\": \"o\", \"repo\": \"r\", \"title\": \"KAN-9: add slug\", \"head\": \"KAN-9-slug\", \"base\": \"main\"}", "label": "pr", "labels": ["pr"], "why": "opens the pull request"}
+{"tool": "mcp__github__pull_request_read", "input": "{\"method\": \"get_status\", \"owner\": \"o\", \"repo\": \"r\", \"pullNumber\": 12}", "label": "ci_wait", "labels": ["ci_wait"], "why": "checks whether CI on the PR has finished"}
+{"tool": "bash", "input": "for i in $(seq 1 30); do s=$(gh pr checks 12 --json state --jq '.[].state' | sort -u); [ \"$s\" = SUCCESS ] && break; sleep 30; done", "label": "ci_wait", "labels": ["ci_wait"], "why": "polls the PR's checks until they pass"}
+{"tool": "mcp__github__pull_request_read", "input": "{\"method\": \"get_reviews\", \"owner\": \"o\", \"repo\": \"r\", \"pullNumber\": 12}", "label": "review", "labels": ["review"], "why": "reads the review"}
+{"tool": "mcp__github__add_reply_to_pull_request_comment", "input": "{\"owner\": \"o\", \"repo\": \"r\", \"pullNumber\": 12, \"commentId\": 991, \"body\": \"Fixed in 3c1d.\"}", "label": "review", "labels": ["review"], "why": "answers a review comment"}
+{"tool": "mcp__a1b2__transitionJiraIssue", "input": "{\"issueIdOrKey\": \"KAN-9\", \"transitionName\": \"In Review\"}", "label": "tracker", "labels": ["tracker"], "why": "moves the ticket"}

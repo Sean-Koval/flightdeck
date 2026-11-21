@@ -9,6 +9,12 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 - **Regression v1:** `python scripts/mine_regression.py validate|mine` turns the labelled first failures into
   tasks: the job's base commit, its instruction and the fix's tests, kept only when fail-to-pass holds three times,
   with digests and every unmined job's reason in `suites/regression-v1.lock.json` ([Mining regression tasks](https://sean-koval.github.io/flightdeck/regression-mining/), KAN-88).
+- **Local runner:** a span's `shell_ops` finds tests in loops and conditions, behind wrapper flags (`uv run --project svc
+  pytest`) and in CI scripts (`bash scripts/ci/verify.sh`), and no longer counts `pytest --version` or `--collect-only`
+  as a test run. Quoted text and here-documents are not read as commands. Ported unchanged from hangar (KAN-279).
+- **flightdeck#20:** `python scripts/decision_run.py preflight|start|finish` checks and runs the pre-registered
+  plugin A/B in one command each. Preflight fails on open egress, an edited `decision.yaml`, a projection over
+  budget or a task that fails `task check`; `start` never spends without `--spend` ([ADR 0011](https://sean-koval.github.io/flightdeck/decisions/0011-first-decision-plugin-ab/), KAN-31).
 - **On hangar:** tasks with different grader commands run as one experiment. The shared command runs the most
   common one and dispatches the rest on `$HANGAR_TASK`. A suite over hangar's 64 grader files, 1 MB or 4,000-character
   command becomes several experiments instead of being refused. A task with its workspace in `environment/workspace/` and no source repo is
