@@ -92,8 +92,7 @@ benchmark. Never share a sealed set by tag.
 | Limit today | Tracked in |
 | --- | --- |
 | A benchmark has no name, version or digest of its own; the tag and the task digests stand in for them. | [KAN-191](https://seanmkoval.atlassian.net/browse/KAN-191) |
-| Each task needs a hosted repository and a hangar environment. | [KAN-192](https://seanmkoval.atlassian.net/browse/KAN-192) |
-| One grader per experiment: at most 64 files and 1 MB, and one grader command. | [KAN-192](https://seanmkoval.atlassian.net/browse/KAN-192) |
+| Each task needs a hangar environment; its repository can be files it carries, but not its own Dockerfile. | [KAN-192](https://seanmkoval.atlassian.net/browse/KAN-192) |
 | No view of results across runs; `stats` compares two arms of one run set. | [KAN-193](https://seanmkoval.atlassian.net/browse/KAN-193) |
 | hangar queues experiments for the nightly eval window, so a run can wait hours. | [KAN-194](https://seanmkoval.atlassian.net/browse/KAN-194) |
 

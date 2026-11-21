@@ -62,7 +62,7 @@ has none left, so both wait for a new budget ADR.
 | `flightdeck.parquet/v1` | The data plane: one table per kind of record, partitioned by day | `<root>/<table>/dt=YYYY-MM-DD/part-*.parquet`, `<root>` = `FLIGHTDECK_DATA_URI` (private) | `src/flightdeck/dataplane/schema.py`; [Data plane](data-plane.md); columns below |
 | `flightdeck.spec/v1` | Behavior specs and ADR `checks:`: YAML predicates over `hangar.trace/v1` | Team specs in the private data repository; public examples in [`specs/examples/`](https://github.com/Sean-Koval/flightdeck/tree/main/specs/examples) | `src/flightdeck/specs/lang.py`; [Behavior specs](behavior-specs.md) |
 | `flightdeck.weekly/v1` | The weekly team metrics as JSON (and markdown) | `<reports>/weekly/<week>.json`, `<week>.md`, `latest.json`, `<reports>` = `FLIGHTDECK_REPORTS_URI` | [`weekly.schema.json`](https://github.com/Sean-Koval/flightdeck/blob/main/src/flightdeck/metrics/weekly.schema.json); [Data plane](data-plane.md#flightdeckweeklyv1) |
-| `hangar.experiment/v1` spec | What `experiment run` submits: tasks, variants, trials, one grader, budgets | `POST /api/experiments` on hangar | [Running experiments](runners.md) |
+| `hangar.experiment/v1` spec | What `experiment run` submits: graded tasks, variants, trials, budgets | `POST /api/experiments` on hangar | [Running experiments](runners.md) |
 | Report | One markdown comment per experiment, first line `<!-- flightdeck:report:<experiment> -->`, updated in place | The pull request or issue named by `--post` / `--to` | [Reports](reports.md) |
 
 In the private data repository flightdeck also writes `holdouts/manifest.json` and `holdouts/results/<set>.json`

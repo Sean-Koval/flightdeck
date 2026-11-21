@@ -95,12 +95,8 @@ def build_specs(plan: TrialPlan, max_total: int = MAX_TOTAL) -> list[dict[str, A
     per = min(MAX_TASKS, max_total // (v * n))
     if per < 1:
         raise RunnerError(f"{v} variants x {n} trials is over hangar's {max_total} trials per experiment")
-    if lost := [t.id for t in plan.tasks if not (t.flightdeck.get("source") or {}).get("repo")
-                and any(k.startswith("workspace/") for k in t.environment)]:
-        raise RunnerError(f"{', '.join(lost)}: the workspace is in environment/workspace/ and there's no "
-                          "[flightdeck.source] repo, so hangar would run the environment's repo (docs/tasks.md)")
     chunks: list[list[Task]] = [[]]
-    for t in plan.tasks:  # a new experiment when one is full: `per` tasks, or over a grader cap (files, bytes, command)
+    for t in plan.tasks:  # a new experiment when full: `per` tasks, or 16 MB of grader files or workspaces
         c = chunks[-1] + [t]
         try:
             full = len(c) > per or not to_hangar(c)
@@ -109,10 +105,9 @@ def build_specs(plan: TrialPlan, max_total: int = MAX_TOTAL) -> list[dict[str, A
         chunks[-1:] = [chunks[-1], [t]] if full and len(c) > 1 else [c]
     specs = []
     for i, chunk in enumerate(chunks if plan.tasks else []):
-        tasks, grader = to_hangar(chunk)
         spec: dict[str, Any] = {"name": f"{plan.suite}-{plan.suite_run}" + (f"-{i + 1}" if len(chunks) > 1 else ""),
-                                "environment": plan.environment, "tasks": tasks, "variants": plan.variants,
-                                "trials": n, "grader": grader}
+                                "environment": plan.environment, "tasks": to_hangar(chunk), "variants": plan.variants,
+                                "trials": n}
         spec |= {"parallel": plan.parallel} if plan.parallel else {}
         spec |= {"trial_job_budget": {"max_cost_usd": plan.trial_budget_usd}} if plan.trial_budget_usd else {}
         if plan.budget_usd:
