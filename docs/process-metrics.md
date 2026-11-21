@@ -25,6 +25,10 @@ first. A call that writes files, runs the tests and runs the program has all thr
 | `edit` | An `edit` tool, or a shell write: `cat >`, `tee`, `sed -i`, `perl -pi`, `git apply`, python that writes or rewrites a file, a redirect into a source file |
 | `setup` | A shell installing or syncing dependencies (`pip install`, `uv sync`, `npm ci`, `apt-get install`) |
 | `plan` | A `plan` tool |
+| `pr` | Opening, updating, merging or reading a pull request: an MCP tool such as `create_pull_request`, `gh pr view` or `merge`, or `gh api` on `pulls/N` |
+| `ci_wait` | Waiting on CI: an MCP tool such as `actions_list` or `subscribe_pr_activity`, or `gh pr checks`, `gh run watch` or `gh api` on `actions/runs` or `check-runs`. A `sleep` alone is not one |
+| `review` | Reading or answering a review: an MCP tool such as `pull_request_review_write`, or `gh pr review` or `gh api` on `pulls/N/comments` |
+| `tracker` | A Jira or GitHub issue: an MCP tool with `jira` in its name or operation name, an issue tool, `gh issue` or `jira` |
 | `explore` | A `read` or `search` tool, or a shell `ls`, `cat`, `find`, `grep`, `rg`, `head`, `tail`, `wc`, `tree` or `sed -n`. Also a look around: `which`, `--version`, `pip list`, `python -c "import x; print(x.__file__)"` |
 | `verify` | A shell running `python`, `python3` or `node` (not inside quotes, not `-m pytest`, not a look around) |
 | `other` | Anything else |
@@ -32,6 +36,9 @@ first. A call that writes files, runs the tests and runs the program has all thr
 The rules key on `hangar.tool.kind` and `hangar.shell.ops` ([hangar's taxonomy](https://sean-koval.github.io/hangar/api/traces/#normalized-tool-kinds)).
 They read the command text where those don't say enough. A runner counts at a command position: a line or segment start,
 a loop's `do`, or behind wrappers like `uv run --project x`.
+
+The SDLC labels read an MCP tool by the part of its name after the last `__` or `.`. `pull_request_read` goes by
+its `method`. `gh` counts in a polling loop too. A bare `gh pr create` is `vcs` first (hangar's `pr.open`).
 
 hangar clips long inputs, so labels read from text are a lower bound. [Label gold sets](label-gold-sets.md) measure
 how often they are right. `idx` is the call's position in its run, from
@@ -49,6 +56,7 @@ zero. `answer_key_risk` marks a read of a reference implementation.
 | `test_runs`, `failing_test_runs` | Calls with `test` in `labels`. One fails when its call failed or its output shows `FAILED`, `Error` or `Traceback` |
 | `fix_loops` | A failing test run, then an edit, then the next passing test run with `tool_ok` true (the edit may share its call) |
 | `reference_lookups`, `answer_key_reads` | `reference` calls, and reads of an implementation on disk |
+| `pr_steps`, `ci_wait_steps`, `review_steps`, `tracker_steps` | Calls with that SDLC label in `labels` |
 | `trusted_test_runs`, `failing_trusted_test_runs` | hangar's own counted checks (trusted, complete, more than zero tests) |
 | `input_tokens`, `output_tokens`, `cache_read_tokens`, `cost_usd`, `wall_s` | From the run itself |
 
@@ -58,23 +66,12 @@ None of these counts establishes causal credit.
 Exact duplicate rows count once. Two different spans with one identity, or two different run rows, leave that run out.
 Raw tables keep both copies. Missing spans, clipping and forged evidence go undetected; see [integrity limits](research/process-integrity.md).
 
-## Where they came from
+## Moved from this page
 
-They are ported from hangar's `evals/semver` kit, built for its 2026-10-12 harness comparison. That kit parsed pi and
-Antigravity logs; hangar's trace export now does that for every harness. `tests/test_process_metrics.py` checks the views against the kit's `metrics.py` and `classify.rule()` on
-one trial.
-
-### Differences from hangar's kit
-
-- **No LLM call count.** Traces record a run's tokens and cost, not each model call.
-- **Test runs need a runner at a command position.** The kit matched `pytest` or `unittest` anywhere. So
-  `pip install pytest` was a test run, and so was an edit whose path named pytest.
-- **Setup has a label, and a call has every label it earns.** The kit gave one label and called installs `other`.
-- **Plan tools have a label.** The kit called them `other`.
-- **No model labeller.** The kit could also ask a model (Microsoft Decision-1, through OpenRouter) for each label.
-  flightdeck holds no model credentials ([ADR-0001](decisions/0001-boundary-with-hangar.md)). Model labels wait
-  for a calibrated [judge](judges.md).
-- **Wall time** is the run's start to its end, not its first span to its last.
+| Section | Now at |
+| --- | --- |
+| <a id="where-they-came-from"></a>Where they came from | [Where the process metrics came from](process-metrics-origins.md) |
+| <a id="differences-from-hangars-kit"></a>Differences from hangar's kit | [Differences](process-metrics-origins.md#differences-from-hangars-kit) |
 
 ## Next
 
