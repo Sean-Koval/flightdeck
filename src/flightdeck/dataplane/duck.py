@@ -18,6 +18,8 @@ def connect(uri: str) -> duckdb.DuckDBPyConnection:
     caller has set up. Flightdeck itself holds no credentials (ADR-0001).
     """
     con = duckdb.connect()
+    # TimeZone needs icu, which the locked duckdb wheels link in: no download on connect (KAN-280,
+    # tests/test_offline_duckdb.py)
     con.execute("SET TimeZone = 'UTC'")
     base = uri.rstrip("/")
     if base.startswith("gs://") and util.find_spec("gcsfs"):

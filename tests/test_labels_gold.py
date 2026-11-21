@@ -16,7 +16,7 @@ from flightdeck.dataplane.duck import connect
 from flightdeck.metrics.labels import score
 
 GOLD = Path(__file__).parent / "fixtures" / "labels" / "gold_calls.jsonl"
-BASELINE = 0.9  # first-label accuracy of the rules on this set; only goes up
+BASELINE = 0.91  # first-label accuracy of the rules on this set; only goes up
 
 
 def _setup(tmp_path: Path) -> tuple[Path, Path]:
@@ -29,7 +29,8 @@ def _setup(tmp_path: Path) -> tuple[Path, Path]:
 
 
 def test_every_gold_call_is_labelled_and_first_is_in_taxonomy_order() -> None:
-    order = ["reference", "vcs", "test", "edit", "setup", "plan", "explore", "verify", "other"]
+    order = ["reference", "vcs", "test", "edit", "setup", "plan", "pr", "ci_wait", "review", "tracker", "explore",
+             "verify", "other"]
     for c in map(json.loads, GOLD.read_text().splitlines()):
         assert c["label"] == c["labels"][0] and c["labels"] == sorted(c["labels"], key=order.index), c
 
@@ -46,7 +47,7 @@ def test_cli_prints_scores_and_fails_under_min_accuracy(tmp_path: Path) -> None:
     args = ["metrics", "labels", "--gold", str(gold), "--data", str(data)]
     ok = CliRunner().invoke(app, args)
     assert ok.exit_code == 0, ok.output
-    assert ok.output.startswith("40 gold calls, 0 not in the data plane; accuracy ")
+    assert ok.output.startswith("46 gold calls, 0 not in the data plane; accuracy ")
     assert "label\tprecision\trecall\tsupport" in ok.output and "miss\trun-gold\t" in ok.output
     low = CliRunner().invoke(app, [*args, "--min-accuracy", "1"])
     assert low.exit_code == 1
