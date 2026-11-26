@@ -6,6 +6,9 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Regression v1:** `python scripts/mine_regression.py validate|mine` turns the labelled first failures into
+  tasks: the job's base commit, its instruction and the fix's tests, kept only when fail-to-pass holds three times,
+  with digests and every unmined job's reason in `suites/regression-v1.lock.json` ([Mining regression tasks](https://sean-koval.github.io/flightdeck/regression-mining/), KAN-88).
 - **Local runner:** a span's `shell_ops` finds tests in loops and conditions, behind wrapper flags (`uv run --project svc
   pytest`) and in CI scripts (`bash scripts/ci/verify.sh`), and no longer counts `pytest --version` or `--collect-only`
   as a test run. Quoted text and here-documents are not read as commands. Ported unchanged from hangar (KAN-279).
