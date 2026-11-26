@@ -79,6 +79,7 @@ nav:
           - Tasks: tasks.md
           - The two public tasks: task-fixtures.md
           - Importing ai-dlc scenarios: task-import.md
+          - Mining regression tasks: regression-mining.md
           - Share a benchmark: benchmarks.md
           - Holdouts: holdouts.md
           - Knowledge evals: knowledge-evals.md
