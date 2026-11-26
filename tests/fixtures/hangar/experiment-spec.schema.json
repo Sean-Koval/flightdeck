@@ -1,22 +1,9 @@
 {
- "$comment": "Generated from hangar src/hangar/experiments.py ExperimentSpec.model_json_schema() at hangar main 359675a (2026-10-16): the body POST /api/experiments accepts. Pydantic validators beyond the schema (grader files <= 1 MB in all, relative paths, a task needs instructions or an issue, unique task ids) are not in it.",
+ "$comment": "Generated from hangar src/hangar/experiments.py ExperimentSpec.model_json_schema() at hangar main 917bb8b (2026-11-21): the body POST /api/experiments accepts. Pydantic validators beyond the schema (grader files <= 1 MB each and 16 MB across an experiment, a workspace <= 1 MB and 16 MB in all, safe relative paths, a task needs instructions or an issue, a workspace task gives no repo, issue or base_branch, unique task ids, every task has a grader when the experiment has none) are not in it.",
  "$defs": {
   "Budget": {
    "description": "Caps for one agent turn; the turn is stopped (outcome `over_budget`) when it crosses any of them.",
    "properties": {
-    "max_cost_usd": {
-     "anyOf": [
-      {
-       "exclusiveMinimum": 0,
-       "type": "number"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Max Cost Usd"
-    },
     "max_minutes": {
      "anyOf": [
       {
@@ -43,21 +30,49 @@
      ],
      "default": null,
      "title": "Max Tokens"
+    },
+    "max_cost_usd": {
+     "anyOf": [
+      {
+       "exclusiveMinimum": 0,
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Cost Usd"
     }
    },
    "title": "Budget",
    "type": "object"
   },
-  "Grader": {
-   "additionalProperties": false,
-   "description": "A command run outside the agent's sandbox after each trial: in a clean, sealed sandbox, on the trial's\npatch. `files` (the hidden tests) go to `$HANGAR_HIDDEN_TESTS`, outside the repo (`files_mode: pristine`), or\ninto the repo as before (`in_repo`, recorded as `trust: low`). `network`: `none` (nothing), or `mirror` (hangar's\nread-only package mirror, when it is on, for a grader that installs packages).",
+  "ContextItem": {
+   "description": "One piece of context handed to the agent as a file (or, for `url`, a link listed in the prompt).",
    "properties": {
-    "canary": {
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "kind": {
+     "default": "text",
+     "enum": [
+      "text",
+      "file",
+      "log",
+      "issue",
+      "diff",
+      "url",
+      "patch",
+      "bundle"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "content": {
      "anyOf": [
       {
-       "maxLength": 200,
-       "minLength": 16,
-       "pattern": "^[A-Za-z0-9._:-]+$",
        "type": "string"
       },
       {
@@ -65,13 +80,167 @@
       }
      ],
      "default": null,
-     "title": "Canary"
+     "title": "Content"
     },
+    "encoding": {
+     "default": "utf-8",
+     "enum": [
+      "utf-8",
+      "base64"
+     ],
+     "title": "Encoding",
+     "type": "string"
+    },
+    "url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Url"
+    },
+    "untrusted": {
+     "default": false,
+     "title": "Untrusted",
+     "type": "boolean"
+    },
+    "base_commit": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Base Commit"
+    }
+   },
+   "required": [
+    "name"
+   ],
+   "title": "ContextItem",
+   "type": "object"
+  },
+  "ForkSpec": {
+   "additionalProperties": false,
+   "description": "--- #179: an experiment that forks a recorded run (forks.py): each trial replays `run`'s tape to `at_seq` in a\nreplay sandbox (replay.py), then goes live (`continuations` > 0) or stops (`replay-strict`).",
+   "properties": {
+    "run": {
+     "pattern": "^ses-[0-9a-f]{8}\\.run-[0-9a-f]{8}$",
+     "title": "Run",
+     "type": "string"
+    },
+    "at_seq": {
+     "minimum": 0,
+     "title": "At Seq",
+     "type": "integer"
+    },
+    "mode": {
+     "default": "replay-prefix",
+     "enum": [
+      "replay-prefix",
+      "replay-strict"
+     ],
+     "title": "Mode",
+     "type": "string"
+    },
+    "on_divergence": {
+     "default": "stop",
+     "enum": [
+      "stop",
+      "live"
+     ],
+     "title": "On Divergence",
+     "type": "string"
+    },
+    "continuations": {
+     "default": 1,
+     "maximum": 20,
+     "minimum": 0,
+     "title": "Continuations",
+     "type": "integer"
+    },
+    "tainted": {
+     "default": false,
+     "title": "Tainted",
+     "type": "boolean"
+    },
+    "harness_digest": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Harness Digest"
+    },
+    "pin_set": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Pin Set"
+    },
+    "purpose": {
+     "default": "fork",
+     "enum": [
+      "fork",
+      "determinism"
+     ],
+     "title": "Purpose",
+     "type": "string"
+    },
+    "tolerate": {
+     "anyOf": [
+      {
+       "const": "tool",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Tolerate"
+    }
+   },
+   "required": [
+    "run",
+    "at_seq"
+   ],
+   "title": "ForkSpec",
+   "type": "object"
+  },
+  "Grader": {
+   "additionalProperties": false,
+   "description": "A command run outside the agent's sandbox after each trial: in a clean, sealed sandbox, on the trial's\npatch. `files` (the hidden tests) go to `$HANGAR_HIDDEN_TESTS`, outside the repo (`files_mode: pristine`), or\ninto the repo as before (`in_repo`, recorded as `trust: low`). `network`: `none` (nothing), or `mirror` (hangar's\nread-only package mirror, when it is on, for a grader that installs packages).",
+   "properties": {
     "command": {
      "maxLength": 4000,
      "minLength": 1,
      "title": "Command",
      "type": "string"
+    },
+    "timeout_seconds": {
+     "default": 900,
+     "maximum": 3600,
+     "minimum": 30,
+     "title": "Timeout Seconds",
+     "type": "integer"
     },
     "files": {
      "additionalProperties": {
@@ -99,12 +268,20 @@
      "title": "Network",
      "type": "string"
     },
-    "timeout_seconds": {
-     "default": 900,
-     "maximum": 3600,
-     "minimum": 30,
-     "title": "Timeout Seconds",
-     "type": "integer"
+    "canary": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "minLength": 16,
+       "pattern": "^[A-Za-z0-9._:-]+$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Canary"
     }
    },
    "required": [
@@ -198,32 +375,6 @@
    "additionalProperties": false,
    "description": "A prompt with its repo, or a GitHub issue (`owner/repo#N`, whose text goes to the agent as untrusted\ncontext).",
    "properties": {
-    "base_branch": {
-     "anyOf": [
-      {
-       "maxLength": 200,
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Base Branch"
-    },
-    "base_sha": {
-     "anyOf": [
-      {
-       "pattern": "^[0-9a-f]{40}$",
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Base Sha"
-    },
     "id": {
      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$",
      "title": "Id",
@@ -255,19 +406,6 @@
      "default": null,
      "title": "Issue"
     },
-    "reference_patch": {
-     "anyOf": [
-      {
-       "maxLength": 1048576,
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Reference Patch"
-    },
     "repo": {
      "anyOf": [
       {
@@ -280,6 +418,45 @@
      ],
      "default": null,
      "title": "Repo"
+    },
+    "base_branch": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Base Branch"
+    },
+    "base_sha": {
+     "anyOf": [
+      {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Base Sha"
+    },
+    "verify": {
+     "anyOf": [
+      {
+       "maxLength": 2000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Verify"
     },
     "title": {
      "anyOf": [
@@ -294,10 +471,10 @@
      "default": null,
      "title": "Title"
     },
-    "verify": {
+    "reference_patch": {
      "anyOf": [
       {
-       "maxLength": 2000,
+       "maxLength": 1048576,
        "type": "string"
       },
       {
@@ -305,7 +482,50 @@
       }
      ],
      "default": null,
-     "title": "Verify"
+     "title": "Reference Patch"
+    },
+    "context": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/ContextItem"
+       },
+       "maxItems": 20,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Context"
+    },
+    "grader": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Grader"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "workspace": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "type": "string"
+       },
+       "maxProperties": 500,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Workspace"
     }
    },
    "required": [
@@ -316,8 +536,60 @@
   },
   "Variant": {
    "additionalProperties": false,
-   "description": "An environment plus an overlay. Unset fields are the experiment's (then the environment's).\n\nThe only overlay on an environment (spec 0014 \u00a74). `skills` has the semantics an environment's `skills` has under\n`extends` (#132): the whole set, `[]` for none; `skills_remove` drops named ones. It gains no new fields: once\nharness locks exist (#133) a variant shrinks to `{harness: name@sha256, environment}` (#135).",
+   "description": "An environment plus a harness: `{harness_lock: name@sha256:..., environment}` (#135), or the deprecated overlay.\n\n`harness_lock` names a lock in the harness registry by its digest (a channel or revision could move between two\ntrials); every trial is claimed from it (#134) and its turn 1 checked against it. It excludes the overlay fields:\nthe lock already fixes the harness, its CLI version, the concrete model, approvals, skills and instructions.\n\nThe overlay (deprecated, spec 0014 \u00a74) is the experiment's (then the environment's) unset fields plus: `skills`\nwith the semantics an environment's `skills` has under `extends` (#132), the whole set, `[]` for none;\n`skills_remove` drops named ones. `hangar experiment freeze-variants EXP` turns an overlay experiment into locks.",
    "properties": {
+    "environment": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Environment"
+    },
+    "harness_lock": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "pattern": "^[a-z0-9][a-z0-9._-]{0,62}@sha256:[0-9a-f]{64}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Harness Lock"
+    },
+    "harness": {
+     "anyOf": [
+      {
+       "maxLength": 80,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Harness"
+    },
+    "model": {
+     "anyOf": [
+      {
+       "maxLength": 200,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model"
+    },
     "approvals": {
      "anyOf": [
       {
@@ -333,70 +605,6 @@
      ],
      "default": null,
      "title": "Approvals"
-    },
-    "environment": {
-     "anyOf": [
-      {
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Environment"
-    },
-    "harness": {
-     "anyOf": [
-      {
-       "maxLength": 80,
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Harness"
-    },
-    "instructions": {
-     "anyOf": [
-      {
-       "maxLength": 64000,
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Instructions"
-    },
-    "instructions_append": {
-     "anyOf": [
-      {
-       "maxLength": 64000,
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Instructions Append"
-    },
-    "model": {
-     "anyOf": [
-      {
-       "maxLength": 200,
-       "type": "string"
-      },
-      {
-       "type": "null"
-      }
-     ],
-     "default": null,
-     "title": "Model"
     },
     "skills": {
      "anyOf": [
@@ -429,6 +637,32 @@
      ],
      "default": null,
      "title": "Skills Remove"
+    },
+    "instructions": {
+     "anyOf": [
+      {
+       "maxLength": 64000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Instructions"
+    },
+    "instructions_append": {
+     "anyOf": [
+      {
+       "maxLength": 64000,
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Instructions Append"
     }
    },
    "title": "Variant",
@@ -437,31 +671,15 @@
  },
  "additionalProperties": false,
  "properties": {
-  "budget": {
-   "anyOf": [
-    {
-     "$ref": "#/$defs/JobBudget"
-    },
-    {
-     "type": "null"
-    }
-   ],
-   "default": null
+  "name": {
+   "maxLength": 100,
+   "minLength": 1,
+   "title": "Name",
+   "type": "string"
   },
   "environment": {
    "title": "Environment",
    "type": "string"
-  },
-  "grader": {
-   "anyOf": [
-    {
-     "$ref": "#/$defs/Grader"
-    },
-    {
-     "type": "null"
-    }
-   ],
-   "default": null
   },
   "harness": {
    "anyOf": [
@@ -475,13 +693,6 @@
    "default": null,
    "title": "Harness"
   },
-  "keep_minutes": {
-   "default": 30,
-   "maximum": 1440,
-   "minimum": 0,
-   "title": "Keep Minutes",
-   "type": "integer"
-  },
   "model": {
    "anyOf": [
     {
@@ -493,26 +704,6 @@
    ],
    "default": null,
    "title": "Model"
-  },
-  "name": {
-   "maxLength": 100,
-   "minLength": 1,
-   "title": "Name",
-   "type": "string"
-  },
-  "parallel": {
-   "anyOf": [
-    {
-     "maximum": 64,
-     "minimum": 1,
-     "type": "integer"
-    },
-    {
-     "type": "null"
-    }
-   ],
-   "default": null,
-   "title": "Parallel"
   },
   "provider": {
    "anyOf": [
@@ -535,10 +726,26 @@
    "title": "Tasks",
    "type": "array"
   },
-  "timeout_minutes": {
+  "variants": {
+   "additionalProperties": {
+    "$ref": "#/$defs/Variant"
+   },
+   "maxProperties": 8,
+   "minProperties": 1,
+   "title": "Variants",
+   "type": "object"
+  },
+  "trials": {
+   "default": 1,
+   "maximum": 20,
+   "minimum": 1,
+   "title": "Trials",
+   "type": "integer"
+  },
+  "parallel": {
    "anyOf": [
     {
-     "maximum": 720,
+     "maximum": 64,
      "minimum": 1,
      "type": "integer"
     },
@@ -547,7 +754,7 @@
     }
    ],
    "default": null,
-   "title": "Timeout Minutes"
+   "title": "Parallel"
   },
   "trial_budget": {
    "anyOf": [
@@ -571,26 +778,134 @@
    ],
    "default": null
   },
-  "trials": {
-   "default": 1,
-   "maximum": 20,
-   "minimum": 1,
-   "title": "Trials",
-   "type": "integer"
+  "budget": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/JobBudget"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
   },
-  "variants": {
-   "additionalProperties": {
-    "$ref": "#/$defs/Variant"
-   },
-   "maxProperties": 8,
-   "minProperties": 1,
-   "title": "Variants",
-   "type": "object"
+  "timeout_minutes": {
+   "anyOf": [
+    {
+     "maximum": 720,
+     "minimum": 1,
+     "type": "integer"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Timeout Minutes"
   },
   "verify_in_loop": {
    "default": false,
    "title": "Verify In Loop",
    "type": "boolean"
+  },
+  "keep_minutes": {
+   "default": 30,
+   "maximum": 1440,
+   "minimum": 0,
+   "title": "Keep Minutes",
+   "type": "integer"
+  },
+  "grader": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/Grader"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  },
+  "pin_sets": {
+   "anyOf": [
+    {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Pin Sets"
+  },
+  "source": {
+   "default": "experiment",
+   "enum": [
+    "experiment",
+    "shadow"
+   ],
+   "title": "Source",
+   "type": "string"
+  },
+  "task_digests": {
+   "anyOf": [
+    {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Task Digests"
+  },
+  "cache_record": {
+   "default": true,
+   "title": "Cache Record",
+   "type": "boolean"
+  },
+  "shadow_of": {
+   "anyOf": [
+    {
+     "maxLength": 40,
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Shadow Of"
+  },
+  "author": {
+   "anyOf": [
+    {
+     "maxLength": 100,
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "title": "Author"
+  },
+  "fork": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/ForkSpec"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
   }
  },
  "required": [

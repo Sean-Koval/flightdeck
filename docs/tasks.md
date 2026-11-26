@@ -87,18 +87,17 @@ it, so a changed hidden test is always a deliberate, reviewed edit.
 
 ## On hangar
 
-`to_hangar(tasks)` builds a `hangar.experiment/v1` spec's `tasks` and its one `grader` (hangar `experiments.py`).
-Each task's tests go into `Grader.files` as `<id>/tests/...`. The command starts
-`cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK"`, its task's pristine copy.
-
-Grader commands may differ: one shared command `eval`s each task's own, by a `case` on `$HANGAR_TASK`.
+`to_hangar(tasks)` builds a `hangar.experiment/v1` spec's `tasks`, each with its own `grader` (hangar
+`experiments.py`). A task's tests go into its `Grader.files` as `tests/...`, and its command starts
+`cd "$HANGAR_HIDDEN_TESTS"`, its pristine copy. So each task runs its own grader command as written.
 
 Ids match `^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$` (longer ones get a stable short form). Instructions take 64,000
-characters, a reference patch 1 MB. A grader takes 64 text files, 1 MB, a 4,000-character command. A larger
-suite is split ([Runners](runners.md)); one task over a cap is refused.
+characters, a reference patch 1 MB. A task's grader takes 64 text files, 1 MB and a 4,000-character command; a task
+over one is refused. An experiment takes 16 MB of grader files, so a larger suite is split ([Runners](runners.md)).
 
-A task with `environment/workspace/` and no `[flightdeck.source] repo` is refused: hangar would run the
-environment's repo.
+A task with `environment/workspace/` and no `[flightdeck.source] repo` sends those files as its `workspace`: up to 500
+text files and 1 MB. hangar commits them and clones that commit in place of a repo, so the task sets no `issue`,
+`base_branch` or `base_sha`. A `.git` or non-NFC name is refused. This needs a hangar with KAN-192's task workspaces.
 
 hangar runs the grader in a sealed sandbox (no credential, egress `none`), writes the files outside the repo and adds
 a canary comment to each. A `test.sh` command is recorded as `trust: low`, since hangar can only vouch for its own
