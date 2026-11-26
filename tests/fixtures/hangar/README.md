@@ -8,7 +8,7 @@ Synthetic. No team data (docs/decisions/0002-public-code-private-data.md).
 | `trace_job.json` | hangar's `hangar.traces.job_export` on a synthetic job: one turn, an untrusted in-turn `pytest --collect-only` (`test.run`, trusted false, total 0), hangar's trusted verify run, delivery, PR and merge |
 | `trace_semver.json` | `tests/test_process_metrics.py` (`python tests/test_process_metrics.py` rewrites it): one pi trial of the semver smoke task, in hangar's documented `hangar.trace/v1` shape, with tool kinds and shell ops from `ported/hangar_traces.py` |
 | `manifest_turn.json`, `experiment_index.json` | written by hand to hangar's `docs/api/manifest.schema.json` and `docs/api/experiment.schema.json`, and validated by the tests against the vendored copies in `src/flightdeck/dataplane/hangar_schemas/` (refreshed by `scripts/sync_hangar_schemas.py`) |
-| `experiment-spec.schema.json` | `ExperimentSpec.model_json_schema()` from hangar `src/hangar/experiments.py` at main `359675a`: the body `POST /api/experiments` accepts (its `$comment` lists the validators the schema can't express) |
+| `experiment-spec.schema.json` | `ExperimentSpec.model_json_schema()` from hangar `src/hangar/experiments.py` at main `917bb8b`: the body `POST /api/experiments` accepts (its `$comment` lists the validators the schema can't express) |
 
 Regenerate the traces from a hangar checkout when `hangar.trace/v1` gains fields; keep names and URLs synthetic
 (`example`, `dev-a`).

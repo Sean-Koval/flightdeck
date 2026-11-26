@@ -10,17 +10,16 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import shlex
 import tomllib
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-MAX_GRADER_FILES = 1024 * 1024  # hangar experiments.MAX_GRADER_FILES: a grader's files, all together
-MAX_GRADER_COUNT = 64  # hangar experiments.Grader.files: at most 64 files
-MAX_INSTRUCTIONS = 64_000  # hangar experiments.Task.instructions
-MAX_COMMAND = 4000  # hangar experiments.Grader.command
-MAX_REFERENCE_PATCH = 1024 * 1024  # hangar experiments.MAX_REFERENCE_PATCH
+MAX_GRADER_FILES = MAX_REFERENCE_PATCH = 1024 * 1024  # hangar experiments: a grader's files, all together; a patch
+MAX_GRADER_COUNT, MAX_WORKSPACE_FILES = 64, 500  # hangar Grader.files; MAX_WORKSPACE_FILES (1 MB, as a grader's)
+MAX_INSTRUCTIONS, MAX_COMMAND = 64_000, 4000  # hangar Task.instructions, Grader.command
+GITDIR = re.compile(r"(^|/)(\.git|git~\d+)[. ]*(/|$)|[\x00-\x1f\x7f]", re.I)  # hangar workspaces.path_error
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$")  # hangar experiments.NAME: task ids
 SHA = re.compile(r"^[0-9a-f]{40}$")
 SKIP = {"__pycache__", ".DS_Store", ".pytest_cache"}
@@ -159,12 +158,10 @@ def hangar_id(task: Task) -> str:
     return f"{stem}-{hashlib.sha256(task.id.encode()).hexdigest()[:8]}"
 
 
-def to_hangar(tasks: list[Task]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """`hangar.experiment/v1` tasks and the one grader they share (hangar's experiment has a single grader).
-
-    Each task's tests go to `<id>/tests/...` in `Grader.files`; the command runs the task's own command from
-    `$HANGAR_HIDDEN_TESTS/<id>`, the task's pristine copy, chosen by `$HANGAR_TASK`."""
-    out, files, commands, timeout = [], {}, {}, 30
+def to_hangar(tasks: list[Task]) -> list[dict[str, Any]]:
+    """`hangar.experiment/v1` tasks, each with its own grader (KAN-192): its tests under `tests/`, run from its pristine
+    `$HANGAR_HIDDEN_TESTS`. Without a source repo, `environment/workspace/` goes as the `workspace` hangar commits."""
+    out: list[dict[str, Any]] = []
     for t in tasks:
         hid, src = hangar_id(t), t.flightdeck.get("source") or {}
         if any(x["id"] == hid for x in out):
@@ -179,30 +176,37 @@ def to_hangar(tasks: list[Task]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
             if ref.stat().st_size > MAX_REFERENCE_PATCH:
                 raise TaskError(f"task {t.id}: solution/reference.patch is over hangar's 1 MB")
             item["reference_patch"] = ref.read_text(encoding="utf-8")
+        files = _text(t, "tests/", {f"tests/{k}": v for k, v in t.tests.items()}, MAX_GRADER_COUNT, MAX_GRADER_FILES)
+        if len(cmd := f'cd "$HANGAR_HIDDEN_TESTS" && {t.grader.get("command") or DEFAULT_COMMAND}') > MAX_COMMAND:
+            raise CapError(f"task {t.id}: the grader command is {len(cmd):,} characters; hangar takes {MAX_COMMAND:,}")
+        timeout = int((t.config.get("verifier") or {}).get("timeout_sec") or 600)
+        item["grader"] = {"command": cmd, "timeout_seconds": min(max(timeout, 30), 3600), "files": files}
+        if (ws := {k[10:]: v for k, v in t.environment.items() if k.startswith("workspace/")}) and not src.get("repo"):
+            if bad := ", ".join(k for k in ("issue", "base_branch", "base_sha") if src.get(k)):
+                raise TaskError(f"task {t.id}: environment/workspace/ is its repo; [flightdeck.source] also sets {bad}")
+            if bad := next((k for k in ws if GITDIR.search(k) or unicodedata.normalize("NFC", k) != k), ""):
+                raise TaskError(f"task {t.id}: environment/workspace/{bad}: hangar takes no .git, control or NFD name")
+            item["workspace"] = _text(t, "environment/workspace/", ws, MAX_WORKSPACE_FILES, MAX_GRADER_FILES)
         out.append(item)
-        for rel, data in t.tests.items():
-            try:
-                files[f"{hid}/tests/{rel}"] = data.decode("utf-8")
-            except UnicodeDecodeError:
-                raise TaskError(f"task {t.id}: tests/{rel} is binary; hangar's grader files are text") from None
-        commands[hid] = t.grader.get("command") or DEFAULT_COMMAND
-        timeout = max(timeout, int((t.config.get("verifier") or {}).get("timeout_sec") or 600))
-    if len(files) > MAX_GRADER_COUNT:
-        raise CapError(f"the tests are {len(files)} files; hangar's grader takes at most {MAX_GRADER_COUNT}")
-    if (size := sum(len(v.encode()) for v in files.values())) > MAX_GRADER_FILES:
-        raise CapError(f"the tests total {size:,} bytes; hangar's grader takes at most 1 MB in all (MAX_GRADER_FILES)")
-    # hangar runs one grader command per experiment (KAN-192). Tasks whose commands differ share one: the most common
-    # command, and a `case` on `$HANGAR_TASK` that `eval`s each other task's own, quoted so it runs as written.
-    common = max(dict.fromkeys(vals := list(commands.values()) or [DEFAULT_COMMAND]), key=vals.count)
-    arms = "".join(f"{k}) eval {shlex.quote(c)} ;; " for k, c in commands.items() if c != common)
-    run = f'case "$HANGAR_TASK" in {arms}*) eval {shlex.quote(common)} ;; esac' if arms else common
-    if len(cmd := f'cd "$HANGAR_HIDDEN_TESTS/$HANGAR_TASK" && {run}') > MAX_COMMAND:
-        raise CapError(f"the grader command is {len(cmd):,} characters; hangar takes at most {MAX_COMMAND:,}")
-    return out, {"command": cmd, "timeout_seconds": min(timeout, 3600), "files": files}
+    graders = sum(len(v.encode()) for x in out for v in x["grader"]["files"].values())
+    if max(graders, sum(len(v.encode()) for x in out for v in x.get("workspace", {}).values())) > 16 * MAX_GRADER_FILES:
+        raise CapError("the tasks' grader files or workspaces are over hangar's 16 MB per experiment")
+    return out
 
 
-def to_hangar_task(task: Task) -> tuple[dict[str, Any], dict[str, Any]]:
-    """One task as hangar's `Task` and `Grader` (experiments.py `Task{id, instructions, repo, base_sha, verify}`,
-    `Grader{command, files}`)."""
-    tasks, grader = to_hangar([task])
-    return tasks[0], grader
+def _text(t: Task, where: str, files: dict[str, bytes], count: int, size: int) -> dict[str, str]:
+    """Files as text, within hangar's caps on one task's grader or workspace (a CapError names which)."""
+    try:
+        text = {k: v.decode("utf-8") for k, v in files.items()}
+    except UnicodeDecodeError:
+        raise TaskError(f"task {t.id}: a file in {where} is binary; hangar takes text") from None
+    if len(text) > count:
+        raise CapError(f"task {t.id}: {where} has {len(text)} files; hangar takes at most {count}")
+    if (n := sum(len(v.encode()) for v in text.values())) > size:
+        raise CapError(f"task {t.id}: {where} totals {n:,} bytes; hangar takes at most 1 MB (MAX_GRADER_FILES)")
+    return text
+
+
+def to_hangar_task(task: Task) -> dict[str, Any]:
+    """One task as hangar's `Task`, with its own `grader` and, without a repo, its `workspace` (experiments.py)."""
+    return to_hangar([task])[0]

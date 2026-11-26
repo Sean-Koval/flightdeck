@@ -71,7 +71,7 @@ class Hangar:
                    "state": "done", "outcome": "succeeded", "started_at": time.time(), "finished_at": time.time(),
                    "manifests": [], "config_digest": None, "verify": None, "stored": [], "drift": [], "links": {},
                    "usage": {"cost_usd": 0.25, "model": spec["variants"][v].get("model")},
-                   "grade": {"command": spec["grader"]["command"], "exit_code": 0, "data": {"reward": 1}}}
+                   "grade": {"command": t["grader"]["command"], "exit_code": 0, "data": {"reward": 1}}}
                   for t in spec["tasks"] for v in spec["variants"] for i in range(1, spec["trials"] + 1)]
         return {**base, "state": "succeeded", "pins": pins, "counts": {"done": n}, "trials": trials}
 
@@ -290,38 +290,41 @@ def _many(tmp_path: Path, count: int, tests_per_task: int, commands: int = 1, pa
 
 def test_thirty_tasks_with_different_grader_commands_run_as_one_experiment(tmp_path: Path) -> None:
     plan = TrialPlan("mixed", _many(tmp_path, 30, 2, commands=3), {"a": {}, "b": {}}, 3, "bare", budget_usd=90)
-    [spec] = build_specs(plan)  # KAN-192's acceptance: one experiment, 60 grader files, three commands
+    [spec] = build_specs(plan)  # KAN-192's acceptance: one experiment, each task with its own grader
     jsonschema.validate(spec, SPEC_SCHEMA)
-    assert len(spec["grader"]["files"]) == 60 and spec["grader"]["command"].count(" eval ") == 21
+    assert "grader" not in spec and all(len(t["grader"]["files"]) == 2 for t in spec["tasks"])
+    assert len({t["grader"]["command"] for t in spec["tasks"]}) == 3
 
 
-def test_plans_over_hangars_grader_file_cap_split_into_experiments_that_each_fit(tmp_path: Path) -> None:
-    plan = TrialPlan("big", _many(tmp_path, 40, 3), {"a": {}}, 1, "bare", budget_usd=40)
-    specs = build_specs(plan)  # 120 grader files: hangar takes 64 per experiment
-    assert [len(s["tasks"]) for s in specs] == [21, 19] and all(len(s["grader"]["files"]) <= 64 for s in specs)
-    assert [s["budget"]["max_cost_usd"] for s in specs] == [21.0, 19.0]
-    for s in specs:
+def test_plans_over_hangars_16_mb_of_grader_files_split_into_experiments_that_each_fit(tmp_path: Path) -> None:
+    [one] = build_specs(TrialPlan("many", _many(tmp_path / "m", 40, 3), {"a": {}}, 1, "bare"))
+    assert len(one["tasks"]) == 40  # 120 grader files: the 64-file cap is per task now (KAN-192)
+    plan = TrialPlan("big", _many(tmp_path / "b", 17, 1, pad=1_000_000), {"a": {}}, 1, "bare", budget_usd=17)
+    specs = build_specs(plan)  # about 1 MB of grader files each: hangar takes 16 MB per experiment
+    assert [len(s["tasks"]) for s in specs] == [16, 1] and [s["budget"]["max_cost_usd"] for s in specs] == [16.0, 1.0]
+    for s in [one, *specs]:
         jsonschema.validate(s, SPEC_SCHEMA)
 
 
-def test_plans_over_hangars_grader_bytes_or_command_cap_split_and_a_task_over_a_cap_alone_is_refused(
-    tmp_path: Path,
-) -> None:
+def test_hangars_grader_caps_hold_per_task_and_a_task_over_one_is_refused(tmp_path: Path) -> None:
     heavy = build_specs(TrialPlan("heavy", _many(tmp_path / "h", 5, 1, pad=400_000), {"a": {}}, 1, "bare"))
-    assert [len(s["tasks"]) for s in heavy] == [2, 2, 1]  # 400 KB each: hangar takes 1 MB per experiment
+    assert [len(s["tasks"]) for s in heavy] == [5]  # 400 KB each: hangar's 1 MB is per task now (KAN-192)
     own = build_specs(TrialPlan("own", _many(tmp_path / "o", 100, 1, commands=100), {"a": {}}, 1, "bare"))
-    assert sum(len(s["tasks"]) for s in own) == 100 and len(own) > 1  # one command each: over 4,000 characters
-    assert all(len(s["grader"]["command"]) <= 4000 for s in own)
+    assert [len(s["tasks"]) for s in own] == [100]  # one command each, no shared command to outgrow
     for s in heavy + own:
         jsonschema.validate(s, SPEC_SCHEMA)
+    with pytest.raises(TaskError, match="1 MB"):
+        build_specs(TrialPlan("fat", _many(tmp_path / "f", 1, 1, pad=1_100_000), {"a": {}}, 1, "bare"))
     with pytest.raises(TaskError, match="at most 64"):
         build_specs(TrialPlan("wide", _many(tmp_path / "w", 1, 70), {"a": {}}, 1, "bare"))
     assert build_specs(TrialPlan("none", [], {"a": {}}, 1, "bare", budget_usd=10)) == []
 
 
-def test_a_task_with_its_workspace_inside_and_no_repo_is_refused_for_hangar() -> None:
+def test_a_task_with_its_workspace_inside_and_no_repo_sends_it_as_files() -> None:
     from flightdeck.tasks.format import load_task
 
     csv = load_task(ROOT / "tasks" / "fixtures" / "csv-validator")  # a workspace inside, no source repo
-    with pytest.raises(RunnerError, match="csv-validator: the workspace is in environment/workspace/"):
-        build_specs(TrialPlan("csv", [csv], {"a": {}}, 1, "bare"))
+    [spec] = build_specs(TrialPlan("csv", [csv], {"a": {}}, 1, "bare"))  # KAN-192: hangar commits the files
+    jsonschema.validate(spec, SPEC_SCHEMA)
+    [task] = spec["tasks"]
+    assert "repo" not in task and "csvcheck/validate.py" in task["workspace"]

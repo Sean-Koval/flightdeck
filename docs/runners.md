@@ -32,7 +32,7 @@ count; `GET /api/experiments/{id}` returns the `hangar.experiment/v1` index.
 refuses subscription logins for experiments and owns API keys and their spend caps.
 
 hangar caps one experiment at 100 tasks, 8 variants, 20 trials per task and variant, and 200 trials in all
-(`HANGAR_EXPERIMENT_MAX_TRIALS`). Its grader takes 64 files, 1 MB and a 4,000-character command. A larger plan becomes several experiments
+(`HANGAR_EXPERIMENT_MAX_TRIALS`). Grader files and workspaces take 16 MB each. A larger plan becomes several experiments
 named `<suite>-<suite_run>-<i>`. Their ids joined by `+` are the run-set id, and the plan's `budget_usd` is split
 between them by task count.
 
@@ -68,7 +68,7 @@ variants:               # hangar's Variant: harness[@version], model, approvals,
   codex: {harness: codex@0.162.1, model: gpt-6.1-sol}
 ```
 
-The tasks become the experiment's tasks and its one grader ([Tasks](tasks.md#on-hangar)).
+The tasks become the experiment's tasks, each with its own grader ([Tasks](tasks.md#on-hangar)).
 
 ## Collecting
 

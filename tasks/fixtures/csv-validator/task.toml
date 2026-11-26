@@ -32,7 +32,7 @@ sealed = false
 environment = "bare"  # the hangar environment trials run in; environment/Dockerfile is the local runner's
 
 [flightdeck.source]
-# No repo: on hangar, set `repo` and `base_sha` to a repository holding environment/workspace/ (docs/tasks.md).
+# No repo: on hangar, environment/workspace/ goes as the task's files, committed in place of one (docs/tasks.md).
 
 [flightdeck.grader]
 command = "bash tests/test.sh"
