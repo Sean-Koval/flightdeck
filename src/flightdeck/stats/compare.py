@@ -26,13 +26,14 @@ def load_trials(con: duckdb.DuckDBPyConnection, exp_id: str) -> list[dict[str, A
     have = {r[0] for r in con.execute("select table_name from information_schema.tables").fetchall()}
     reuse = ("select run_id, min(age_days) as age from trial_reuse where experiment_id = ? group by 1"
              if "trial_reuse" in have else "select null::varchar as run_id, null::double as age where ? is null")
-    rel = con.execute(f"with u as ({reuse}) select r.* exclude (started_at, finished_at), epoch(r.finished_at) as "
-                      "finished_epoch, epoch(r.finished_at) - epoch(r.started_at) as wall_s, g.exit_code as "
-                      "grade_exit, g.applied as grade_applied, g.command as grade_command, (select case when count(*) "
-                      "> 0 then count(*) filter (s.kind = 'tool.call') end from spans s where s.run_id = r.run_id) as "
-                      "tool_calls, u.age as reused_age_days from runs r left join grades g using (run_id) left join u "
-                      f"using (run_id) where r.experiment_id in ({', '.join('?' * len(ids))}) or u.run_id is not null "
-                      "qualify row_number() over (partition by r.run_id) = 1 order by task_id, variant, trial",
+    rel = con.execute(f"with u as ({reuse}), c as (select run_id, count(*) filter (kind = 'tool.call') as tool_calls, "
+                      "count(*) filter (tool_input_clipped) as clipped_calls from spans group by run_id) select r.* "
+                      "exclude (started_at, finished_at), epoch(r.finished_at) as finished_epoch, epoch(r.finished_at) "
+                      "- epoch(r.started_at) as wall_s, g.exit_code as grade_exit, g.applied as grade_applied, "
+                      "g.command as grade_command, c.tool_calls, c.clipped_calls, u.age as reused_age_days from runs r "
+                      "left join grades g using (run_id) left join c using (run_id) left join u using (run_id) where "
+                      f"r.experiment_id in ({', '.join('?' * len(ids))}) or u.run_id is not null qualify row_number() "
+                      "over (partition by r.run_id) = 1 order by task_id, variant, trial",
                       [exp_id, *ids])
     cols = [d[0] for d in rel.description]
     return [dict(zip(cols, row, strict=True)) for row in rel.fetchall()]

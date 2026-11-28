@@ -6,6 +6,11 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
 
 ## Unreleased
 
+- **Data plane:** the new `spans.tool_input_clipped` column carries hangar's `hangar.tool.input_clipped`. A call whose
+  input hangar cut to its 200-character preview counts in the new `process_metrics.clipped_calls`, and the report says how many
+  trials had one. Still `flightdeck.parquet/v1`: a data plane written before a column was added still opens, and
+  that column reads as null ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-274).
+
 ## v1.0.0-rc.1: the suite 1.0 release candidate
 
 The release candidate for suite 1.0 (KAN-141, KAN-239). It carries everything merged since v0.1.0.

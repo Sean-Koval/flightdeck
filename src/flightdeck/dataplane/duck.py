@@ -28,12 +28,11 @@ def connect(uri: str) -> duckdb.DuckDBPyConnection:
         con.execute("INSTALL httpfs; LOAD httpfs;")
     for name in ALL:
         glob = f"{base}/{name}/dt=*/*.parquet"
-        if con.execute("select count(*) from glob(?)", [glob]).fetchone() == (0,):
-            if name not in DERIVED:  # derived tables (spec_results) stay absent until written, so readers can tell
-                con.register(name, to_table(name, []))
-            continue
-        con.execute(
-            f"create view {name} as select * from read_parquet('{glob}', hive_partitioning=true, union_by_name=true)"
-        )
+        files = con.execute("select count(*) from glob(?)", [glob]).fetchone() != (0,)
+        if files or name not in DERIVED:  # derived tables (spec_results) stay absent until written, so readers can tell
+            # every v1 column, typed: one a file predates reads as null (KAN-274); `dt` stays the path's
+            con.register(f"{name}_v1", to_table(name, []))
+            rp = f" union all by name select * from read_parquet('{glob}', hive_partitioning=true, union_by_name=true)"
+            con.execute(f"create view {name} as select * {'exclude (dt) ' * files}from {name}_v1{rp * files}")
     con.execute(resources.files("flightdeck.metrics").joinpath("process.sql").read_text(encoding="utf-8"))
     return con
