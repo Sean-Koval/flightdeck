@@ -27,9 +27,12 @@ def versions(root: Path = ROOT) -> dict[str, str]:
 
 
 def section(version: str, root: Path = ROOT) -> str | None:
-    """The body of CHANGELOG.md's `## v<version>` section, or None."""
+    """The body of CHANGELOG.md's `## v<version>` section, or None.
+
+    `v1.0.0` does not match `## v1.0.0-rc.1`: a final tag needs its own section, not the candidate's.
+    """
     text = (root / "CHANGELOG.md").read_text()
-    m = re.search(rf"^## v{re.escape(version)}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    m = re.search(rf"^## v{re.escape(version)}(?![\w.-])[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
     return m.group(1).strip() if m else None
 
 

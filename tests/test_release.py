@@ -50,3 +50,11 @@ def test_a_bump_without_a_changelog_section_fails(tmp_path: Path) -> None:
     py = root / "pyproject.toml"
     py.write_text(py.read_text().replace(f'version = "{flightdeck.__version__}"', 'version = "0.9.0"'))
     assert release_check.check("v0.9.0", root)[0] == ["CHANGELOG.md has no '## v0.9.0' section"]
+
+
+def test_a_final_tag_does_not_take_the_release_candidates_section(tmp_path: Path) -> None:
+    root = _copy(tmp_path)
+    log = root / "CHANGELOG.md"
+    log.write_text("# Changelog\n\n## Unreleased\n\n## v1.0.0-rc.1: the candidate\n\n- A change.\n")
+    assert release_check.section("1.0.0", root) is None
+    assert release_check.section("1.0.0-rc.1", root) == "- A change."

@@ -10,6 +10,17 @@ checklist ([agent-factory: Releasing](https://sean-koval.github.io/agent-factory
   input hangar cut to its 200-character preview counts in the new `process_metrics.clipped_calls`, and the report says how many
   trials had one. Still `flightdeck.parquet/v1`: a data plane written before a column was added still opens, and
   that column reads as null ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-274).
+
+## v1.0.0-rc.1: the suite 1.0 release candidate
+
+The release candidate for suite 1.0 (KAN-141, KAN-239). It carries everything merged since v0.1.0.
+
+- **Metrics:** step labels mark SDLC steps (`pr`, `ci_wait`, `review`, `tracker`) from MCP tool names and `gh`, and
+  `process_metrics` counts them as `pr_steps`, `ci_wait_steps`, `review_steps` and `tracker_steps`
+  ([Process metrics](https://sean-koval.github.io/flightdeck/process-metrics/), KAN-359).
+- **Setup:** `uv run python scripts/flightdeck_doctor.py setup` makes a private data plane and `~/.flightdeck/env` on
+  a new laptop; without `setup` it checks the laptop and prints the fix for each failure
+  ([Getting started](https://sean-koval.github.io/flightdeck/getting-started/), KAN-360).
 - **Regression v1:** `python scripts/mine_regression.py validate|mine` turns the labelled first failures into
   tasks: the job's base commit, its instruction and the fix's tests, kept only when fail-to-pass holds three times,
   with digests and every unmined job's reason in `suites/regression-v1.lock.json` ([Mining regression tasks](https://sean-koval.github.io/flightdeck/regression-mining/), KAN-88).
